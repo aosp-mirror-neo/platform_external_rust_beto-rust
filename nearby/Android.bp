@@ -173,6 +173,9 @@ java_library_static {
     required: [
         "libukey2_jni_shared",
     ],
+    optimize: {
+        proguard_flags_files: ["proguard.flags"],
+    },
 }
 
 rust_library_rlib {
