@@ -100,6 +100,7 @@ rust_library_rlib {
         "librand-0.8",
         "libukey2_proto",
         "libukey2_rs",
+        "libthiserror",
     ],
 }
 
@@ -140,9 +141,11 @@ rust_library_rlib {
     srcs: ["connections/ukey2/ukey2_proto/src/lib.rs"],
     features: [
         "default",
+        "soong",
     ],
     rustlibs: [
         "libprotobuf",
+        "libukey2_all_proto",
     ],
 }
 
@@ -188,7 +191,6 @@ rust_library_rlib {
         "libldt_np_adv",
         "libldt",
         "libnp_hkdf",
-        "libnp_ed25519",
         "libxts_aes",
         "libcrypto_provider",
         "libstrum",
@@ -196,6 +198,8 @@ rust_library_rlib {
         "liblazy_static",
         "libsink",
         "libtinyvec",
+        "libthiserror",
+        "libitertools",
     ],
     proc_macros: [
         "libstrum_macros",
@@ -254,19 +258,6 @@ rust_library_rlib {
         "libcrypto_provider",
         "libldt",
         "libxts_aes",
-    ],
-}
-
-rust_library_rlib {
-    name: "libnp_ed25519",
-    crate_name: "np_ed25519",
-    defaults: ["beto_rust_defaults"],
-    srcs: ["presence/np_ed25519/src/lib.rs"],
-    rustlibs: [
-        "libarray_view",
-        "libcrypto_provider",
-        "libsink",
-        "libtinyvec",
     ],
 }
 

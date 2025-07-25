@@ -1,0 +1,145 @@
+package {
+    // See: http://go/android-license-faq
+    // A large-scale-change added 'default_applicable_licenses' to import
+    // all of the 'license_kinds' from "external_rust_beto-rust_license"
+    // to get the below license kinds:
+    //   legacy_unencumbered
+    //   SPDX-license-identifier-Apache-2.0
+    //   SPDX-license-identifier-Unlicense
+    default_visibility: [":__subpackages__"],
+    default_applicable_licenses: ["external_rust_beto-rust_license"],
+}
+
+rust_library_rlib {
+    name: "libcrdt",
+    crate_name: "crdt",
+    defaults: ["beto_rust_defaults"],
+    srcs: ["submerge/crdt/src/lib.rs"],
+    features: [
+        "default",
+        "proto",
+        "testing",
+    ],
+    rustlibs: [
+        "libarbitrary",
+        "libserde",
+        "libthiserror",
+        "libsubmerge_internal_proto",
+        "libdistributed_time",
+    ],
+    proc_macros: [
+        "libderive_where",
+    ],
+}
+
+rust_library_rlib {
+    name: "libsubmerge_internal_proto",
+    crate_name: "submerge_internal_proto",
+    defaults: ["beto_rust_defaults"],
+    srcs: ["submerge/submerge_internal_proto/src/lib.rs"],
+    features: [
+        "default",
+    ],
+    rustlibs: [
+        "libprotobuf",
+        "libthiserror",
+        "libsubmerge_internal_proto_proto",
+    ],
+}
+
+rust_protobuf {
+    name: "libsubmerge_internal_proto_proto",
+    crate_name: "submerge_internal_proto_proto",
+    protos: ["submerge/submerge_internal_proto/proto/submerge.proto"],
+    source_stem: "submerge_internal_proto_proto",
+    host_supported: true,
+}
+
+rust_library_rlib {
+    name: "libdistributed_time",
+    crate_name: "distributed_time",
+    defaults: ["beto_rust_defaults"],
+    srcs: ["submerge/distributed_time/src/lib.rs"],
+    features: [
+        "default",
+        "proto",
+    ],
+    rustlibs: [
+        "libarbitrary",
+        "libserde",
+        "libthiserror",
+        "libnum_traits",
+        "libsubmerge_internal_proto",
+    ],
+    proc_macros: [
+        "libderive_where",
+    ],
+}
+
+rust_library_rlib {
+    name: "libsubmerge",
+    crate_name: "submerge",
+    defaults: ["beto_rust_defaults"],
+    srcs: ["submerge/submerge/src/lib.rs"],
+    features: [
+        "default",
+        "proto",
+    ],
+    rustlibs: [
+        "libcrdt",
+        "libsubmerge_internal_proto",
+        "libdistributed_time",
+        "libserde",
+        "libprotobuf",
+        "libarbitrary",
+        "libthiserror",
+        "liblog_rust",
+    ],
+    proc_macros: [
+        "libderive_where",
+    ],
+}
+
+rust_ffi_shared {
+    name: "submerge_java_shared",
+    stem: "libsubmerge_java",
+    crate_name: "submerge_java",
+    defaults: ["beto_rust_defaults"],
+    srcs: ["submerge/submerge_java/src/lib.rs"],
+    features: [
+        "default",
+    ],
+    rlibs: [
+        "libsubmerge",
+        "libcrdt",
+        "libdistributed_time",
+        "libarbitrary",
+        "libthiserror",
+        "liblog_rust",
+        "libjni",
+        "libprotobuf",
+        "libpourover",
+        "libhandle_map",
+        "libparking_lot",
+        "libanyhow",
+    ],
+    compile_multilib: "first",
+}
+
+java_library_static {
+    name: "submerge_java",
+    srcs: [
+        "submerge/submerge_java/lib/src/main/java/**/*.java",
+    ],
+    host_supported: true,
+    static_libs: [
+        "androidx.annotation_annotation",
+        "coorporative_cleaner",
+        "error_prone_annotations",
+        "jsr305",
+    ],
+    visibility: ["//visibility:public"],
+    required: [
+        "submerge_java_shared",
+    ],
+}
