@@ -16,9 +16,16 @@ FROM ubuntu:22.04
 
 # install system deps
 RUN apt-get update && apt-get install -y build-essential wget vim libstdc++-10-dev \
-clang git checkinstall zlib1g-dev curl protobuf-compiler cmake \
-pkg-config libdbus-1-dev ninja-build libssl-dev default-jre
+git checkinstall zlib1g-dev curl protobuf-compiler cmake \
+pkg-config libdbus-1-dev ninja-build libssl-dev default-jre default-jdk \
+lsb-release wget software-properties-common gnupg clang
 RUN apt upgrade -y
+
+# Install node and npm following official instructions : https://github.com/nodesource/distributions/blob/master/README.md
+RUN apt purge -y nodejs && apt autoremove
+RUN curl -fsSL https://deb.nodesource.com/setup_18.x -o nodesource_setup.sh
+RUN bash nodesource_setup.sh
+RUN apt install -y nodejs
 
 RUN wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
 RUN apt-get -y install ./google-chrome-stable_current_amd64.deb
@@ -28,12 +35,12 @@ ENV CC=/usr/bin/clang
 ENV CXX=/usr/bin/clang++
 
 # install cargo with default settings
-RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain 1.77.1
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 ENV PATH="/root/.cargo/bin:${PATH}"
-RUN rustup install stable
-RUN rustup toolchain install nightly --force
-RUN rustup component add rust-src --toolchain nightly-x86_64-unknown-linux-gnu
-RUN rustup target add wasm32-unknown-unknown thumbv7m-none-eabi
+RUN rustup toolchain install 1.79.0 --component llvm-tools-preview
+RUN rustup toolchain install nightly-2024-09-03 --component rust-src --force
+RUN rustup target add wasm32-unknown-unknown # used by np_web
+RUN rustup target add thumbv7m-none-eabi
 
 RUN cargo install --locked cargo-deny --color never 2>&1
 RUN cargo install --locked cargo-llvm-cov --color never 2>&1
@@ -70,4 +77,4 @@ RUN cargo prefetch --lockfile common/Cargo.lock 2>&1
 
 # when the image runs build and test everything to ensure env is setup correctly
 WORKDIR /beto-core/nearby
-CMD ["cargo", "run", "--", "check-everything"]
+CMD ["cargo", "run", "--", "run-all-checks"]

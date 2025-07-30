@@ -621,7 +621,7 @@ DeserializedV1IdentityKind DeserializedV1Section::GetIdentityKind() const {
       section_);
 }
 
-absl::StatusOr<V1DataElement> DeserializedV1Section::TryGetDataElement(
+absl::StatusOr<GenericV1DataElement> DeserializedV1Section::TryGetDataElement(
     const uint8_t index) const {
   auto result =
       np_ffi::internal::np_ffi_DeserializedV1Section_get_de(section_, index);
@@ -632,7 +632,7 @@ absl::StatusOr<V1DataElement> DeserializedV1Section::TryGetDataElement(
           "Invalid data element index for this section");
     }
     case np_ffi::internal::GetV1DEResultKind::Success: {
-      return V1DataElement(
+      return GenericV1DataElement(
           np_ffi::internal::np_ffi_GetV1DEResult_into_SUCCESS(result));
     }
   }
@@ -667,10 +667,13 @@ DeserializedV1Section::GetIdentityDetails() const {
 }
 
 absl::StatusOr<std::array<uint8_t, DERIVED_SALT_SIZE>>
-DeserializedV1Section::DeriveSaltForOffset(const uint8_t offset) const {
+DeserializedV1Section::DeriveSaltForDeType(const uint32_t de_type) const {
+  np_ffi::internal::V1DEType detype;
+  detype.code = de_type;
+
   auto result = np_ffi::internal::
-      np_ffi_DeserializedV1Section_derive_16_byte_salt_for_offset(
-          this->section_, offset);
+      np_ffi_DeserializedV1Section_derive_16_byte_salt_for_de_type(
+          this->section_, detype);
   auto kind = np_ffi::internal::np_ffi_GetV1DE16ByteSaltResult_kind(result);
   switch (kind) {
     case np_ffi::internal::GetV1DE16ByteSaltResultKind::Error: {
@@ -684,22 +687,13 @@ DeserializedV1Section::DeriveSaltForOffset(const uint8_t offset) const {
   }
 }
 
-uint32_t V1DataElement::GetDataElementTypeCode() const {
+uint32_t GenericV1DataElement::GetDataElementTypeCode() const {
   return np_ffi::internal::np_ffi_V1DEType_to_uint32_t(
-      np_ffi::internal::np_ffi_V1DataElement_to_generic(this->v1_data_element_)
-          .de_type);
+      this->v1_data_element_.de_type);
 }
 
-ByteBuffer<MAX_V1_DE_PAYLOAD_SIZE> V1DataElement::GetPayload() const {
-  return ByteBuffer(
-      np_ffi::internal::np_ffi_V1DataElement_to_generic(this->v1_data_element_)
-          .payload);
-}
-
-uint8_t V1DataElement::GetOffset() const {
-  return np_ffi::internal::np_ffi_V1DataElement_to_generic(
-             this->v1_data_element_)
-      .offset;
+ByteBuffer<MAX_V1_DE_PAYLOAD_SIZE> GenericV1DataElement::GetPayload() const {
+  return ByteBuffer(this->v1_data_element_.payload);
 }
 
 MatchedCredentialData::MatchedCredentialData(
@@ -717,25 +711,24 @@ V0MatchableCredential::V0MatchableCredential(
     const std::array<uint8_t, 32> legacy_metadata_key_hmac,
     const MatchedCredentialData matched_credential_data) {
   np_ffi::internal::V0DiscoveryCredential discovery_cred{};
-  CopyToRawArray(discovery_cred.key_seed, key_seed);
+  CopyToRawArray(discovery_cred.key_seed._0, key_seed);
   CopyToRawArray(discovery_cred.identity_token_hmac, legacy_metadata_key_hmac);
   this->internal_ = {discovery_cred, matched_credential_data.data_};
 }
 
 V1MatchableCredential::V1MatchableCredential(
-    const std::array<uint8_t, 32> key_seed,
-    const std::array<uint8_t, 32>
+    std::array<uint8_t, KEY_SEED_SIZE> key_seed,
+    std::array<uint8_t, HMAC_TAG_SIZE>
+        expected_mic_short_salt_identity_token_hmac,
+    std::array<uint8_t, HMAC_TAG_SIZE>
         expected_mic_extended_salt_identity_token_hmac,
-    const std::array<uint8_t, 32> expected_signature_identity_token_hmac,
-    const std::array<uint8_t, 32> pub_key,
-    const MatchedCredentialData matched_credential_data) {
+    MatchedCredentialData matched_credential_data) {
   np_ffi::internal::V1DiscoveryCredential discovery_cred{};
-  CopyToRawArray(discovery_cred.key_seed, key_seed);
+  CopyToRawArray(discovery_cred.key_seed._0, key_seed);
+  CopyToRawArray(discovery_cred.expected_mic_short_salt_identity_token_hmac,
+                 expected_mic_short_salt_identity_token_hmac);
   CopyToRawArray(discovery_cred.expected_mic_extended_salt_identity_token_hmac,
                  expected_mic_extended_salt_identity_token_hmac);
-  CopyToRawArray(discovery_cred.expected_signature_identity_token_hmac,
-                 expected_signature_identity_token_hmac);
-  CopyToRawArray(discovery_cred.pub_key, pub_key);
   this->internal_ = {discovery_cred, matched_credential_data.data_};
 }
 

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#![allow(clippy::unwrap_used, clippy::indexing_slicing)]
+#![allow(clippy::unwrap_used, clippy::indexing_slicing, missing_docs)]
 
 use anyhow::anyhow;
 use crypto_provider_default::CryptoProviderImpl;

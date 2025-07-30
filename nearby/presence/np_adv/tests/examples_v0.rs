@@ -11,7 +11,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#![allow(clippy::unwrap_used, clippy::expect_used, clippy::indexing_slicing, clippy::panic)]
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::indexing_slicing,
+    clippy::panic,
+    missing_docs
+)]
 
 use crypto_provider_default::CryptoProviderImpl;
 use ldt_np_adv::*;

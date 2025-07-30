@@ -19,14 +19,12 @@ plugins {
   kotlin("jvm") version "1.9.0"
 }
 
-kotlin {
-  jvmToolchain {
-    languageVersion.set(JavaLanguageVersion.of("17"))
-  }
-}
-
 group = "com.google.android.gms.nearby.presence.hazmat"
 version = "1.0-SNAPSHOT"
+
+kotlin {
+  jvmToolchain(11)
+}
 
 repositories {
   mavenCentral()

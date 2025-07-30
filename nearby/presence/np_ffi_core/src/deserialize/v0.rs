@@ -21,7 +21,7 @@ use crate::deserialize::{
 };
 use crate::utils::{FfiEnum, LocksLongerThan};
 use crate::v0::V0DataElement;
-use crypto_provider_default::CryptoProviderImpl;
+use crate::CryptoProviderImpl;
 use handle_map::{declare_handle_map, HandleLike, HandleMapFullError};
 use np_adv::credential::matched::HasIdentityMatch;
 use np_adv::legacy;
@@ -184,24 +184,27 @@ pub enum DeserializedV0IdentityKind {
 pub struct DeserializedV0IdentityDetails {
     /// The ID of the credential which
     /// matched the deserialized adv
-    cred_id: u32,
+    cred_id: i64,
     /// The 14-byte legacy identity token
     identity_token: [u8; 14],
     /// The 2-byte advertisement salt
     salt: [u8; 2],
+    /// The 32-byte key seed.
+    key_seed: [u8; 32],
 }
 
 impl DeserializedV0IdentityDetails {
     pub(crate) fn new(
-        cred_id: u32,
+        cred_id: i64,
         salt: ldt_np_adv::V0Salt,
         identity_token: ldt_np_adv::V0IdentityToken,
+        key_seed: [u8; 32],
     ) -> Self {
         let salt = salt.bytes();
-        Self { cred_id, salt, identity_token: identity_token.bytes() }
+        Self { cred_id, salt, identity_token: identity_token.bytes(), key_seed }
     }
     /// Returns the ID of the credential which matched the deserialized adv
-    pub fn cred_id(&self) -> u32 {
+    pub fn cred_id(&self) -> i64 {
         self.cred_id
     }
     /// Returns the 14-byte legacy metadata key
@@ -211,6 +214,11 @@ impl DeserializedV0IdentityDetails {
     /// Returns the 2-byte advertisement salt
     pub fn salt(&self) -> [u8; 2] {
         self.salt
+    }
+
+    /// Returns the 32-byte key seed used to decrypt the advertisement.
+    pub fn key_seed(&self) -> [u8; 32] {
+        self.key_seed
     }
 }
 
@@ -278,7 +286,8 @@ impl DeserializedV0IdentityInternals {
     ) -> Self {
         let cred_id = match_data.matched_credential().id();
         let identity_token = match_data.contents();
-        let details = DeserializedV0IdentityDetails::new(cred_id, salt, *identity_token);
+        let key_seed = match_data.matched_credential().key_seed();
+        let details = DeserializedV0IdentityDetails::new(cred_id, salt, *identity_token, key_seed);
         Self { details, match_data }
     }
     /// Gets the directly-transmissible details about
@@ -337,12 +346,7 @@ pub struct V0Payload {
     handle_id: u64,
 }
 
-declare_handle_map!(
-    v0_payload,
-    crate::common::default_handle_map_dimensions(),
-    super::V0Payload,
-    super::V0PayloadInternals
-);
+declare_handle_map!(crate::common::default_handle_map_dimensions(), V0Payload, V0PayloadInternals);
 
 use super::DeserializeAdvertisementError;
 

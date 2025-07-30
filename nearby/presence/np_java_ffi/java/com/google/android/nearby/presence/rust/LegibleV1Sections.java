@@ -17,25 +17,69 @@
 package com.google.android.nearby.presence.rust;
 
 import androidx.annotation.Nullable;
-import java.lang.ref.Cleaner;
+import com.google.android.cooperativecleaner.CooperativeCleaner;
+import com.google.android.nearby.presence.rust.credential.CredentialBook;
+import java.util.Arrays;
 
 /** Internal handle for a V1 deserialized advertisement. */
+@UsedByNative
 public final class LegibleV1Sections extends OwnedHandle {
 
-  static {
-    System.loadLibrary(NpAdv.LIBRARY_NAME);
+  /** Internal data class to pass identity data back from native code. */
+  @UsedByNative
+  public static final class IdentityDetails {
+    @VerificationMode private final int verificationMode;
+
+    /**
+     * @see com.google.android.nearby.presence.rust.credential.CredentialBook.Builder
+     */
+    private final int credentialId;
+
+    private final byte[] identityToken;
+
+    private final byte[] keySeed;
+
+    @UsedByNative
+    public IdentityDetails(
+        @VerificationMode int verificationMode,
+        int credentialId,
+        byte[] identityToken,
+        byte[] keySeed) {
+      this.verificationMode = verificationMode;
+      this.credentialId = credentialId;
+      this.identityToken = Arrays.copyOf(identityToken, identityToken.length);
+      this.keySeed = Arrays.copyOf(keySeed, keySeed.length);
+    }
+
+    @VerificationMode
+    public int getVerificationMode() {
+      return verificationMode;
+    }
+
+    public int getCredentialId() {
+      return credentialId;
+    }
+
+    public byte[] getIdentityToken() {
+      return identityToken;
+    }
+
+    public byte[] getKeySeed() {
+      return keySeed;
+    }
   }
 
   /**
    * Create a LegibleV1Sections handle from the raw handle id. This will use the default cleaner
    * form {@code NpAdv#getCleaner()}. This is expected to be called from native code.
    */
-  /* package-visible */ LegibleV1Sections(long handleId) {
+  @UsedByNative
+  /* package */ LegibleV1Sections(long handleId) {
     this(handleId, NpAdv.getCleaner());
   }
 
   /** Create a LegibleV1Sections handle from the raw handle id. */
-  /* package-visible */ LegibleV1Sections(long handleId, Cleaner cleaner) {
+  private LegibleV1Sections(long handleId, CooperativeCleaner cleaner) {
     super(handleId, cleaner, LegibleV1Sections::deallocate);
   }
 
@@ -46,8 +90,9 @@ public final class LegibleV1Sections extends OwnedHandle {
    * @throws IndexOutOfBoundsException if the given index is out of range for this advertisement
    * @return The section at that index
    */
-  public DeserializedV1Section getSection(int index) {
-    DeserializedV1Section section = nativeGetSection(index);
+  public <M extends CredentialBook.MatchedMetadata> DeserializedV1Section<M> getSection(
+      int index, CredentialBook<M> credentialBook) {
+    DeserializedV1Section<M> section = nativeGetSection(index, credentialBook);
     if (section == null) {
       throw new IndexOutOfBoundsException();
     }
@@ -62,8 +107,8 @@ public final class LegibleV1Sections extends OwnedHandle {
    * @throws IndexOutOfBoundsException if either index is out of range for this advertisement
    * @return The data element found at {@code deIndex} in the section at {@code sectionIndex}
    */
-  public V1DataElement getSectionDataElement(int sectionIndex, int deIndex) {
-    V1DataElement de = nativeGetSectionDataElement(sectionIndex, deIndex);
+  public V1DataElement.Generic getSectionDataElement(int sectionIndex, int deIndex) {
+    V1DataElement.Generic de = nativeGetSectionDataElement(sectionIndex, deIndex);
     if (de == null) {
       throw new IndexOutOfBoundsException();
     }
@@ -71,10 +116,27 @@ public final class LegibleV1Sections extends OwnedHandle {
   }
 
   @Nullable
-  private native DeserializedV1Section nativeGetSection(int index);
+  public IdentityDetails getSectionIdentityDetails(int sectionIndex) {
+    return nativeGetSectionIdentityDetails(sectionIndex);
+  }
 
   @Nullable
-  private native V1DataElement nativeGetSectionDataElement(int sectionIndex, int deIndex);
+  public byte[] getSectionDecryptedMetadata(int sectionIndex) {
+    return nativeGetSectionDecryptedMetadata(sectionIndex);
+  }
+
+  @Nullable
+  private native <M extends CredentialBook.MatchedMetadata>
+      DeserializedV1Section<M> nativeGetSection(int index, CredentialBook<M> credentialBook);
+
+  @Nullable
+  private native V1DataElement.Generic nativeGetSectionDataElement(int sectionIndex, int deIndex);
+
+  @Nullable
+  private native IdentityDetails nativeGetSectionIdentityDetails(int sectionIndex);
+
+  @Nullable
+  private native byte[] nativeGetSectionDecryptedMetadata(int sectionIndex);
 
   private static native void deallocate(long handleId);
 }

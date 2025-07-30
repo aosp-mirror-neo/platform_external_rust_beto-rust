@@ -89,9 +89,9 @@ where
     B: CredentialBook<'cred>,
     P: CryptoProvider,
 {
-    match IntermediateAdvContents::deserialize::<P>(encoding, remaining)? {
+    match IntermediateAdvContents::deserialize(encoding, remaining)? {
         IntermediateAdvContents::Unencrypted(p) => Ok(V0AdvertisementContents::Plaintext(p)),
-        IntermediateAdvContents::Ldt(c) => {
+        IntermediateAdvContents::Ldt(mut c) => {
             for (crypto_material, matched) in cred_book.v0_iter() {
                 let ldt = crypto_material.ldt_adv_cipher::<P>();
                 match c.try_decrypt(&ldt) {

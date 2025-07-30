@@ -14,6 +14,7 @@
 
 //! Salt used in a V1 advertisement.
 use crate::np_salt_hkdf;
+use core::cmp::Ordering;
 use crypto_provider::{hkdf::Hkdf, CryptoProvider, CryptoRng, FromCryptoRng};
 
 /// Length of a V1 extended salt
@@ -29,29 +30,21 @@ pub struct ExtendedV1Salt {
 }
 
 impl ExtendedV1Salt {
-    /// Derive a salt for a particular DE, if applicable.
+    /// Derive a salt for a particular DE, or for a section's encoder implementation
+    /// (`OptionDeType::NONE`).
     ///
-    /// Returns none if the requested size is larger than HKDF allows or if offset arithmetic
-    /// overflows.
+    /// Returns `None` if the requested size is larger than HKDF allows (8192 bytes).
     pub fn derive<const N: usize, C: CryptoProvider>(
         &self,
-        de: Option<DataElementOffset>,
+        maybe_de_type: OptionDeType,
     ) -> Option<[u8; N]> {
         let hkdf = np_salt_hkdf::<C>(&self.data);
         let mut arr = [0_u8; N];
-        // 0-based offsets -> 1-based indices w/ 0 indicating not present
-        hkdf.expand_multi_info(
-            &[
-                b"V1 derived salt",
-                &de.and_then(|d| d.offset.checked_add(1))
-                    .map(|o| o.into())
-                    .unwrap_or(0_u32)
-                    .to_be_bytes(),
-            ],
-            &mut arr,
-        )
-        .map(|_| arr)
-        .ok()
+        // `OptionDeType` uses `FORBIDDEN_DE_TYPE_CODE` for `None`, which matches the method
+        // contract against the advertisement specification correctly.
+        hkdf.expand_multi_info(&[b"V1 derived salt", &maybe_de_type.code.to_le_bytes()], &mut arr)
+            .map(|_| arr)
+            .ok()
     }
 
     /// Returns the salt bytes as a slice
@@ -82,32 +75,122 @@ impl FromCryptoRng for ExtendedV1Salt {
     }
 }
 
-/// Offset of a data element in its containing section, used with [ExtendedV1Salt].
-#[derive(PartialEq, Eq, Debug, Clone, Copy, PartialOrd, Ord)]
-pub struct DataElementOffset {
-    /// 0-based offset of the DE in the advertisement
-    offset: u8,
+/// Error type indicating that a value used in an
+/// attempt to construct a [`DeType`] is
+/// a forbidden value out of the range of
+/// allowable DE type codes.
+#[derive(Debug)]
+pub struct InvalidDeType;
+
+/// Reserved `u32` which may not be employed for data element
+/// type codes, but is employed in deriving section-level
+/// salts used for e.g: MIC encrypted sections.
+pub const FORBIDDEN_DE_TYPE_CODE: u32 = 0xFFFFFFFF;
+
+/// Minimal-size representation of an `Option<DeType>`, exploiting
+/// the [`FORBIDDEN_DE_TYPE_CODE`] as a niche to store `None` in.
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+pub struct OptionDeType {
+    code: u32,
 }
 
-impl DataElementOffset {
-    /// The zero offset
-    pub const ZERO: DataElementOffset = Self { offset: 0 };
+impl OptionDeType {
+    /// [`OptionDeType`] corresponding to `Option::None`.
+    pub const NONE: Self = Self { code: FORBIDDEN_DE_TYPE_CODE };
+}
 
-    /// Returns the offset as a usize
-    pub fn as_u8(&self) -> u8 {
-        self.offset
-    }
-
-    /// Returns the next offset.
-    ///
-    /// Does not handle overflow as there can't be more than 2^8 DEs in a section.
-    pub const fn incremented(&self) -> Self {
-        Self { offset: self.offset + 1 }
+impl Default for OptionDeType {
+    fn default() -> Self {
+        Self::NONE
     }
 }
 
-impl From<u8> for DataElementOffset {
-    fn from(num: u8) -> Self {
-        Self { offset: num }
+impl From<DeType> for OptionDeType {
+    fn from(de_type: DeType) -> Self {
+        Self { code: de_type.code }
+    }
+}
+
+impl From<Option<DeType>> for OptionDeType {
+    fn from(maybe_de_type: Option<DeType>) -> Self {
+        maybe_de_type.map(OptionDeType::from).unwrap_or(Self::NONE)
+    }
+}
+
+impl From<OptionDeType> for Option<DeType> {
+    fn from(option_de_type: OptionDeType) -> Self {
+        if option_de_type.code == FORBIDDEN_DE_TYPE_CODE {
+            None
+        } else {
+            Some(DeType { code: option_de_type.code })
+        }
+    }
+}
+
+impl PartialOrd for OptionDeType {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for OptionDeType {
+    fn cmp(&self, other: &Self) -> Ordering {
+        match (self.code, other.code) {
+            (FORBIDDEN_DE_TYPE_CODE, FORBIDDEN_DE_TYPE_CODE) => Ordering::Equal,
+            (_, FORBIDDEN_DE_TYPE_CODE) => Ordering::Greater,
+            (FORBIDDEN_DE_TYPE_CODE, _) => Ordering::Less,
+            (my_de_type, other_de_type) => my_de_type.cmp(&other_de_type),
+        }
+    }
+}
+
+/// Data element types for extended advertisements
+#[derive(Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Clone, Copy)]
+pub struct DeType {
+    // 4 billion type codes should be enough for anybody
+    code: u32,
+}
+
+impl DeType {
+    /// A `const` equivalent to `From<u32>` since trait methods can't yet be const.
+    pub const fn const_from(value: u32) -> Self {
+        if value == FORBIDDEN_DE_TYPE_CODE {
+            panic!("Invalid DeType.");
+        }
+        Self { code: value }
+    }
+
+    /// Returns the type as a u32
+    pub fn as_u32(&self) -> u32 {
+        self.code
+    }
+}
+
+impl From<u8> for DeType {
+    fn from(value: u8) -> Self {
+        DeType { code: value.into() }
+    }
+}
+
+impl From<u16> for DeType {
+    fn from(value: u16) -> Self {
+        DeType { code: value.into() }
+    }
+}
+
+impl TryFrom<u32> for DeType {
+    type Error = InvalidDeType;
+    fn try_from(value: u32) -> Result<Self, Self::Error> {
+        if value == FORBIDDEN_DE_TYPE_CODE {
+            Err(InvalidDeType)
+        } else {
+            Ok(DeType { code: value })
+        }
+    }
+}
+
+impl From<DeType> for u32 {
+    fn from(value: DeType) -> Self {
+        value.code
     }
 }

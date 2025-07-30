@@ -15,19 +15,51 @@
 
 use crate::common::*;
 use crate::utils::{FfiEnum, LocksLongerThan};
-use crypto_provider::{ed25519, CryptoProvider};
-use crypto_provider_default::CryptoProviderImpl;
+use crate::CryptoProviderImpl;
+use crypto_provider::ed25519;
 use handle_map::{declare_handle_map, HandleLike, HandleMapFullError, HandleMapTryAllocateError};
-use np_adv::extended;
+use np_adv::{
+    credential::{metadata, v0::V0, v1::V1},
+    extended,
+};
+
 use std::sync::Arc;
 
-type Ed25519ProviderImpl = <CryptoProviderImpl as CryptoProvider>::Ed25519;
+/// 32 byte key seed used in both V0 and V1 credentials.
+#[cfg_attr(any(test, feature = "testing"), derive(arbitrary::Arbitrary))]
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
+pub struct KeySeed([u8; 32]);
 
+impl From<[u8; 32]> for KeySeed {
+    fn from(value: [u8; 32]) -> Self {
+        Self(value)
+    }
+}
+
+impl KeySeed {
+    /// Returns a reference to the inner byte array
+    pub fn bytes(&self) -> &[u8; 32] {
+        &self.0
+    }
+
+    /// Returns the inner byte array
+    pub const fn into_bytes(self) -> [u8; 32] {
+        self.0
+    }
+
+    /// Returns the key seed as a slice
+    pub fn as_slice(&self) -> &[u8] {
+        &self.0
+    }
+}
 /// Cryptographic information about a particular V0 discovery credential
 /// necessary to match and decrypt encrypted V0 advertisements.
+#[cfg_attr(any(test, feature = "testing"), derive(Clone, Debug, arbitrary::Arbitrary))]
 #[repr(C)]
 pub struct V0DiscoveryCredential {
-    key_seed: [u8; 32],
+    /// Key seed returned to clients for discovery credential mapping.
+    pub key_seed: KeySeed,
     identity_token_hmac: [u8; 32],
 }
 
@@ -35,53 +67,48 @@ impl V0DiscoveryCredential {
     /// Constructs a new V0 discovery credential with the given 32-byte key-seed
     /// and the given 32-byte HMAC for the (14-byte) legacy metadata key.
     pub fn new(key_seed: [u8; 32], identity_token_hmac: [u8; 32]) -> Self {
-        Self { key_seed, identity_token_hmac }
+        Self { key_seed: KeySeed(key_seed), identity_token_hmac }
     }
     fn into_internal(self) -> np_adv::credential::v0::V0DiscoveryCredential {
-        np_adv::credential::v0::V0DiscoveryCredential::new(self.key_seed, self.identity_token_hmac)
+        np_adv::credential::v0::V0DiscoveryCredential::new(
+            self.key_seed.into_bytes(),
+            self.identity_token_hmac,
+        )
     }
 }
 
 /// Cryptographic information about a particular V1 discovery credential
 /// necessary to match and decrypt encrypted V1 advertisement sections.
+#[cfg_attr(any(test, feature = "testing"), derive(Clone, Debug, arbitrary::Arbitrary))]
 #[repr(C)]
 pub struct V1DiscoveryCredential {
-    key_seed: [u8; 32],
+    /// Key seed returned to clients for discovery credential mapping.
+    pub key_seed: KeySeed,
     expected_mic_short_salt_identity_token_hmac: [u8; 32],
     expected_mic_extended_salt_identity_token_hmac: [u8; 32],
-    expected_signature_identity_token_hmac: [u8; 32],
-    pub_key: [u8; 32],
 }
 
 impl V1DiscoveryCredential {
-    /// Constructs a new V1 discovery credential with the given 32-byte key-seed,
-    /// unsigned-variant HMAC of the metadata key, the signed-variant HMAC of
-    /// the metadata key, and the given public key for signature verification.
+    /// Constructs a new V1 discovery credential with the given 32-byte key-seed
+    /// and the MIC HMACs of the metadata key.
     pub fn new(
         key_seed: [u8; 32],
         expected_mic_short_salt_identity_token_hmac: [u8; 32],
         expected_mic_extended_salt_identity_token_hmac: [u8; 32],
-        expected_signature_identity_token_hmac: [u8; 32],
-        pub_key: [u8; 32],
     ) -> Self {
         Self {
-            key_seed,
+            key_seed: KeySeed(key_seed),
             expected_mic_short_salt_identity_token_hmac,
             expected_mic_extended_salt_identity_token_hmac,
-            expected_signature_identity_token_hmac,
-            pub_key,
         }
     }
     fn into_internal(
         self,
     ) -> Result<np_adv::credential::v1::V1DiscoveryCredential, ed25519::InvalidPublicKeyBytes> {
-        let public_key = ed25519::PublicKey::from_bytes::<Ed25519ProviderImpl>(self.pub_key)?;
         Ok(np_adv::credential::v1::V1DiscoveryCredential::new(
-            self.key_seed,
+            self.key_seed.into_bytes(),
             self.expected_mic_short_salt_identity_token_hmac,
             self.expected_mic_extended_salt_identity_token_hmac,
-            self.expected_signature_identity_token_hmac,
-            public_key,
         ))
     }
 }
@@ -100,25 +127,47 @@ impl V1DiscoveryCredential {
 /// the FFI boundary.
 #[derive(Debug, Clone)]
 pub struct MatchedCredential {
-    cred_id: u32,
-    encrypted_metadata_bytes: Arc<[u8]>,
+    cred_id: i64,
+    inner: Arc<MatchedCredentialInner>,
+}
+
+/// Credential material of the matched credential.
+#[derive(Debug, Clone)]
+pub struct MatchedCredentialInner {
+    encrypted_metadata_bytes: Vec<u8>,
+    key_seed: KeySeed,
+}
+
+impl MatchedCredentialInner {
+    /// Constructs matched credential inner data wrapped in an atomic-reference-counter.
+    pub fn new(encrypted_metadata_bytes: &[u8], key_seed: KeySeed) -> Arc<Self> {
+        Arc::new(Self { encrypted_metadata_bytes: Vec::from(encrypted_metadata_bytes), key_seed })
+    }
 }
 
 impl MatchedCredential {
     /// Constructs a new matched credential from the given match-id
-    /// (some arbitrary `u32` identifier) and encrypted metadata bytes,
+    /// (some arbitrary `i64` identifier) and encrypted metadata bytes,
     /// copied from the given slice.
-    pub fn new(cred_id: u32, encrypted_metadata_bytes: &[u8]) -> Self {
-        Self::from_arc_bytes(cred_id, encrypted_metadata_bytes.to_vec().into())
+    pub fn new(cred_id: i64, encrypted_metadata_bytes: &[u8], key_seed: KeySeed) -> Self {
+        Self::from_arc_bytes(
+            cred_id,
+            MatchedCredentialInner::new(encrypted_metadata_bytes, key_seed),
+        )
     }
     /// Constructs a new matched credential from the given match-id
     /// (some arbitrary `u32` identifier) and encrypted metadata bytes.
-    pub fn from_arc_bytes(cred_id: u32, encrypted_metadata_bytes: Arc<[u8]>) -> Self {
-        Self { cred_id, encrypted_metadata_bytes }
+    pub fn from_arc_bytes(cred_id: i64, inner: Arc<MatchedCredentialInner>) -> Self {
+        Self { cred_id, inner }
     }
     /// Gets the pre-specified numerical identifier for this matched-credential.
-    pub(crate) fn id(&self) -> u32 {
+    pub(crate) fn id(&self) -> i64 {
         self.cred_id
+    }
+
+    /// Gets the key seed of the matched discovery credential.
+    pub(crate) fn key_seed(&self) -> [u8; 32] {
+        self.inner.key_seed.into_bytes()
     }
 }
 
@@ -134,7 +183,7 @@ impl np_adv::credential::matched::MatchedCredential for MatchedCredential {
     type EncryptedMetadata = Arc<[u8]>;
     type EncryptedMetadataFetchError = core::convert::Infallible;
     fn fetch_encrypted_metadata(&self) -> Result<Arc<[u8]>, core::convert::Infallible> {
-        Ok(self.encrypted_metadata_bytes.clone())
+        Ok(Arc::from(self.inner.encrypted_metadata_bytes.clone()))
     }
 }
 
@@ -239,10 +288,9 @@ pub struct CredentialSlab {
 }
 
 declare_handle_map!(
-    credential_slab,
     crate::common::default_handle_map_dimensions(),
-    super::CredentialSlab,
-    super::CredentialSlabInternals
+    CredentialSlab,
+    CredentialSlabInternals
 );
 
 impl CredentialSlab {
@@ -253,6 +301,9 @@ impl CredentialSlab {
         discovery_credential: V0DiscoveryCredential,
         match_data: MatchedCredential,
     ) -> AddV0CredentialToSlabResult {
+        if cfg!(feature = "nocrypto") {
+            return AddV0CredentialToSlabResult::InvalidHandle;
+        }
         match self.get_mut() {
             Ok(mut write_guard) => {
                 write_guard.add_v0(discovery_credential, match_data);
@@ -268,6 +319,9 @@ impl CredentialSlab {
         discovery_credential: V1DiscoveryCredential,
         match_data: MatchedCredential,
     ) -> AddV1CredentialToSlabResult {
+        if cfg!(feature = "nocrypto") {
+            return AddV1CredentialToSlabResult::InvalidHandle;
+        }
         match self.get_mut() {
             Ok(mut write_guard) => match write_guard.add_v1(discovery_credential, match_data) {
                 Ok(_) => AddV1CredentialToSlabResult::Success,
@@ -321,10 +375,9 @@ pub struct CredentialBook {
 }
 
 declare_handle_map!(
-    credential_book,
     crate::common::default_handle_map_dimensions(),
-    super::CredentialBook,
-    super::CredentialBookInternals
+    CredentialBook,
+    CredentialBookInternals
 );
 
 /// Discriminant for `CreateCredentialBookResult`
@@ -409,6 +462,7 @@ pub fn deallocate_credential_slab(credential_slab: CredentialSlab) -> Deallocate
 
 /// Cryptographic information about a particular V0 broadcast credential
 /// necessary to LDT-encrypt V0 advertisements.
+#[cfg_attr(any(test, feature = "testing"), derive(Clone, Debug, arbitrary::Arbitrary))]
 #[repr(C)]
 pub struct V0BroadcastCredential {
     key_seed: [u8; 32],
@@ -432,15 +486,28 @@ impl V0BroadcastCredential {
             self.identity_token.into(),
         )
     }
+
+    /// Encrypt plaintext metadata with the identity token and key seed of the owned broadcast credential.
+    ///
+    /// Note: metadata encryption should be infallible.
+    pub fn encrypt_metadata(self, plaintext_metadata: &[u8]) -> Vec<u8> {
+        let identity_token = self.identity_token.into();
+        let hkdf = np_hkdf::NpKeySeedHkdf::<CryptoProviderImpl>::new(&self.key_seed);
+        metadata::encrypt_metadata::<CryptoProviderImpl, V0>(
+            &hkdf,
+            identity_token,
+            plaintext_metadata,
+        )
+    }
 }
 
 /// Cryptographic information about a particular V1 broadcast credential
-/// necessary to encrypt V1 MIC-verified and signature-verified sections.
+/// necessary to encrypt V1 sections.
+#[cfg_attr(any(test, feature = "testing"), derive(Clone, Debug, arbitrary::Arbitrary))]
 #[repr(C)]
 pub struct V1BroadcastCredential {
     key_seed: [u8; 32],
     identity_token: [u8; 16],
-    private_key: [u8; 32],
 }
 
 impl V1BroadcastCredential {
@@ -453,19 +520,26 @@ impl V1BroadcastCredential {
     /// sensitive cryptographic info) over FFI, foreign-lang
     /// code around how this information is maintained
     /// deserves close scrutiny.
-    pub const fn new(
-        key_seed: [u8; 32],
-        identity_token: extended::V1IdentityToken,
-        private_key: [u8; 32],
-    ) -> Self {
-        Self { key_seed, identity_token: identity_token.into_bytes(), private_key }
+    pub const fn new(key_seed: [u8; 32], identity_token: extended::V1IdentityToken) -> Self {
+        Self { key_seed, identity_token: identity_token.into_bytes() }
     }
     pub(crate) fn into_internal(self) -> np_adv::credential::v1::V1BroadcastCredential {
-        let permit = crypto_provider::ed25519::RawPrivateKeyPermit::default();
         np_adv::credential::v1::V1BroadcastCredential::new(
             self.key_seed,
             self.identity_token.into(),
-            crypto_provider::ed25519::PrivateKey::from_raw_private_key(self.private_key, &permit),
+        )
+    }
+
+    /// Encrypt plaintext metadata with the identity token and key seed of the owned broadcast credential.
+    ///
+    /// Note: metadata encryption should be infallible.
+    pub fn encrypt_metadata(self, plaintext_metadata: &[u8]) -> Vec<u8> {
+        let identity_token = self.identity_token.into();
+        let hkdf = np_hkdf::NpKeySeedHkdf::<CryptoProviderImpl>::new(&self.key_seed);
+        metadata::encrypt_metadata::<CryptoProviderImpl, V1>(
+            &hkdf,
+            identity_token,
+            plaintext_metadata,
         )
     }
 }

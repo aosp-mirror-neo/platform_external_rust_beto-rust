@@ -6,3 +6,6 @@
 
 # Ignore IDEA dir
 /.idea
+
+# Ignore vscode-gradle build output directory
+/bin

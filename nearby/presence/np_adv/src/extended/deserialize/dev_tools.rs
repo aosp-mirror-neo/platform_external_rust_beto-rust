@@ -40,8 +40,6 @@ pub enum AdvDecryptionError {
 pub enum V1EncryptionScheme {
     /// Indicates MIC-based encryption and verification.
     Mic,
-    /// Indicates signature-based encryption and verification.
-    Signature,
 }
 
 /// Decrypt, but do not further deserialize the v1 bytes, intended for developer tooling uses only.
@@ -77,7 +75,6 @@ where
             ));
 
             let encryption_scheme = match cipher_section {
-                CiphertextSection::SignatureEncrypted(_) => V1EncryptionScheme::Signature,
                 CiphertextSection::MicEncrypted(_) => V1EncryptionScheme::Mic,
             };
             return Ok((pt, encryption_scheme));

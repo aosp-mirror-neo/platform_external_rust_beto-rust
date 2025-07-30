@@ -31,13 +31,14 @@ import java.lang.annotation.Retention;
   IdentityKind.DECRYPTED,
 })
 @Retention(SOURCE)
+@UsedByNative
 public @interface IdentityKind {
   /** An encrypted identity that we do not have a credential for. */
-  public static final int NO_MATCHING_CREDENTIALS = -1;
+  @UsedByNative public static final int NO_MATCHING_CREDENTIALS = -1;
 
   /** A plaintext identity. */
-  public static final int PLAINTEXT = 1;
+  @UsedByNative public static final int PLAINTEXT = 1;
 
   /** An encrypted identity that we have a credential for. */
-  public static final int DECRYPTED = 2;
+  @UsedByNative public static final int DECRYPTED = 2;
 }

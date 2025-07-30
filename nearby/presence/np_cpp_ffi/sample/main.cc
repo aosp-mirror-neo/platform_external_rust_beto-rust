@@ -35,7 +35,7 @@ void HandleDataElement(nearby_protocol::V0DataElement /*de*/);
 
 void HandleV1Adv(nearby_protocol::DeserializedV1Advertisement /*adv*/);
 void HandleV1Section(const nearby_protocol::DeserializedV1Section& /*section*/);
-void HandleV1DataElement(nearby_protocol::V1DataElement /*de*/);
+void HandleV1DataElement(nearby_protocol::GenericV1DataElement /*de*/);
 
 int main() {
   auto result =
@@ -285,7 +285,7 @@ void HandleV1Section(const nearby_protocol::DeserializedV1Section& section) {
   }
 }
 
-void HandleV1DataElement(nearby_protocol::V1DataElement de) {
+void HandleV1DataElement(nearby_protocol::GenericV1DataElement de) {
   std::cout << "\t\t\tData Element type code: "
             << static_cast<unsigned>(de.GetDataElementTypeCode()) << "\n";
   std::cout << "\t\t\tPayload bytes as hex: "

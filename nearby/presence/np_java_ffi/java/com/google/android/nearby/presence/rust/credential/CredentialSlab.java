@@ -16,28 +16,25 @@
 
 package com.google.android.nearby.presence.rust.credential;
 
-import com.google.android.nearby.presence.rust.NpAdv;
+import com.google.android.cooperativecleaner.CooperativeCleaner;
 import com.google.android.nearby.presence.rust.OwnedHandle;
-import java.lang.ref.Cleaner;
 
 /**
  * A {@code CredentialSlab} handle that is used to build the native-side structures for a {@link
  * CredentialBook}. Clients should use {@link CredentialSlab.Builder} instead of this class.
  */
 final class CredentialSlab extends OwnedHandle {
-  static {
-    System.loadLibrary(NpAdv.LIBRARY_NAME);
-  }
-
   /** Create a new {@code CredentialSlab} with the given {@code cleaner}. */
-  public CredentialSlab(Cleaner cleaner) {
+  public CredentialSlab(CooperativeCleaner cleaner) {
     super(allocate(), cleaner, CredentialSlab::deallocate);
   }
 
   /** Add a V0 discovery credential to this slab. */
   public void addDiscoveryCredential(
       V0DiscoveryCredential credential, int credId, byte[] encryptedMetadataBytes) {
-    nativeAddV0DiscoveryCredential(handleId, credential, credId, encryptedMetadataBytes);
+    if (!nativeAddV0DiscoveryCredential(handleId, credential, credId, encryptedMetadataBytes)) {
+      throw new IllegalStateException("Failed to add credential to slab");
+    }
   }
 
   /**
@@ -47,7 +44,9 @@ final class CredentialSlab extends OwnedHandle {
    */
   public void addDiscoveryCredential(
       V1DiscoveryCredential credential, int credId, byte[] encryptedMetadataBytes) {
-    nativeAddV1DiscoveryCredential(handleId, credential, credId, encryptedMetadataBytes);
+    if (!nativeAddV1DiscoveryCredential(handleId, credential, credId, encryptedMetadataBytes)) {
+      throw new IllegalStateException("Failed to add credential to slab");
+    }
   }
 
   /**

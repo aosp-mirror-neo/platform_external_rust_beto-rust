@@ -23,13 +23,17 @@ public abstract class DeserializationException extends Exception {
     super(message);
   }
 
+  @UsedByNative
   public static final class InvalidHeaderException extends DeserializationException {
+    @UsedByNative
     public InvalidHeaderException() {
       super("Invalid advertisement header");
     }
   }
 
+  @UsedByNative
   public static final class InvalidFormatException extends DeserializationException {
+    @UsedByNative
     public InvalidFormatException() {
       super("Invalid advertisement format");
     }

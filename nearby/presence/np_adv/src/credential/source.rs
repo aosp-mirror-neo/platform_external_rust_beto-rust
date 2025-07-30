@@ -75,7 +75,7 @@ where
         core::slice::Iter<'a, MatchableCredential<V, M>>,
         fn(
             &'a MatchableCredential<V, M>,
-        ) -> (&'a V::DiscoveryCredential, ReferencedMatchedCredential<M>),
+        ) -> (&'a V::DiscoveryCredential, ReferencedMatchedCredential<'a, M>),
     >;
 
     fn iter(&'a self) -> Self::Iterator {

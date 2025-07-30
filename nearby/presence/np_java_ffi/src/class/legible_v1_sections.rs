@@ -12,20 +12,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use handle_map::{Handle, HandleLike};
 use jni::{
     objects::{JClass, JObject},
     sys::{jint, jlong},
     JNIEnv,
 };
-
-use crate::class::{v1_data_element::Generic, DeserializedV1Section};
-use handle_map::{Handle, HandleLike};
-use np_ffi_core::deserialize::v1::{
-    GetV1DEResult, GetV1SectionResult, LegibleV1Sections as LegibleSectionsHandle, V1DataElement,
+use np_ffi_core::{
+    deserialize::{
+        v1::{
+            DeserializedV1IdentityDetails, GetV1DEResult, GetV1IdentityDetailsResult,
+            GetV1SectionResult, LegibleV1Sections as LegibleSectionsHandle,
+        },
+        DecryptMetadataResult,
+    },
+    v1::V1VerificationMode,
 };
 use pourover::{desc::ClassDesc, jni_method};
 
-static LEGIBLE_V1_SECTIONS: ClassDesc =
+use crate::class::{
+    v1_data_element::Generic, CredentialBook, DeserializedV1Section, VerificationMode,
+};
+
+static LEGIBLE_V1_SECTIONS_CLASS: ClassDesc =
     ClassDesc::new("com/google/android/nearby/presence/rust/LegibleV1Sections");
 
 /// Rust representation for `class LegibleV1Sections`.
@@ -41,7 +50,7 @@ impl<'local> LegibleV1Sections<JObject<'local>> {
     ) -> jni::errors::Result<Self> {
         let handle_id = handle.get_as_handle().get_id() as jlong;
 
-        pourover::call_constructor!(env, &LEGIBLE_V1_SECTIONS, "(J)V", handle_id,).map(Self)
+        pourover::call_constructor!(env, &LEGIBLE_V1_SECTIONS_CLASS, "(J)V", handle_id,).map(Self)
     }
 }
 
@@ -65,17 +74,53 @@ impl<'local, Obj: AsRef<JObject<'local>>> LegibleV1Sections<Obj> {
         &self,
         env: &mut JNIEnv<'env_local>,
     ) -> jni::errors::Result<jlong> {
-        use jni::signature::{Primitive, ReturnType};
-        use pourover::desc::FieldDesc;
+        use LEGIBLE_V1_SECTIONS_CLASS as CLS;
+        pourover::call_method!(env, &CLS, "getId", "()J", self.as_obj())
+    }
+}
 
-        static HANDLE_ID_FIELD: FieldDesc = LEGIBLE_V1_SECTIONS.field("handleId", "J");
+static IDENTITY_DETAILS_CLASS: ClassDesc =
+    ClassDesc::new("com/google/android/nearby/presence/rust/LegibleV1Sections$IdentityDetails");
 
-        env.get_field_unchecked(
-            self.0.as_ref(),
-            &HANDLE_ID_FIELD,
-            ReturnType::Primitive(Primitive::Long),
+/// Rust representation for `class LegibleV1Sections.IdentityDetails`.
+#[repr(transparent)]
+pub struct IdentityDetails<Obj>(pub Obj);
+
+impl<'local> IdentityDetails<JObject<'local>> {
+    pub fn construct(
+        env: &mut JNIEnv<'local>,
+        details: DeserializedV1IdentityDetails,
+    ) -> jni::errors::Result<Self> {
+        Self::construct_from_parts(
+            env,
+            details.verification_mode(),
+            details.cred_id(),
+            details.identity_token(),
+            details.key_seed(),
         )
-        .and_then(|val| val.j())
+    }
+
+    pub fn construct_from_parts(
+        env: &mut JNIEnv<'local>,
+        verification_mode: V1VerificationMode,
+        credential_id: i64,
+        identity_token: [u8; 16],
+        key_seed: [u8; 32],
+    ) -> jni::errors::Result<Self> {
+        let verification_mode = VerificationMode::from(verification_mode).to_java(env)?;
+        let credential_id = credential_id as jint;
+        let identity_token = env.auto_local(env.byte_array_from_slice(&identity_token)?);
+        let key_seed = env.auto_local(env.byte_array_from_slice(&key_seed)?);
+        pourover::call_constructor!(
+            env,
+            &IDENTITY_DETAILS_CLASS,
+            "(II[B[B)V",
+            verification_mode,
+            credential_id,
+            identity_token.as_ref(),
+            key_seed.as_ref(),
+        )
+        .map(Self)
     }
 }
 
@@ -86,6 +131,7 @@ extern "system" fn nativeGetSection<'local>(
     mut env: JNIEnv<'local>,
     legible_sections_obj: LegibleV1Sections<JObject<'local>>,
     index: jint,
+    credential_book: CredentialBook<JObject<'local>>,
 ) -> JObject<'local> {
     let Ok(legible_sections) = legible_sections_obj.as_rust_handle(&mut env) else {
         return JObject::null();
@@ -104,6 +150,7 @@ extern "system" fn nativeGetSection<'local>(
         index,
         section.num_des(),
         section.identity_kind(),
+        credential_book,
     ) {
         Ok(section) => section.0,
         Err(_) => JObject::null(),
@@ -132,20 +179,63 @@ extern "system" fn nativeGetSectionDataElement<'local>(
         return JObject::null();
     };
 
-    let ret = match de {
-        V1DataElement::Generic(generic) => {
-            let de_type = jlong::from(generic.de_type().to_u32());
-            let Some(slice) = generic.payload.as_slice() else {
-                return JObject::null();
-            };
+    match Generic::construct(&mut env, de) {
+        Ok(Some(generic)) => generic.0,
+        _ => JObject::null(), // Occurs if the stack data structure was malformed,
+                              // which it really shouldn't be, because we just got it,
+                              // or if there was an unrecoverable JNI error.
+    }
+}
 
-            env.byte_array_from_slice(slice)
-                .and_then(|data| Generic::construct(&mut env, de_type, data))
-                .map(|obj| obj.0)
-        }
+#[jni_method(package = "com.google.android.nearby.presence.rust", class = "LegibleV1Sections")]
+extern "system" fn nativeGetSectionIdentityDetails<'local>(
+    mut env: JNIEnv<'local>,
+    legible_sections_obj: LegibleV1Sections<JObject<'local>>,
+    section_index: jint,
+) -> JObject<'local> {
+    let Ok(legible_sections) = legible_sections_obj.as_rust_handle(&mut env) else {
+        return JObject::null();
+    };
+    let Ok(section_index) = u8::try_from(section_index) else {
+        return JObject::null();
     };
 
-    ret.unwrap_or_else(|_err| JObject::null())
+    let GetV1IdentityDetailsResult::Success(details) =
+        legible_sections.get_section_identity_details(section_index)
+    else {
+        return JObject::null();
+    };
+
+    IdentityDetails::construct(&mut env, details).map_or_else(|_err| JObject::null(), |obj| obj.0)
+}
+
+#[jni_method(package = "com.google.android.nearby.presence.rust", class = "LegibleV1Sections")]
+extern "system" fn nativeGetSectionDecryptedMetadata<'local>(
+    mut env: JNIEnv<'local>,
+    legible_sections_obj: LegibleV1Sections<JObject<'local>>,
+    section_index: jint,
+) -> JObject<'local> {
+    let Ok(legible_sections) = legible_sections_obj.as_rust_handle(&mut env) else {
+        return JObject::null();
+    };
+    let Ok(section_index) = u8::try_from(section_index) else {
+        return JObject::null();
+    };
+
+    let DecryptMetadataResult::Success(metadata) =
+        legible_sections.decrypt_section_metadata(section_index)
+    else {
+        return JObject::null();
+    };
+
+    let Ok(buffer) = metadata.take_buffer() else {
+        return JObject::null();
+    };
+    let Ok(decrypted_metadata_array) = env.byte_array_from_slice(&buffer[..]) else {
+        return JObject::null();
+    };
+
+    decrypted_metadata_array.into()
 }
 
 #[jni_method(package = "com.google.android.nearby.presence.rust", class = "LegibleV1Sections")]

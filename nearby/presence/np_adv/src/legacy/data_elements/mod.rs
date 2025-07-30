@@ -81,6 +81,8 @@ pub enum DataElementDeserializeError {
         /// The invalid length
         len: DeEncodedLength,
     },
+    /// The same de type code was encountered more than once in an advertisement
+    DuplicateDeTypes,
     /// Other parse error, e.g. the adv is truncated
     InvalidStructure,
 }
@@ -189,9 +191,9 @@ impl<'a, I: PacketFlavor> From<&'a dyn SerializeDataElement<I>>
     }
 }
 
-impl<'a, F: PacketFlavor> Sealed for DynamicSerializeDataElement<'a, F> {}
+impl<F: PacketFlavor> Sealed for DynamicSerializeDataElement<'_, F> {}
 
-impl<'a, F: PacketFlavor> SerializeDataElement<F> for DynamicSerializeDataElement<'a, F> {
+impl<F: PacketFlavor> SerializeDataElement<F> for DynamicSerializeDataElement<'_, F> {
     fn de_type_code(&self) -> DeTypeCode {
         self.wrapped.de_type_code()
     }

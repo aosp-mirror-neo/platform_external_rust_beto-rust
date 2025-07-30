@@ -151,7 +151,7 @@ impl V0Filter {
         P: CryptoProvider,
     {
         let contents =
-            IntermediateAdvContents::deserialize::<P>(encoding, remaining).map_err(|_| NoMatch)?;
+            IntermediateAdvContents::deserialize(encoding, remaining).map_err(|_| NoMatch)?;
         match contents {
             IntermediateAdvContents::Unencrypted(p) => match self.identity {
                 IdentityFilterType::Public | IdentityFilterType::Any => self
@@ -160,9 +160,10 @@ impl V0Filter {
                     .map(|()| FilterResult::Public),
                 _ => Err(NoMatch),
             },
-            IntermediateAdvContents::Ldt(c) => match self.identity {
+            IntermediateAdvContents::Ldt(mut c) => match self.identity {
                 IdentityFilterType::Private | IdentityFilterType::Any => {
-                    let (legible_adv, m) = try_decrypt_and_match::<B, P>(cred_book.v0_iter(), &c)?;
+                    let (legible_adv, m) =
+                        try_decrypt_and_match::<B, P>(cred_book.v0_iter(), &mut c)?;
                     self.data_elements
                         .match_v0_legible_adv(|| legible_adv.data_elements())
                         .map(|()| FilterResult::Private(m))
@@ -175,7 +176,7 @@ impl V0Filter {
 
 fn try_decrypt_and_match<'cred, B, P>(
     v0_creds: B::V0Iterator,
-    adv: &LdtAdvContents,
+    adv: &mut LdtAdvContents,
 ) -> Result<(DecryptedAdvContents, B::Matched), NoMatch>
 where
     B: CredentialBook<'cred>,

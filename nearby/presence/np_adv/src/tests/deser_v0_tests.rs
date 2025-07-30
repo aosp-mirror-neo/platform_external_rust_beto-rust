@@ -190,7 +190,7 @@ where
 /// Populate an advertisement with a randomly chosen identity and a DE
 fn adv_random_identity<'a, R: rand::Rng>(
     mut rng: &mut R,
-    identities: &'a Vec<TestIdentity>,
+    identities: &'a [TestIdentity],
 ) -> (ArrayView<u8, { BLE_4_ADV_SVC_MAX_CONTENT_LEN }>, AdvConfig<'a>) {
     let identity = identities.choose(&mut rng).unwrap();
     if rng.gen_bool(0.5) {

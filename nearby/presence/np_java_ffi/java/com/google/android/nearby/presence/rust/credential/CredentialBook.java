@@ -16,16 +16,21 @@
 
 package com.google.android.nearby.presence.rust.credential;
 
+import androidx.annotation.Nullable;
+import com.google.android.cooperativecleaner.CooperativeCleaner;
 import com.google.android.nearby.presence.rust.NpAdv;
 import com.google.android.nearby.presence.rust.OwnedHandle;
-import java.lang.ref.Cleaner;
+import com.google.android.nearby.presence.rust.UsedByNative;
+import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import java.util.ArrayList;
 
+/**
+ * A set of credentials used for deserialization. Create a credential book using the builder from
+ * {@link NpAdv#newCredentialBookBuilder()}. An empty credential book ({@link
+ * NpAdv#newEmptyCredentialBook()}) can be used to deserialize public advertisements and sections.
+ */
+@UsedByNative
 public final class CredentialBook<M extends CredentialBook.MatchedMetadata> extends OwnedHandle {
-
-  static {
-    System.loadLibrary(NpAdv.LIBRARY_NAME);
-  }
 
   /** Metadata that is associated with a Credential. */
   public interface MatchedMetadata {
@@ -49,7 +54,9 @@ public final class CredentialBook<M extends CredentialBook.MatchedMetadata> exte
   }
 
   /** Thrown when a cryptographic key is given and those key bytes are not valid. */
+  @UsedByNative
   public static final class InvalidPublicKeyException extends RuntimeException {
+    @UsedByNative
     public InvalidPublicKeyException() {
       super(
           "The provided public key bytes do not actually represent a valid \"edwards y\" format or"
@@ -57,30 +64,43 @@ public final class CredentialBook<M extends CredentialBook.MatchedMetadata> exte
     }
   }
 
-  /** Builder for {@code CredentialBook} */
+  /**
+   * Builder for {@code CredentialBook}. This manages passing credentials into the slab and tracking
+   * the associated metadata for each credential.
+   *
+   * <p>Credential ids will be assigned in order starting at {@code 0}. This allows them to be
+   * mapped to their metadata object using an array. This lookup is implemented in {@link
+   * CredentialBook#getMatchedMetadata()} for internal use. Clients of the library should use the
+   * {@code getMatchedMetadata()} method on their {@code DeserializedAdvertisement} instance.
+   */
   public static final class Builder<M extends MatchedMetadata> {
-    private Cleaner cleaner;
+    private CooperativeCleaner cleaner;
     private CredentialSlab slab;
 
-    // Each credential should be given an id of its metadata index so that this array is an
-    // id-to-metadata map.
+    /**
+     * Each credential should be given an id of its metadata index so that this array is an
+     * id-to-metadata map.
+     */
     private ArrayList<M> matchDataList;
 
     /**
      * Create a builder instance. The {@link CredentialBook#builder()} factory method can be used to
-     * create a {@code Builder} with the default {@link Cleaner}. This can fail if there isn't room
-     * to create a new {@code CredentialSlab} handle.
+     * create a {@code Builder} with the default {@link CooperativeCleaner}.
+     *
+     * <p>This can fail if there isn't room to create a new {@code CredentialSlab} handle with
+     * {@link OwnedHandle.NoSpaceLeftException}.
      *
      * @param cleaner The cleaner instance to use for the {@link CredentialSlab} and {@code
      *     CredentialBook}.
      */
-    public Builder(Cleaner cleaner) {
+    private Builder(CooperativeCleaner cleaner) {
       this.cleaner = cleaner;
       this.slab = new CredentialSlab(cleaner);
       this.matchDataList = new ArrayList<>();
     }
 
     /** Add a {@link V0DiscoveryCredential} to the book. */
+    @CanIgnoreReturnValue
     public Builder<M> addDiscoveryCredential(V0DiscoveryCredential credential, M matchData) {
       int credIdx = matchDataList.size();
       matchDataList.add(matchData);
@@ -93,6 +113,7 @@ public final class CredentialBook<M extends CredentialBook.MatchedMetadata> exte
      * CredentialBook.InvalidPublicKeyException} if the key inside {@code credential} is improperly
      * formatted.
      */
+    @CanIgnoreReturnValue
     public Builder<M> addDiscoveryCredential(V1DiscoveryCredential credential, M matchData) {
       int credIdx = matchDataList.size();
       matchDataList.add(matchData);
@@ -105,12 +126,13 @@ public final class CredentialBook<M extends CredentialBook.MatchedMetadata> exte
      * CredentialBook} handle.
      */
     public CredentialBook<M> build() {
-      return new CredentialBook(slab, matchDataList, cleaner);
+      return new CredentialBook<>(slab, matchDataList, cleaner);
     }
   }
 
   /** Create a credential book builder with the default cleaner from {@link NpAdv#getCleaner()}. */
-  public static <M extends MatchedMetadata> Builder<M> builder() {
+  public static <M extends MatchedMetadata> Builder<M> builder(NpAdv npAdv) {
+    npAdv.ensureLoaded();
     return new Builder<M>(NpAdv.getCleaner());
   }
 
@@ -118,7 +140,8 @@ public final class CredentialBook<M extends CredentialBook.MatchedMetadata> exte
    * Create an empty credential book. This is useful for when only plaintext advertisements are
    * being deserialized.
    */
-  public static CredentialBook<NoMetadata> empty() {
+  public static CredentialBook<NoMetadata> empty(NpAdv npAdv) {
+    npAdv.ensureLoaded();
     return new Builder<NoMetadata>(NpAdv.getCleaner()).build();
   }
 
@@ -129,9 +152,22 @@ public final class CredentialBook<M extends CredentialBook.MatchedMetadata> exte
    * from {@code Builder}. {@code matchData} is formatted so that each credential is given an id of
    * the index of its metadata in {@code matchData}.
    */
-  private CredentialBook(CredentialSlab slab, ArrayList<M> matchData, Cleaner cleaner) {
+  @SuppressWarnings("NonApiType")
+  private CredentialBook(CredentialSlab slab, ArrayList<M> matchData, CooperativeCleaner cleaner) {
     super(allocate(slab.move()), cleaner, CredentialBook::deallocate);
     this.matchData = matchData;
+  }
+
+  /**
+   * Lookup the matched metadata given its credential id. This is meant for internal use. This will
+   * return {@code null} if the credential id is not valid.
+   */
+  @Nullable
+  public M getMatchedMetadata(int credentialId) {
+    if (credentialId < 0 || credentialId >= matchData.size()) {
+      return null;
+    }
+    return matchData.get(credentialId);
   }
 
   private static native long allocate(long slabHandleId);

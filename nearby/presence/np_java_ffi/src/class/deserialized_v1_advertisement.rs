@@ -15,6 +15,8 @@
 use jni::{objects::JObject, sys::jint, JNIEnv};
 use pourover::desc::ClassDesc;
 
+use crate::class::CredentialBook;
+
 static DESERIALIZED_V1_ADVERTISEMENT_CLASS: ClassDesc =
     ClassDesc::new("com/google/android/nearby/presence/rust/DeserializedV1Advertisement");
 
@@ -24,19 +26,21 @@ pub struct DeserializedV1Advertisement<Obj>(pub Obj);
 
 impl<'local> DeserializedV1Advertisement<JObject<'local>> {
     /// Create a new advertisement.
-    pub fn construct(
+    pub fn construct<'sections, 'book>(
         env: &mut JNIEnv<'local>,
         num_legible_sections: jint,
         num_undecryptable_sections: jint,
-        legible_sections: super::LegibleV1Sections<impl AsRef<JObject<'local>>>,
+        legible_sections: super::LegibleV1Sections<impl AsRef<JObject<'sections>>>,
+        credential_book: CredentialBook<impl AsRef<JObject<'book>>>,
     ) -> jni::errors::Result<Self> {
         pourover::call_constructor!(
             env,
             &DESERIALIZED_V1_ADVERTISEMENT_CLASS,
-            "(IILcom/google/android/nearby/presence/rust/LegibleV1Sections;)V",
+            "(IILcom/google/android/nearby/presence/rust/LegibleV1Sections;Lcom/google/android/nearby/presence/rust/credential/CredentialBook;)V",
             num_legible_sections,
             num_undecryptable_sections,
-            legible_sections.as_obj()
+            legible_sections.as_obj(),
+            credential_book.as_obj(),
         )
         .map(Self)
     }

@@ -1,0 +1,28 @@
+[package]
+name = "build_scripts"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lints]
+workspace = true
+
+[dependencies]
+# Dependencies within this repo
+cmd_runner.workspace = true
+
+# Dependencies from crates.io
+anyhow.workspace = true
+clap.workspace = true
+env_logger.workspace = true
+log.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+xshell.workspace = true
+
+[[bin]]
+name = "build_scripts"
+doc = false

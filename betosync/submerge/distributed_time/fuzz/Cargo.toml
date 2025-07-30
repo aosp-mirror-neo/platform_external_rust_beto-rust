@@ -1,0 +1,44 @@
+[package]
+name = "distributed_time_fuzz"
+version.workspace = true
+publish = false
+edition.workspace = true
+license.workspace = true
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+arbitrary.workspace = true
+derive_fuzztest.workspace = true
+distributed_time.workspace = true
+
+[target.'cfg(fuzzing)'.dependencies]
+libfuzzer-sys.workspace = true
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "compound_timestamp_total_order"
+doc = false
+
+[[bin]]
+name = "hlc_increment"
+doc = false
+
+[[bin]]
+name = "hlc_relation_consistency"
+doc = false
+
+[[bin]]
+name = "hlc_uniqueness"
+doc = false
+
+[[bin]]
+name = "vector_clock_increment"
+doc = false
+
+[[bin]]
+name = "vector_clock_lub"
+doc = false

@@ -13,7 +13,6 @@
 // limitations under the License.
 
 mod unencrypted {
-    use crypto_provider_default::CryptoProviderImpl;
 
     use crate::header::V0Encoding;
     use crate::legacy::data_elements::actions::{ActionBits, ActionsDataElement, ActiveUnlock};
@@ -83,6 +82,23 @@ mod unencrypted {
     }
 
     #[test]
+    fn iterate_multiple_de_types_same_value() {
+        let input = &[0x15, 0x00, 0x15, 0x00];
+        let mut it = IntermediateAdvContents::deserialize(V0Encoding::Unencrypted, input)
+            .unwrap()
+            .as_unencrypted()
+            .unwrap()
+            .data_elements();
+
+        // first element will be valid
+        let _ = it.next();
+        // second will be an error since it is the same type as the first
+        let err = it.next().unwrap().unwrap_err();
+
+        assert_eq!(err, DataElementDeserializeError::DuplicateDeTypes);
+    }
+
+    #[test]
     fn iterate_truncated_contents_error() {
         assert_deser_error(
             // length 3, but only 2 bytes provided
@@ -92,11 +108,8 @@ mod unencrypted {
     }
 
     fn assert_deser_error(input: &[u8], err: DataElementDeserializeError) {
-        let contents = IntermediateAdvContents::deserialize::<CryptoProviderImpl>(
-            V0Encoding::Unencrypted,
-            input,
-        )
-        .unwrap();
+        let contents =
+            IntermediateAdvContents::deserialize(V0Encoding::Unencrypted, input).unwrap();
 
         assert_eq!(
             err,
@@ -145,11 +158,8 @@ mod ldt {
 
         let adv = builder.into_advertisement().unwrap();
 
-        let contents = IntermediateAdvContents::deserialize::<CryptoProviderImpl>(
-            V0Encoding::Ldt,
-            &adv.as_slice()[1..],
-        )
-        .unwrap();
+        let mut contents =
+            IntermediateAdvContents::deserialize(V0Encoding::Ldt, &adv.as_slice()[1..]).unwrap();
         let ldt = contents.as_ldt().unwrap();
         let hkdf = np_hkdf::NpKeySeedHkdf::<CryptoProviderImpl>::new(&key_seed);
         let identity_token_hmac: [u8; 32] = hkdf
@@ -309,11 +319,9 @@ mod ldt {
         let adv = builder.into_advertisement().unwrap();
         let altered_adv = alter_adv(adv.as_slice().to_vec());
 
-        let contents = IntermediateAdvContents::deserialize::<CryptoProviderImpl>(
-            V0Encoding::Ldt,
-            &altered_adv.as_slice()[1..],
-        )
-        .unwrap();
+        let mut contents =
+            IntermediateAdvContents::deserialize(V0Encoding::Ldt, &altered_adv.as_slice()[1..])
+                .unwrap();
         let ldt = contents.as_ldt().unwrap();
         let decrypter = build_decrypter(&key_seed, &identity_token);
         assert_eq!(DecryptError::DecryptOrVerifyError, ldt.try_decrypt(&decrypter).unwrap_err());

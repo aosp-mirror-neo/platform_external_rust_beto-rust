@@ -75,13 +75,13 @@ impl<'a, M: MatchedCredential> From<&'a M> for ReferencedMatchedCredential<'a, M
     }
 }
 
-impl<'a, M: MatchedCredential> AsRef<M> for ReferencedMatchedCredential<'a, M> {
+impl<M: MatchedCredential> AsRef<M> for ReferencedMatchedCredential<'_, M> {
     fn as_ref(&self) -> &M {
         self.wrapped
     }
 }
 
-impl<'a, M: MatchedCredential> MatchedCredential for ReferencedMatchedCredential<'a, M> {
+impl<M: MatchedCredential> MatchedCredential for ReferencedMatchedCredential<'_, M> {
     type EncryptedMetadata = <M as MatchedCredential>::EncryptedMetadata;
     type EncryptedMetadataFetchError = <M as MatchedCredential>::EncryptedMetadataFetchError;
     fn fetch_encrypted_metadata(
@@ -252,8 +252,8 @@ pub struct WithMatchedCredential<M: MatchedCredential, T: HasIdentityMatch> {
     contents: T,
 }
 
-impl<'a, M: MatchedCredential + Clone, T: HasIdentityMatch>
-    WithMatchedCredential<ReferencedMatchedCredential<'a, M>, T>
+impl<M: MatchedCredential + Clone, T: HasIdentityMatch>
+    WithMatchedCredential<ReferencedMatchedCredential<'_, M>, T>
 {
     /// Clones the referenced match-data to update this container
     /// so that the match-data is owned, rather than borrowed.

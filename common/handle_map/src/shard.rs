@@ -12,32 +12,55 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use core::any::Any;
 use core::ops::{Deref, DerefMut};
-use lock_adapter::stdlib::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 use lock_adapter::RwLock as _;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::HashMap;
-use std::marker::PhantomData;
 use std::sync::atomic::{AtomicU32, Ordering};
 
 use crate::guard::{
-    ObjectReadGuardImpl, ObjectReadGuardMapping, ObjectReadWriteGuardImpl,
-    ObjectReadWriteGuardMapping,
+    LookupByHandle, RawReadGuard, RawReadWriteGuard, ReadGuard, ReadWriteGuard, RwLock,
 };
 use crate::{Handle, HandleNotPresentError};
 
 // Bunch o' type aliases to make talking about them much easier in the shard code.
-type ShardMapType<T> = HashMap<Handle, T>;
-type ShardReadWriteLock<T> = RwLock<ShardMapType<T>>;
-type ShardReadGuard<'a, T> = RwLockReadGuard<'a, ShardMapType<T>>;
-type ShardReadWriteGuard<'a, T> = RwLockWriteGuard<'a, ShardMapType<T>>;
+pub type ShardValue = Box<dyn Any + Send + Sync + 'static>;
+pub type ShardMap = HashMap<Handle, ShardValue>;
+
+type ShardReadWriteLock = RwLock<ShardMap>;
+type ShardReadGuard<'a> = RawReadGuard<'a, ShardMap>;
+type ShardReadWriteGuard<'a> = RawReadWriteGuard<'a, ShardMap>;
+
+pub(crate) trait ValueProvider<E> {
+    fn provide_value(self) -> Result<ShardValue, E>;
+}
+
+impl<E, F: FnOnce() -> Result<ShardValue, E>> ValueProvider<E> for F {
+    fn provide_value(self) -> Result<ShardValue, E> {
+        self()
+    }
+}
+
+pub(crate) struct BoxedAnyProvider<F>(pub F);
+
+impl<T: Any + Send + Sync + 'static, E, F: FnOnce() -> Result<T, E>> ValueProvider<E>
+    for BoxedAnyProvider<F>
+{
+    fn provide_value(self) -> Result<ShardValue, E> {
+        match self.0() {
+            Ok(value) => Ok(Box::new(value)),
+            Err(e) => Err(e),
+        }
+    }
+}
 
 /// Internal error enum for failed allocations into a given shard.
-pub(crate) enum ShardAllocationError<T, E, F: FnOnce() -> Result<T, E>> {
+pub(crate) enum ShardAllocationError<E, P: ValueProvider<E>> {
     /// Error for when the entry for the handle is occupied,
     /// in which case we spit out the object-provider to try again
     /// with a new handle-id.
-    EntryOccupied(F),
+    EntryOccupied(P),
     /// Error for when we would exceed the maximum number of allocations.
     ExceedsAllocationLimit,
     /// Error for when the initial value-provider call failed.
@@ -46,33 +69,26 @@ pub(crate) enum ShardAllocationError<T, E, F: FnOnce() -> Result<T, E>> {
 
 /// An individual handle-map shard, which is ultimately
 /// just a hash-map behind a lock.
-pub(crate) struct HandleMapShard<T: Send + Sync> {
-    data: RwLock<ShardMapType<T>>,
+pub(crate) struct HandleMapShard {
+    data: ShardReadWriteLock,
 }
 
-impl<T: Send + Sync> Default for HandleMapShard<T> {
+impl Default for HandleMapShard {
     fn default() -> Self {
         Self {
-            data: RwLock::new(HashMap::new()),
+            data: ShardReadWriteLock::new(HashMap::new()),
         }
     }
 }
 
-impl<T: Send + Sync> HandleMapShard<T> {
-    pub fn get(&self, handle: Handle) -> Result<ObjectReadGuardImpl<T>, HandleNotPresentError> {
-        let map_read_guard = ShardReadWriteLock::<T>::read(&self.data);
+impl HandleMapShard {
+    pub fn get(&self, handle: Handle) -> Result<ReadGuard<LookupByHandle>, HandleNotPresentError> {
+        let map_read_guard = ShardReadWriteLock::read(&self.data);
         let read_only_map_ref = map_read_guard.deref();
         if read_only_map_ref.contains_key(&handle) {
-            let object_read_guard = ShardReadGuard::<T>::map(
-                map_read_guard,
-                ObjectReadGuardMapping {
-                    handle,
-                    _marker: PhantomData,
-                },
-            );
-            Ok(ObjectReadGuardImpl {
-                guard: object_read_guard,
-            })
+            let object_read_guard =
+                ShardReadGuard::map(map_read_guard, LookupByHandle::new(handle));
+            Ok(object_read_guard)
         } else {
             // Auto-drop the read guard, and return an error
             Err(HandleNotPresentError)
@@ -83,7 +99,7 @@ impl<T: Send + Sync> HandleMapShard<T> {
     fn get_read_write_guard_if_entry_exists(
         &self,
         handle: Handle,
-    ) -> Result<ShardReadWriteGuard<T>, HandleNotPresentError> {
+    ) -> Result<ShardReadWriteGuard, HandleNotPresentError> {
         let contains_key = {
             let map_ref = self.data.read();
             map_ref.contains_key(&handle)
@@ -104,26 +120,19 @@ impl<T: Send + Sync> HandleMapShard<T> {
     pub fn get_mut(
         &self,
         handle: Handle,
-    ) -> Result<ObjectReadWriteGuardImpl<T>, HandleNotPresentError> {
+    ) -> Result<ReadWriteGuard<LookupByHandle>, HandleNotPresentError> {
         let map_read_write_guard = self.get_read_write_guard_if_entry_exists(handle)?;
         // Expose only the pointed-to object with a mapped read-write guard
-        let object_read_write_guard = ShardReadWriteGuard::<T>::map(
-            map_read_write_guard,
-            ObjectReadWriteGuardMapping {
-                handle,
-                _marker: PhantomData,
-            },
-        );
-        Ok(ObjectReadWriteGuardImpl {
-            guard: object_read_write_guard,
-        })
+        let object_read_write_guard =
+            ShardReadWriteGuard::map(map_read_write_guard, LookupByHandle::new(handle));
+        Ok(object_read_write_guard)
     }
 
     pub fn deallocate(
         &self,
         handle: Handle,
         outstanding_allocations_counter: &AtomicU32,
-    ) -> Result<T, HandleNotPresentError> {
+    ) -> Result<ShardValue, HandleNotPresentError> {
         let mut map_read_write_guard = self.get_read_write_guard_if_entry_exists(handle)?;
         // We don't need to worry about double-decrements, since the above call
         // got us an upgradable read guard for our read, which means it's the only
@@ -142,16 +151,13 @@ impl<T: Send + Sync> HandleMapShard<T> {
         Ok(removed_object)
     }
 
-    pub fn try_allocate<E, F>(
+    pub fn try_allocate<E, P: ValueProvider<E>>(
         &self,
         handle: Handle,
-        object_provider: F,
+        object_provider: P,
         outstanding_allocations_counter: &AtomicU32,
         max_active_handles: u32,
-    ) -> Result<(), ShardAllocationError<T, E, F>>
-    where
-        F: FnOnce() -> Result<T, E>,
-    {
+    ) -> Result<(), ShardAllocationError<E, P>> {
         let mut read_write_guard = self.data.write();
         match read_write_guard.entry(handle) {
             Occupied(_) => {
@@ -181,7 +187,7 @@ impl<T: Send + Sync> HandleMapShard<T> {
                     Ok(_) => {
                         // We're good to actually allocate,
                         // so attempt to call the value-provider.
-                        match object_provider() {
+                        match object_provider.provide_value() {
                             Ok(object) => {
                                 // Successfully obtained the initial value,
                                 // so insert it into the vacant entry.

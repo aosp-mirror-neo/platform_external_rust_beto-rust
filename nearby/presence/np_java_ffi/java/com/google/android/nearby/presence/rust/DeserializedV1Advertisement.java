@@ -16,25 +16,34 @@
 
 package com.google.android.nearby.presence.rust;
 
+import com.google.android.nearby.presence.rust.credential.CredentialBook;
 import java.util.Iterator;
 
 /**
- * A deserialized V0 advertisement. This class is backed by native data behind the {@link
+ * A deserialized V1 advertisement. This class is backed by native data behind the {@link
  * LegibleV1Sections} handle. If this class is closed then the underlying handle will be closed too.
  * Methods on this class should not be called if {@link #close()} has already been called.
  */
-public final class DeserializedV1Advertisement extends DeserializedAdvertisement {
+@UsedByNative
+public final class DeserializedV1Advertisement<M extends CredentialBook.MatchedMetadata>
+    extends DeserializedAdvertisement {
 
   private final int numLegibleSections;
   private final int numUndecryptableSections;
   private final LegibleV1Sections legibleSections;
+  private final CredentialBook<M> credentialBook;
 
   /** Create a legible instance with the given information. */
+  @UsedByNative
   /* package */ DeserializedV1Advertisement(
-      int numLegibleSections, int numUndecryptableSections, LegibleV1Sections legibleSections) {
+      int numLegibleSections,
+      int numUndecryptableSections,
+      LegibleV1Sections legibleSections,
+      CredentialBook<M> credentialBook) {
     this.numLegibleSections = numLegibleSections;
     this.numUndecryptableSections = numUndecryptableSections;
     this.legibleSections = legibleSections;
+    this.credentialBook = credentialBook;
   }
 
   /** Get the number of legible sections in this advertisement */
@@ -55,35 +64,39 @@ public final class DeserializedV1Advertisement extends DeserializedAdvertisement
    * @throws IndexOutOfBoundsException if the index is invalid
    * @return The section at {@code index}
    */
-  public DeserializedV1Section getSection(int index) {
-    return legibleSections.getSection(index);
+  public DeserializedV1Section<M> getSection(int index) {
+    return legibleSections.getSection(index, credentialBook);
   }
 
   /** Get an iterable of this advertisement's legible sections. */
-  public Iterable<DeserializedV1Section> getSections() {
-    return () -> new SectionIterator(numLegibleSections, legibleSections);
+  public Iterable<DeserializedV1Section<M>> getSections() {
+    return () -> new SectionIterator<>(numLegibleSections, legibleSections, credentialBook);
   }
 
   /** Iterator instance for sections in DeserializedV1Advertisement. */
-  private static final class SectionIterator implements Iterator<DeserializedV1Section> {
+  private static final class SectionIterator<M extends CredentialBook.MatchedMetadata>
+      implements Iterator<DeserializedV1Section<M>> {
     private final LegibleV1Sections legibleSections;
     private final int numSections;
+    private final CredentialBook<M> credentialBook;
 
     private int position = 0;
 
-    public SectionIterator(int numSections, LegibleV1Sections legibleSections) {
+    public SectionIterator(
+        int numSections, LegibleV1Sections legibleSections, CredentialBook<M> credentialBook) {
       this.numSections = numSections;
       this.legibleSections = legibleSections;
+      this.credentialBook = credentialBook;
     }
 
     @Override
     public boolean hasNext() {
-      return position < (numSections - 1);
+      return position < numSections;
     }
 
     @Override
-    public DeserializedV1Section next() {
-      return legibleSections.getSection(position++);
+    public DeserializedV1Section<M> next() {
+      return legibleSections.getSection(position++, credentialBook);
     }
   }
 

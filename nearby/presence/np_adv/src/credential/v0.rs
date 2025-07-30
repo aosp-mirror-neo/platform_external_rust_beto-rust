@@ -132,25 +132,25 @@ impl V0DiscoveryCryptoMaterial for PrecalculatedV0DiscoveryCryptoMaterial {
 // Implementations for reference types -- we don't provide a blanket impl for references
 // due to the potential to conflict with downstream crates' implementations.
 
-impl<'a> DiscoveryMetadataCryptoMaterial<V0> for &'a V0DiscoveryCredential {
+impl DiscoveryMetadataCryptoMaterial<V0> for &V0DiscoveryCredential {
     fn metadata_nonce<C: CryptoProvider>(&self) -> [u8; 12] {
         (*self).metadata_nonce::<C>()
     }
 }
 
-impl<'a> V0DiscoveryCryptoMaterial for &'a V0DiscoveryCredential {
+impl V0DiscoveryCryptoMaterial for &V0DiscoveryCredential {
     fn ldt_adv_cipher<C: CryptoProvider>(&self) -> ldt_np_adv::AuthenticatedNpLdtDecryptCipher<C> {
         (*self).ldt_adv_cipher::<C>()
     }
 }
 
-impl<'a> DiscoveryMetadataCryptoMaterial<V0> for &'a PrecalculatedV0DiscoveryCryptoMaterial {
+impl DiscoveryMetadataCryptoMaterial<V0> for &PrecalculatedV0DiscoveryCryptoMaterial {
     fn metadata_nonce<C: CryptoProvider>(&self) -> [u8; 12] {
         (*self).metadata_nonce::<C>()
     }
 }
 
-impl<'a> V0DiscoveryCryptoMaterial for &'a PrecalculatedV0DiscoveryCryptoMaterial {
+impl V0DiscoveryCryptoMaterial for &PrecalculatedV0DiscoveryCryptoMaterial {
     fn ldt_adv_cipher<C: CryptoProvider>(&self) -> ldt_np_adv::AuthenticatedNpLdtDecryptCipher<C> {
         (*self).ldt_adv_cipher::<C>()
     }

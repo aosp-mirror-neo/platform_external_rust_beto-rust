@@ -17,6 +17,7 @@ use np_ffi_core::common::FixedSizeArray;
 use np_ffi_core::deserialize::v1::*;
 use np_ffi_core::deserialize::DecryptMetadataResult;
 use np_ffi_core::utils::FfiEnum;
+use np_ffi_core::v1::{GenericV1DataElement, V1DEType};
 
 /// Gets the number of legible sections on a deserialized V1 advertisement.
 /// Suitable as an index bound for the second argument of
@@ -85,7 +86,7 @@ pub extern "C" fn np_ffi_DeserializedV1Section_get_de(
     section: DeserializedV1Section,
     de_index: u8,
 ) -> GetV1DEResult {
-    section.get_de(de_index)
+    section.get_generic_de(de_index)
 }
 
 /// Gets the identity details used to decrypt this V1 section, or returns an error if this payload
@@ -123,15 +124,15 @@ pub extern "C" fn np_ffi_DeserializedV1Section_decrypt_metadata(
     section.decrypt_metadata()
 }
 
-/// Attempts to derive a 16-byte DE salt for a DE in this section with the given DE offset. This
-/// operation may fail if the passed offset is 255 (causes overflow) or if the section
-/// is leveraging a public identity, and hence, doesn't have an associated salt.
+/// Attempts to derive a 16-byte DE salt for a DE with the given type-code in this
+/// section. This operation may fail if the passed type-code is forbidden (0xFFFFFFFF)
+/// or if the section is leveraging a public identity, and hence, doesn't have an associated salt.
 #[no_mangle]
-pub extern "C" fn np_ffi_DeserializedV1Section_derive_16_byte_salt_for_offset(
+pub extern "C" fn np_ffi_DeserializedV1Section_derive_16_byte_salt_for_de_type(
     section: DeserializedV1Section,
-    offset: u8,
+    de_type: V1DEType,
 ) -> GetV1DE16ByteSaltResult {
-    section.derive_16_byte_salt_for_offset(offset)
+    section.derive_16_byte_salt_for_de_type(de_type)
 }
 
 /// Gets the tag of a `GetV1DE16ByteSaltResult` tagged-union. On success the wrapped identity
@@ -161,6 +162,6 @@ pub extern "C" fn np_ffi_GetV1DEResult_kind(result: GetV1DEResult) -> GetV1DERes
 /// Casts a `GetV1DEResult` to the `Success` variant, panicking in the
 /// case where the passed value is of a different enum variant.
 #[no_mangle]
-pub extern "C" fn np_ffi_GetV1DEResult_into_SUCCESS(result: GetV1DEResult) -> V1DataElement {
+pub extern "C" fn np_ffi_GetV1DEResult_into_SUCCESS(result: GetV1DEResult) -> GenericV1DataElement {
     unwrap(result.into_success(), PanicReason::EnumCastFailed)
 }

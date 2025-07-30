@@ -18,7 +18,7 @@ use crate::credentials::CredentialBook;
 use crate::deserialize::v0::*;
 use crate::deserialize::v1::*;
 use crate::utils::FfiEnum;
-use crypto_provider_default::CryptoProviderImpl;
+use crate::CryptoProviderImpl;
 use handle_map::{declare_handle_map, HandleLike, HandleMapFullError, HandleNotPresentError};
 use np_adv::deserialization_arena;
 
@@ -216,10 +216,9 @@ pub struct DecryptedMetadata {
 }
 
 declare_handle_map!(
-    decrypted_metadata,
     crate::common::default_handle_map_dimensions(),
-    super::DecryptedMetadata,
-    super::DecryptedMetadataInternals
+    DecryptedMetadata,
+    DecryptedMetadataInternals
 );
 
 /// The pointer and length of the decrypted metadata byte buffer
@@ -282,6 +281,12 @@ impl DecryptedMetadata {
             }
             Err(_) => GetMetadataBufferPartsResult::Error,
         }
+    }
+
+    /// Unwraps the buffer of decrypted bytes. This is for Rust usage. This takes ownership of the
+    /// handle and deallocates it.
+    pub fn take_buffer(self) -> Result<Box<[u8]>, HandleNotPresentError> {
+        self.deallocate().map(|internals| internals.decrypted_bytes)
     }
 
     /// Frees the underlying decrypted metadata buffer. This takes ownership of the handle.

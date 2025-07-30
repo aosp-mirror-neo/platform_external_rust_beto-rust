@@ -22,8 +22,7 @@ use crate::credential::{
     v1::{
         MicExtendedSaltSectionIdentityResolutionMaterial,
         MicExtendedSaltSectionVerificationMaterial, MicShortSaltSectionIdentityResolutionMaterial,
-        MicShortSaltSectionVerificationMaterial, SignedSectionIdentityResolutionMaterial,
-        SignedSectionVerificationMaterial, V1DiscoveryCryptoMaterial, V1,
+        MicShortSaltSectionVerificationMaterial, V1DiscoveryCryptoMaterial, V1,
     },
     DiscoveryMetadataCryptoMaterial, MatchableCredential, MatchedCredential, ProtocolVersion,
 };
@@ -32,6 +31,7 @@ use crypto_provider::CryptoProvider;
 
 #[cfg(any(feature = "alloc", test))]
 extern crate alloc;
+
 #[cfg(any(feature = "alloc", test))]
 use crate::credential::ReferencedMatchedCredential;
 #[cfg(any(feature = "alloc", test))]
@@ -184,7 +184,9 @@ pub(crate) mod precalculated_for_version {
             discovery_credential: &V::DiscoveryCredential,
         ) -> Self::Output;
     }
+
     pub enum Marker {}
+
     impl MappingTrait<V0> for Marker {
         type Output = PrecalculatedV0DiscoveryCryptoMaterial;
         fn precalculate<C: CryptoProvider>(
@@ -193,6 +195,7 @@ pub(crate) mod precalculated_for_version {
             PrecalculatedV0DiscoveryCryptoMaterial::new::<C>(discovery_credential)
         }
     }
+
     impl MappingTrait<V1> for Marker {
         type Output = PrecalculatedV1DiscoveryCryptoMaterial;
         fn precalculate<C: CryptoProvider>(
@@ -352,8 +355,8 @@ where
     }
 }
 
-impl<'a, V: ProtocolVersion> DiscoveryMetadataCryptoMaterial<V>
-    for PossiblyCachedDiscoveryCryptoMaterial<'a, V>
+impl<V: ProtocolVersion> DiscoveryMetadataCryptoMaterial<V>
+    for PossiblyCachedDiscoveryCryptoMaterial<'_, V>
 where
     precalculated_for_version::Marker: precalculated_for_version::MappingTrait<V>,
 {
@@ -365,7 +368,7 @@ where
     }
 }
 
-impl<'a> V0DiscoveryCryptoMaterial for PossiblyCachedDiscoveryCryptoMaterial<'a, V0> {
+impl V0DiscoveryCryptoMaterial for PossiblyCachedDiscoveryCryptoMaterial<'_, V0> {
     fn ldt_adv_cipher<C: CryptoProvider>(&self) -> ldt_np_adv::AuthenticatedNpLdtDecryptCipher<C> {
         match &self.wrapped {
             PossiblyCachedDiscoveryCryptoMaterialKind::Discovery(x) => x.ldt_adv_cipher::<C>(),
@@ -374,20 +377,7 @@ impl<'a> V0DiscoveryCryptoMaterial for PossiblyCachedDiscoveryCryptoMaterial<'a,
     }
 }
 
-impl<'a> V1DiscoveryCryptoMaterial for PossiblyCachedDiscoveryCryptoMaterial<'a, V1> {
-    fn signed_identity_resolution_material<C: CryptoProvider>(
-        &self,
-    ) -> SignedSectionIdentityResolutionMaterial {
-        match &self.wrapped {
-            PossiblyCachedDiscoveryCryptoMaterialKind::Discovery(x) => {
-                x.signed_identity_resolution_material::<C>()
-            }
-            PossiblyCachedDiscoveryCryptoMaterialKind::Precalculated(x) => {
-                x.signed_identity_resolution_material::<C>()
-            }
-        }
-    }
-
+impl V1DiscoveryCryptoMaterial for PossiblyCachedDiscoveryCryptoMaterial<'_, V1> {
     fn mic_short_salt_identity_resolution_material<C: CryptoProvider>(
         &self,
     ) -> MicShortSaltSectionIdentityResolutionMaterial {
@@ -410,17 +400,6 @@ impl<'a> V1DiscoveryCryptoMaterial for PossiblyCachedDiscoveryCryptoMaterial<'a,
             }
             PossiblyCachedDiscoveryCryptoMaterialKind::Precalculated(x) => {
                 x.mic_extended_salt_identity_resolution_material::<C>()
-            }
-        }
-    }
-
-    fn signed_verification_material<C: CryptoProvider>(&self) -> SignedSectionVerificationMaterial {
-        match &self.wrapped {
-            PossiblyCachedDiscoveryCryptoMaterialKind::Discovery(x) => {
-                x.signed_verification_material::<C>()
-            }
-            PossiblyCachedDiscoveryCryptoMaterialKind::Precalculated(x) => {
-                x.signed_verification_material::<C>()
             }
         }
     }
@@ -488,8 +467,7 @@ where
 }
 
 #[cfg(any(feature = "alloc", test))]
-impl<'a, V: ProtocolVersion + 'a, M: MatchedCredential + 'a>
-    PrecalculatedOwnedCredentialSource<V, M>
+impl<V: ProtocolVersion, M: MatchedCredential> PrecalculatedOwnedCredentialSource<V, M>
 where
     precalculated_for_version::Marker: precalculated_for_version::MappingTrait<V>,
 {

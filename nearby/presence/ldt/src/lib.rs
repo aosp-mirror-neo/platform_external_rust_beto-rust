@@ -93,7 +93,7 @@ pub struct LdtDecryptCipher<const B: usize, T: TweakableBlockCipher<B>, M: Mix> 
 
 impl<const B: usize, T: TweakableBlockCipher<B>, M: Mix> LdtDecryptCipher<B, T, M> {
     /// Create an [LdtDecryptCipher] with the provided Tweakable block cipher and Mix function
-
+    ///
     /// Decrypt `data` in place, performing the pad operation with `padder`.
     ///
     /// Unless you have particular padding needs, use [DefaultPadder].

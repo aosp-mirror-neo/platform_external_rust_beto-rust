@@ -12,3 +12,53 @@ rust_library_rlib {
         "std",
     ],
 }
+
+rust_proc_macro {
+    name: "libpourover_macro",
+    crate_name: "pourover_macro",
+    defaults: ["beto_rust_defaults"],
+    crate_root: "pourover_macro/src/lib.rs",
+    rustlibs: [
+        "libjni",
+        "libnom",
+        "libquote",
+        "libsyn",
+        "libproc_macro2",
+    ],
+}
+
+rust_library_rlib {
+    name: "libpourover",
+    crate_name: "pourover",
+    defaults: ["beto_rust_defaults"],
+    srcs: ["pourover/src/lib.rs"],
+    rustlibs: [
+        "libjni",
+    ],
+    proc_macros: [
+        "libpourover_macro",
+    ],
+}
+
+rust_library_rlib {
+    name: "libhandle_map",
+    crate_name: "handle_map",
+    defaults: ["beto_rust_defaults"],
+    srcs: ["handle_map/src/lib.rs"],
+    rustlibs: [
+        "liblock_adapter",
+        "liblazy_static",
+    ],
+}
+
+java_library_static {
+    name: "coorporative_cleaner",
+    srcs: [
+        "cooperative_cleaner/lib/src/main/java/**/*.java",
+    ],
+    host_supported: true,
+    static_libs: [
+        "androidx.annotation_annotation",
+        "checker-qual",
+    ],
+}

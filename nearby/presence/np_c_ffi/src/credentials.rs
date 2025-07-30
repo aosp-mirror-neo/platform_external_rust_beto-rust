@@ -153,7 +153,7 @@ pub struct V1MatchableCredential {
 /// A representation of a MatchedCredential which is passable across the FFI boundary
 #[repr(C)]
 pub struct FfiMatchedCredential {
-    cred_id: u32,
+    cred_id: i64,
     encrypted_metadata_bytes_buffer: *const u8,
     encrypted_metadata_bytes_len: usize,
 }
@@ -177,7 +177,11 @@ pub extern "C" fn np_ffi_CredentialSlab_add_v0_credential(
         )
     };
 
-    let matched_credential = MatchedCredential::new(v0_cred.matched_cred.cred_id, metadata_slice);
+    let matched_credential = MatchedCredential::new(
+        v0_cred.matched_cred.cred_id,
+        metadata_slice,
+        v0_cred.discovery_cred.key_seed,
+    );
     credential_slab.add_v0(v0_cred.discovery_cred, matched_credential)
 }
 
@@ -200,7 +204,11 @@ pub extern "C" fn np_ffi_CredentialSlab_add_v1_credential(
         )
     };
 
-    let matched_credential = MatchedCredential::new(v1_cred.matched_cred.cred_id, metadata_slice);
+    let matched_credential = MatchedCredential::new(
+        v1_cred.matched_cred.cred_id,
+        metadata_slice,
+        v1_cred.discovery_cred.key_seed,
+    );
     credential_slab.add_v1(v1_cred.discovery_cred, matched_credential)
 }
 

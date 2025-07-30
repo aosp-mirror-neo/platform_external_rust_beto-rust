@@ -14,16 +14,15 @@
 
 use jni::{
     objects::{JByteArray, JClass, JObject},
-    sys::{jint, jlong},
+    sys::jint,
     JNIEnv,
 };
 
 use crate::class::{
-    DeserializeResult, DeserializeResultError, DeserializedV0Advertisement,
+    CredentialBook, DeserializeResult, DeserializeResultError, DeserializedV0Advertisement,
     DeserializedV1Advertisement, LegibleV1Sections, V0AdvertisementError,
 };
-use handle_map::Handle;
-use np_ffi_core::{credentials::CredentialBook, deserialize::deserialize_advertisement_from_slice};
+use np_ffi_core::deserialize::deserialize_advertisement_from_slice;
 use pourover::{jni_method, ToUnsigned};
 
 #[jni_method(package = "com.google.android.nearby.presence.rust", class = "NpAdv")]
@@ -31,9 +30,11 @@ extern "system" fn nativeDeserializeAdvertisement<'local>(
     mut env: JNIEnv<'local>,
     _cls: JClass<'local>,
     service_data: JByteArray<'local>,
-    credential_book: jlong,
+    credential_book_obj: CredentialBook<JObject<'local>>,
 ) -> JObject<'local> {
-    let credential_book = CredentialBook::from_handle(Handle::from_id(credential_book as u64));
+    let Ok(credential_book) = credential_book_obj.get_handle(&mut env) else {
+        return JObject::null();
+    };
 
     // Unpack the service data
     let mut service_data_buf = [0i8; 256];
@@ -74,6 +75,7 @@ extern "system" fn nativeDeserializeAdvertisement<'local>(
             adv.num_des(),
             adv.payload(),
             adv.identity_kind(),
+            credential_book_obj,
         )
         .and_then(|adv| DeserializeResult::from_v0_advertisement(&mut env, adv))
         .map(|obj| obj.0),
@@ -85,6 +87,7 @@ extern "system" fn nativeDeserializeAdvertisement<'local>(
                     jint::from(adv.num_legible_sections),
                     jint::from(adv.num_undecryptable_sections),
                     sections,
+                    credential_book_obj,
                 )
             })
             .and_then(|adv| DeserializeResult::from_v1_advertisement(&mut env, adv))

@@ -15,7 +15,8 @@
 //! NP Rust C FFI functionality common to V0 ser/deser flows.
 
 use crate::{panic, panic_if_invalid, unwrap, PanicReason};
-use np_ffi_core::serialize::AdvertisementBuilderKind;
+use np_ffi_core::common::*;
+use np_ffi_core::serialize::v0::AdvertisementBuilderKind;
 use np_ffi_core::utils::FfiEnum;
 use np_ffi_core::v0::*;
 

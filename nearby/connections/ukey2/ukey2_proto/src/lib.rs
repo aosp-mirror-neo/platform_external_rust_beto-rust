@@ -17,7 +17,10 @@ pub mod ukey2_all_proto {
     include!(concat!(env!("OUT_DIR"), "/proto/mod.rs"));
 }
 
-#[cfg(not(feature = "cargo"))]
+#[cfg(feature = "soong")]
+pub use ukey2_all_proto;
+
+#[cfg(all(not(feature = "cargo"), not(feature = "soong")))]
 pub mod ukey2_all_proto {
     pub mod device_to_device_messages;
     pub mod securegcm;

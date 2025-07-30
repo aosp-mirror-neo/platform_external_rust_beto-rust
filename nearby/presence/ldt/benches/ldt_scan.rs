@@ -175,6 +175,7 @@ trait ScanCipherFactory {
 /// A wrapper that lets us avoid percolating the need to specify a bogus and type-confused padder
 /// for ciphers that don't use one.
 struct LdtScanCipher<const B: usize, T: TweakableBlockCipher<B>, M: Mix, P: Padder<B, T>> {
+    #[allow(dead_code)]
     ldt_enc: LdtEncryptCipher<B, T, M>,
     ldt_dec: LdtDecryptCipher<B, T, M>,
     padder: P,

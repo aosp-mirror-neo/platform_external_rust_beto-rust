@@ -100,12 +100,11 @@ TEST_F(NpCppTest, TestAddV1Credential) {
   const std::span<uint8_t> metadata_span(metadata);
   const nearby_protocol::MatchedCredentialData match_data(111, metadata_span);
   const std::array<uint8_t, 32> key_seed{1, 2, 3};
-  const std::array<uint8_t, 32> expected_unsigned_metadata_key_hmac{1, 2, 3};
-  const std::array<uint8_t, 32> expected_signed_metadata_key_hmac{1, 2, 3};
-  const std::array<uint8_t, 32> pub_key{1, 2, 3};
+  const std::array<uint8_t, 32> expected_mic_short_salt_identity_token_hmac{1, 2, 3};
+  const std::array<uint8_t, 32> expected_mic_extended_salt_identity_token_hmac{1, 2, 3};
   const nearby_protocol::V1MatchableCredential v1_cred(
-      key_seed, expected_unsigned_metadata_key_hmac,
-      expected_signed_metadata_key_hmac, pub_key, match_data);
+      key_seed, expected_mic_short_salt_identity_token_hmac,
+      expected_mic_extended_salt_identity_token_hmac, match_data);
 
   auto add_result = slab.AddV1Credential(v1_cred);
   ASSERT_EQ(add_result, absl::OkStatus());
@@ -119,12 +118,11 @@ TEST_F(NpCppTest, TestAddV1CredentialAfterMoved) {
   const std::span<uint8_t> metadata_span(metadata);
   const nearby_protocol::MatchedCredentialData match_data(111, metadata_span);
   const std::array<uint8_t, 32> key_seed{1, 2, 3};
-  const std::array<uint8_t, 32> expected_unsigned_metadata_key_hmac{1, 2, 3};
-  const std::array<uint8_t, 32> expected_signed_metadata_key_hmac{1, 2, 3};
-  const std::array<uint8_t, 32> pub_key{1, 2, 3};
+  const std::array<uint8_t, 32> expected_mic_short_salt_identity_token_hmac{1, 2, 3};
+  const std::array<uint8_t, 32> expected_mic_extended_salt_identity_token_hmac{1, 2, 3};
   const nearby_protocol::V1MatchableCredential v1_cred(
-      key_seed, expected_unsigned_metadata_key_hmac,
-      expected_signed_metadata_key_hmac, pub_key, match_data);
+      key_seed, expected_mic_short_salt_identity_token_hmac,
+      expected_mic_extended_salt_identity_token_hmac, match_data);
 
   ASSERT_DEATH([[maybe_unused]] auto add_result = slab.AddV1Credential(v1_cred);
                , "");
@@ -145,13 +143,11 @@ TEST_F(NpCppTest, TestAddManyCredentials) {
     slab.AddV0Credential(v0_cred);
 
     const std::array<uint8_t, 32> v1_key_seed{1, 2, 3};
-    const std::array<uint8_t, 32> v1_expected_unsigned_metadata_key_hmac{1, 2,
-                                                                         3};
-    const std::array<uint8_t, 32> v1_expected_signed_metadata_key_hmac{1, 2, 3};
-    const std::array<uint8_t, 32> v1_pub_key{1, 2, 3};
+    const std::array<uint8_t, 32> v1_expected_mic_short_salt_identity_token_hmac{1, 2, 3};
+    const std::array<uint8_t, 32> v1_expected_mic_extended_salt_identity_token_hmac{1, 2, 3};
     const nearby_protocol::V1MatchableCredential v1_cred(
-        v1_key_seed, v1_expected_unsigned_metadata_key_hmac,
-        v1_expected_signed_metadata_key_hmac, v1_pub_key, match_data);
+        v1_key_seed, v1_expected_mic_short_salt_identity_token_hmac,
+        v1_expected_mic_extended_salt_identity_token_hmac, match_data);
 
     auto add_v1_result = slab.AddV1Credential(v1_cred);
     ASSERT_EQ(add_v1_result, absl::OkStatus());

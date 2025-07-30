@@ -16,16 +16,20 @@
 
 package com.google.android.nearby.presence.rust.credential;
 
-import static com.google.android.nearby.presence.rust.credential.Utils.copyKeyBytes;
+import static com.google.android.nearby.presence.rust.credential.Utils.copyBytes;
+
+import com.google.android.nearby.presence.rust.UsedByNative;
 
 /** A V0 discovery credential in a format that is ready to be passed to native code. */
+@SuppressWarnings("UnusedVariable")
+@UsedByNative
 public final class V0DiscoveryCredential {
-  private final byte[] keySeed;
-  private final byte[] identityTokenHmac;
+  @UsedByNative private final byte[] keySeed;
+  @UsedByNative private final byte[] identityTokenHmac;
 
   /** Create the credential. Each array is exactly 32 bytes. */
   public V0DiscoveryCredential(byte[] keySeed, byte[] identityTokenHmac) {
-    this.keySeed = copyKeyBytes(keySeed);
-    this.identityTokenHmac = copyKeyBytes(identityTokenHmac);
+    this.keySeed = copyBytes(keySeed, 32);
+    this.identityTokenHmac = copyBytes(identityTokenHmac, 32);
   }
 }

@@ -22,13 +22,12 @@
 )]
 
 use criterion::{black_box, criterion_group, criterion_main, Bencher, Criterion};
-use crypto_provider::{ed25519, CryptoProvider, CryptoRng};
+use crypto_provider::{CryptoProvider, CryptoRng};
 use crypto_provider_default::CryptoProviderImpl;
 use ldt_np_adv::{V0IdentityToken, V0Salt, V0_IDENTITY_TOKEN_LEN};
 
 use np_adv::credential::matched::EmptyMatchedCredential;
 use np_adv::deserialization_arena;
-use np_adv::extended::serialize::AdvertisementType;
 use np_adv::extended::V1IdentityToken;
 use np_adv::legacy::serialize::UnencryptedEncoder;
 use np_adv::{
@@ -39,7 +38,7 @@ use np_adv::{
         deserialize::VerificationMode,
         serialize::{
             AdvBuilder as ExtendedAdvBuilder, MicEncryptedSectionEncoder, SectionBuilder,
-            SectionEncoder, SignedEncryptedSectionEncoder, UnencryptedSectionEncoder,
+            SectionEncoder, UnencryptedSectionEncoder,
         },
     },
     legacy::{
@@ -56,7 +55,7 @@ pub fn deser_adv_v1_encrypted(c: &mut Criterion) {
     let mut crypto_rng = <CryptoProviderImpl as CryptoProvider>::CryptoRng::new();
 
     for crypto_type in CryptoMaterialType::iter() {
-        for &identity_type in &[VerificationMode::Mic, VerificationMode::Signature] {
+        for &identity_type in &[VerificationMode::Mic] {
             for &num_identities in &[10, 100, 1000] {
                 for &num_sections in &[1, 2] {
                     // measure worst-case performance -- the correct identities will be the last
@@ -70,30 +69,18 @@ pub fn deser_adv_v1_encrypted(c: &mut Criterion) {
                                 .map(|_| V1Identity::random::<CryptoProviderImpl>(&mut crypto_rng))
                                 .collect::<Vec<_>>();
 
-                            let mut adv_builder = ExtendedAdvBuilder::new(AdvertisementType::Encrypted);
+                            let mut adv_builder = ExtendedAdvBuilder::new();
 
                             // take the first n identities, one section per identity
                             for identity in identities.iter().take(num_sections) {
                                 let broadcast_cm = V1BroadcastCredential::new(
                                     identity.key_seed,
                                     identity.identity_token,
-                                    identity.private_key.clone(),
                                 );
                                 match identity_type {
                                     VerificationMode::Mic => {
                                         let mut sb = adv_builder
                                             .section_builder(MicEncryptedSectionEncoder::<_>::new_random_salt::<CryptoProviderImpl>(
-                                                &mut crypto_rng,
-                                                &broadcast_cm,
-                                            ))
-                                            .unwrap();
-
-                                        add_des(&mut sb);
-                                        sb.add_to_advertisement::<CryptoProviderImpl>();
-                                    }
-                                    VerificationMode::Signature => {
-                                        let mut sb = adv_builder
-                                            .section_builder(SignedEncryptedSectionEncoder::new_random_salt::<CryptoProviderImpl>(
                                                 &mut crypto_rng,
                                                 &broadcast_cm,
                                             ))
@@ -122,7 +109,7 @@ pub fn deser_adv_v1_encrypted(c: &mut Criterion) {
 
 pub fn deser_adv_v1_plaintext(c: &mut Criterion) {
     c.bench_function("Deser V1 plaintext: sections=1", |b| {
-        let mut adv_builder = ExtendedAdvBuilder::new(AdvertisementType::Plaintext);
+        let mut adv_builder = ExtendedAdvBuilder::new();
 
         let mut sb = adv_builder.section_builder(UnencryptedSectionEncoder).unwrap();
 
@@ -330,8 +317,8 @@ fn run_with_v1_creds<C>(
 fn add_des<I: SectionEncoder>(
     sb: &mut SectionBuilder<&mut np_adv::extended::serialize::AdvBuilder, I>,
 ) {
-    sb.add_de_res(|_| TxPower::try_from(17).map(TxPowerDataElement::from)).unwrap();
-    sb.add_de_res(|_| GenericDataElement::try_from(100_u32.into(), &[0; 10])).unwrap();
+    sb.add_de(&TxPowerDataElement::from(TxPower::try_from(17).unwrap())).unwrap();
+    sb.add_de(&GenericDataElement::try_from(100_u16.into(), &[0; 10]).unwrap()).unwrap();
 }
 criterion_group!(
     benches,
@@ -368,17 +355,12 @@ impl V0Identity {
 struct V1Identity {
     key_seed: [u8; 32],
     identity_token: V1IdentityToken,
-    private_key: ed25519::PrivateKey,
 }
 
 impl V1Identity {
     /// Generate a new identity with random crypto material
     fn random<C: CryptoProvider>(rng: &mut C::CryptoRng) -> Self {
-        Self {
-            key_seed: rng.gen(),
-            identity_token: rng.gen(),
-            private_key: ed25519::PrivateKey::generate::<C::Ed25519>(),
-        }
+        Self { key_seed: rng.gen(), identity_token: rng.gen() }
     }
     /// Convert this `V1Identity` into a `V1DiscoveryCredential`.
     fn into_discovery_credential<C: CryptoProvider>(self) -> V1DiscoveryCredential {
@@ -392,10 +374,6 @@ impl V1Identity {
             hkdf.v1_mic_extended_salt_keys()
                 .identity_token_hmac_key()
                 .calculate_hmac::<C>(self.identity_token.as_slice()),
-            hkdf.v1_signature_keys()
-                .identity_token_hmac_key()
-                .calculate_hmac::<C>(self.identity_token.as_slice()),
-            self.private_key.derive_public_key::<C::Ed25519>(),
         )
     }
 }

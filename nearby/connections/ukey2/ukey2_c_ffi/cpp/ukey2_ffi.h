@@ -14,6 +14,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 #include "ukey2_bindings.h"
 
@@ -74,12 +75,21 @@ struct ParseResult {
 // a D2DConnectionContextV1.
 class Ukey2Handshake {
  public:
-  // Creates a Ukey2Handshake instance for the responder.
+  // Creates a Ukey2Handshake instance for the responder, defaulting to the AES-CBC-HMAC_SHA256 implementation.
   static Ukey2Handshake ForResponder();
-  // Creates a Ukey2Handshake instance for the initiator.
+  // Creates a Ukey2Handshake instance for the responder with the specified cryptography
+  // algorithms.
+  static Ukey2Handshake ForResponder(std::vector<Ukey2HandshakeAlgorithm> algorithms);
+  // Creates a Ukey2Handshake instance for the initiator, defaulting to the AES-CBC-HMAC_SHA256 implementation.
   static Ukey2Handshake ForInitiator();
+  // Creates a Ukey2Handshake instance for the initiator with the specified cryptography
+  // algorithms.
+  static Ukey2Handshake ForInitiator(std::vector<Ukey2HandshakeAlgorithm> algorithms);
   // Returns true if the handshake is complete, false otherwise.
   bool IsHandshakeComplete();
+  // Returns the next_protocol string in use for this handshake. Should only be called if the
+  // handshake is completed, otherwise will always return AES-CBC-HMAC_SHA256.
+  Ukey2HandshakeAlgorithm GetNextProtocol();
   // Returns raw byte data with the message to send over the wire.
   std::string GetNextHandshakeMessage();
   // Parses the raw handshake message received over the wire.

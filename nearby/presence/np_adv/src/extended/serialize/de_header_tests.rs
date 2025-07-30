@@ -21,46 +21,47 @@ use rand_ext::rand::{distributions, Rng as _};
 
 #[test]
 fn de_header_1_byte_0s() {
-    let hdr = DeHeader { de_type: 0_u32.into(), len: 0_u8.try_into().unwrap() };
+    let hdr = DeHeader { de_type: 0_u8.into(), len: 0_u8.try_into().unwrap() };
 
     assert_eq!(&[0x00], hdr.serialize().as_slice());
 }
 
 #[test]
 fn de_header_1_byte_max() {
-    let hdr = DeHeader { de_type: 15_u32.into(), len: 7_u8.try_into().unwrap() };
+    let hdr = DeHeader { de_type: 15_u8.into(), len: 7_u8.try_into().unwrap() };
 
     assert_eq!(&[0x7F], hdr.serialize().as_slice());
 }
 
 #[test]
 fn de_header_2_byte_len_too_big() {
-    let hdr = DeHeader { de_type: 15_u32.into(), len: 8_u8.try_into().unwrap() };
+    let hdr = DeHeader { de_type: 15_u8.into(), len: 8_u8.try_into().unwrap() };
 
     assert_eq!(&[0x88, 0x0F], hdr.serialize().as_slice());
 }
 
 #[test]
 fn de_header_2_byte_type_too_big() {
-    let hdr = DeHeader { de_type: 16_u32.into(), len: 7_u8.try_into().unwrap() };
+    let hdr = DeHeader { de_type: 16_u8.into(), len: 7_u8.try_into().unwrap() };
 
     assert_eq!(&[0x87, 0x10], hdr.serialize().as_slice());
 }
 
 #[test]
 fn de_header_max() {
-    let hdr = DeHeader { de_type: u32::MAX.into(), len: 127_u8.try_into().unwrap() };
+    let hdr =
+        DeHeader { de_type: 0xFFFFFFFEu32.try_into().unwrap(), len: 127_u8.try_into().unwrap() };
     assert_eq!(
         // first type byte has 3x 0 bits because there are 35 total bits in 5 chunks of 7 bits, but
         // only 32 bits to start with
-        &[0xFF, 0x8F, 0xFF, 0xFF, 0xFF, 0x7F],
+        &[0xFF, 0x8F, 0xFF, 0xFF, 0xFF, 0x7E],
         hdr.serialize().as_slice()
     );
 }
 
 #[test]
 fn de_header_special_values() {
-    for de_type in [0_u32, 1, 15, 16, u32::MAX - 1, u32::MAX].iter().map(|t| DeType::from(*t)) {
+    for de_type in [0_u32, 1, 15, 16, 0xFFFFFFFEu32].iter().map(|t| DeType::try_from(*t).unwrap()) {
         for len in [0_u8, 1, 7, 8, 126, 127].iter().map(|l| DeLength::try_from(*l).unwrap()) {
             let hdr = DeHeader { de_type, len };
             let buf = hdr.serialize();
@@ -70,14 +71,7 @@ fn de_header_special_values() {
 
             let (_, deser) = deserialize::data_element::DeHeader::parse(buf.as_slice()).unwrap();
 
-            assert_eq!(
-                deserialize::data_element::DeHeader {
-                    de_type,
-                    contents_len: len,
-                    header_bytes: buf
-                },
-                deser
-            )
+            assert_eq!(deserialize::data_element::DeHeader { de_type, contents_len: len }, deser)
         }
     }
 }
@@ -87,7 +81,10 @@ fn de_header_random_roundtrip() {
     let mut rng = rand_ext::seeded_rng();
 
     for _ in 0..100_000 {
-        let hdr = DeHeader { de_type: rng.gen(), len: rng.gen() };
+        let hdr = DeHeader {
+            de_type: rng.gen_range(0..=0xFFFFFFFEu32).try_into().unwrap(),
+            len: rng.gen(),
+        };
         let buf = hdr.serialize();
         let header_len = expected_header_len(hdr);
 
@@ -95,11 +92,7 @@ fn de_header_random_roundtrip() {
         let (_, deser) = deserialize::data_element::DeHeader::parse(buf.as_slice()).unwrap();
 
         assert_eq!(
-            deserialize::data_element::DeHeader {
-                de_type: hdr.de_type,
-                contents_len: hdr.len,
-                header_bytes: buf
-            },
+            deserialize::data_element::DeHeader { de_type: hdr.de_type, contents_len: hdr.len },
             deser
         )
     }
@@ -117,11 +110,5 @@ fn expected_header_len(hdr: DeHeader) -> u8 {
 impl distributions::Distribution<DeLength> for distributions::Standard {
     fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> DeLength {
         DeLength::try_from(rng.gen_range(0_u8..128)).unwrap()
-    }
-}
-
-impl distributions::Distribution<DeType> for distributions::Standard {
-    fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> DeType {
-        rng.gen::<u32>().into()
     }
 }

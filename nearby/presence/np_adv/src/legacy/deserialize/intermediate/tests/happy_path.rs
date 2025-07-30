@@ -20,21 +20,17 @@ mod unencrypted_encoder {
     use crate::legacy::deserialize::intermediate::IntermediateAdvContents;
     use crate::legacy::serialize::encode_de_header;
     use crate::legacy::NP_MAX_DE_CONTENT_LEN;
-    use crypto_provider_default::CryptoProviderImpl;
 
     #[test]
     fn parse_min_len() {
         let header = encode_de_header(DeTypeCode::try_from(14).unwrap(), DeEncodedLength::from(0));
         assert_eq!(
             &[header],
-            IntermediateAdvContents::deserialize::<CryptoProviderImpl>(
-                V0Encoding::Unencrypted,
-                &[header],
-            )
-            .unwrap()
-            .as_unencrypted()
-            .unwrap()
-            .data
+            IntermediateAdvContents::deserialize(V0Encoding::Unencrypted, &[header],)
+                .unwrap()
+                .as_unencrypted()
+                .unwrap()
+                .data
         )
     }
 
@@ -47,14 +43,11 @@ mod unencrypted_encoder {
         let data = &[&[header], [0x22; NP_MAX_DE_CONTENT_LEN].as_slice()].concat();
         assert_eq!(
             data,
-            IntermediateAdvContents::deserialize::<CryptoProviderImpl>(
-                V0Encoding::Unencrypted,
-                data,
-            )
-            .unwrap()
-            .as_unencrypted()
-            .unwrap()
-            .data
+            IntermediateAdvContents::deserialize(V0Encoding::Unencrypted, data,)
+                .unwrap()
+                .as_unencrypted()
+                .unwrap()
+                .data
         )
     }
 }
@@ -91,16 +84,20 @@ mod ldt_encoder {
     }
 
     fn assert_ldt_contents(salt: [u8; V0_SALT_LEN], data: &[u8]) {
+        let mut intermediate_adv =
+            IntermediateAdvContents::deserialize(V0Encoding::Ldt, data).unwrap();
+        let ldt_contents = intermediate_adv.as_ldt().unwrap();
+
+        // Make sure the salt_padder has been created
+        let _ = ldt_contents.salt_padder::<CryptoProviderImpl>();
+
         assert_eq!(
             &LdtAdvContents {
-                salt_padder: salt_padder::<CryptoProviderImpl>(salt.into()),
+                salt_padder: Some(salt_padder::<CryptoProviderImpl>(salt.into())),
                 salt: salt.into(),
                 ciphertext: &data[V0_SALT_LEN..],
             },
-            IntermediateAdvContents::deserialize::<CryptoProviderImpl>(V0Encoding::Ldt, data)
-                .unwrap()
-                .as_ldt()
-                .unwrap()
+            ldt_contents
         );
     }
 }

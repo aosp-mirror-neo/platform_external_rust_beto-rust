@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#![allow(clippy::unwrap_used)]
+#![allow(clippy::unwrap_used, missing_docs)]
 
 use aes::{cipher, cipher::KeyInit as _};
 use crypto_provider::aes::*;

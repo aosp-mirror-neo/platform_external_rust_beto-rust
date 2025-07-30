@@ -12,12 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#![allow(clippy::indexing_slicing, clippy::unwrap_used)]
+#![allow(clippy::indexing_slicing, clippy::unwrap_used, missing_docs)]
 
 use anyhow::anyhow;
 use crypto_provider::aes::AesKey;
 use crypto_provider_default::CryptoProviderImpl;
-use np_hkdf::{v1_salt::ExtendedV1Salt, *};
+use np_hkdf::{
+    v1_salt::{DeType, ExtendedV1Salt, OptionDeType},
+    *,
+};
 use serde_json::json;
 use std::{fs, io::Read as _};
 use test_helper::extract_key_array;
@@ -80,14 +83,6 @@ fn hkdf_test_vectors() -> Result<(), anyhow::Error> {
                 &extract_key_array::<32>(group, "v1_mic_extended_salt_mic_hmac_key"),
                 hkdf.v1_mic_extended_salt_keys().mic_hmac_key().as_bytes()
             );
-            assert_eq!(
-                &extract_key_array::<32>(group, "v1_signature_identity_token_hmac_key"),
-                hkdf.v1_signature_keys().identity_token_hmac_key().as_bytes()
-            );
-            assert_eq!(
-                extract_key_array::<16>(group, "v1_signature_section_aes_key"),
-                *hkdf.v1_signature_keys().aes_key().as_array()
-            );
         }
 
         {
@@ -114,15 +109,17 @@ fn hkdf_test_vectors() -> Result<(), anyhow::Error> {
             let salt = ExtendedV1Salt::from(ikm);
             assert_eq!(
                 extract_key_array::<16>(group, "derived_salt_nonce"),
-                salt.derive::<16, CryptoProviderImpl>(None).unwrap(),
+                salt.derive::<16, CryptoProviderImpl>(OptionDeType::NONE).unwrap(),
             );
             assert_eq!(
                 extract_key_array::<16>(group, "derived_salt_first_de"),
-                salt.derive::<16, CryptoProviderImpl>(Some(0.into())).unwrap(),
+                salt.derive::<16, CryptoProviderImpl>(OptionDeType::from(DeType::from(0u8)))
+                    .unwrap(),
             );
             assert_eq!(
                 extract_key_array::<16>(group, "derived_salt_third_de"),
-                salt.derive::<16, CryptoProviderImpl>(Some(2.into())).unwrap(),
+                salt.derive::<16, CryptoProviderImpl>(OptionDeType::from(DeType::from(2u8)))
+                    .unwrap(),
             );
         }
 
@@ -179,8 +176,6 @@ fn gen_test_vectors() {
                     "v1_mic_extended_salt_identity_token_hmac_key": hex::encode_upper(key_seed_hkdf.v1_mic_extended_salt_keys().identity_token_hmac_key().as_bytes()),
                     "v1_mic_extended_salt_aes_key": hex::encode_upper(key_seed_hkdf.v1_mic_extended_salt_keys().aes_key().as_array()),
                     "v1_mic_extended_salt_mic_hmac_key": hex::encode_upper(key_seed_hkdf.v1_mic_extended_salt_keys().mic_hmac_key().as_bytes()),
-                    "v1_signature_identity_token_hmac_key": hex::encode_upper(key_seed_hkdf.v1_signature_keys().identity_token_hmac_key().as_bytes()),
-                    "v1_signature_section_aes_key": hex::encode_upper(key_seed_hkdf.v1_signature_keys().aes_key().as_array()),
                 },
                 "v0_adv_salt_hkdf": {
                     "adv_salt": hex::encode_upper(v0_adv_salt),
@@ -194,9 +189,9 @@ fn gen_test_vectors() {
                 "v1_section_extended_salt_hkdf": {
                     "section_extended_salt": hex::encode_upper(v1_extended_salt.bytes()),
                     // 0-based offsets -> 1-based indexing
-                    "derived_salt_nonce": hex::encode_upper(v1_extended_salt.derive::<16, CryptoProviderImpl>(None).unwrap()),
-                    "derived_salt_first_de": hex::encode_upper(v1_extended_salt.derive::<16, CryptoProviderImpl>(Some(0.into())).unwrap()),
-                    "derived_salt_third_de": hex::encode_upper(v1_extended_salt.derive::<16, CryptoProviderImpl>(Some(2.into())).unwrap()),
+                    "derived_salt_nonce": hex::encode_upper(v1_extended_salt.derive::<16, CryptoProviderImpl>(OptionDeType::NONE).unwrap()),
+                    "derived_salt_first_de": hex::encode_upper(v1_extended_salt.derive::<16, CryptoProviderImpl>(OptionDeType::from(DeType::from(0u8))).unwrap()),
+                    "derived_salt_third_de": hex::encode_upper(v1_extended_salt.derive::<16, CryptoProviderImpl>(OptionDeType::from(DeType::from(2u8))).unwrap()),
                 },
                 "v1_mic_section_short_salt_hkdf": {
                     "section_short_salt": hex::encode_upper(v1_mic_short_salt),

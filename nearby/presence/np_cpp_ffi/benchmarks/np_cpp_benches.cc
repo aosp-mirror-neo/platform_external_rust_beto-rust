@@ -23,7 +23,7 @@
 nearby_protocol::CredentialBook CreateEmptyCredBook() {
   nearby_protocol::CredentialSlab cred_slab;
   nearby_protocol::CredentialBook cred_book(cred_slab);
-  return std::move(cred_book);
+  return cred_book;
 }
 
 void V0Plaintext(benchmark::State &state) {
@@ -125,8 +125,10 @@ class V1SigEncryptedSingleSection : public benchmark::Fixture {
     nearby_protocol::MatchedCredentialData match_data(123,
                                                       V1AdvEncryptedMetadata);
     nearby_protocol::V1MatchableCredential v1_cred(
-        V1AdvKeySeed, V1AdvExpectedMicExtendedSaltIdentityTokenHmac,
-        V1AdvExpectedSignatureIdentityTokenHmac, V1AdvPublicKey, match_data);
+        V1AdvKeySeed,
+        V1AdvExpectedMicShortSaltIdentityTokenHmac,
+        V1AdvExpectedMicExtendedSaltIdentityTokenHmac,
+        match_data);
     auto add_result = slab.AddV1Credential(v1_cred);
     assert(add_result.ok());
     nearby_protocol::CredentialBook cred_book(slab);
@@ -158,9 +160,8 @@ BENCHMARK_REGISTER_F(V1SigEncryptedSingleSection, SingleMatchingCredential)
 struct V1CredentialData {
   uint32_t cred_id;
   std::array<uint8_t, 32> key_seed;
-  std::array<uint8_t, 32> expected_unsigned_metadata_key_hmac;
-  std::array<uint8_t, 32> expected_signed_metadata_key_hmac;
-  std::array<uint8_t, 32> pub_key;
+  std::array<uint8_t, 32> expected_mic_short_salt_identity_token_hmac;
+  std::array<uint8_t, 32> expected_mic_extended_salt_identity_token_hmac;
   std::array<uint8_t, 500> encrypted_metadata_bytes;
 };
 
@@ -168,9 +169,8 @@ V1CredentialData GenerateData() {
   return {
       .cred_id = static_cast<uint32_t>(rand()),
       .key_seed = create_random_array<32>(),
-      .expected_unsigned_metadata_key_hmac = create_random_array<32>(),
-      .expected_signed_metadata_key_hmac = create_random_array<32>(),
-      .pub_key = create_random_array<32>(),
+      .expected_mic_short_salt_identity_token_hmac = create_random_array<32>(),
+      .expected_mic_extended_salt_identity_token_hmac = create_random_array<32>(),
       .encrypted_metadata_bytes = create_random_array<500>(),
   };
 }
@@ -198,8 +198,7 @@ BENCHMARK_DEFINE_F(LoadCredentialBook, SingleMatchingCredential)
       nearby_protocol::MatchedCredentialData m(cred.cred_id,
                                                cred.encrypted_metadata_bytes);
       nearby_protocol::V1MatchableCredential v1_cred(
-          cred.key_seed, cred.expected_unsigned_metadata_key_hmac,
-          cred.expected_signed_metadata_key_hmac, cred.pub_key, m);
+          cred.key_seed, cred.expected_mic_short_salt_identity_token_hmac, cred.expected_mic_extended_salt_identity_token_hmac, m);
       auto result = slab.AddV1Credential(v1_cred);
       assert(result.ok());
     }

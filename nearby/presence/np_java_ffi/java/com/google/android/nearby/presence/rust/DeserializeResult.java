@@ -20,6 +20,7 @@ import static java.lang.annotation.RetentionPolicy.SOURCE;
 
 import androidx.annotation.IntDef;
 import androidx.annotation.Nullable;
+import com.google.android.nearby.presence.rust.credential.CredentialBook;
 import java.lang.annotation.Retention;
 
 /**
@@ -30,19 +31,23 @@ import java.lang.annotation.Retention;
  * reasons. That condition is reported on the advertisement object itself since a V1 advertisement
  * may be partially legible (some sections are legible, not all).
  */
-public final class DeserializeResult implements AutoCloseable {
+@UsedByNative
+public final class DeserializeResult<M extends CredentialBook.MatchedMetadata>
+    implements AutoCloseable {
 
+  /** The kind of result. Negative values are errors and do not contain advertisement instances. */
   @IntDef({
     Kind.UNKNOWN_ERROR,
     Kind.V0_ADVERTISEMENT,
     Kind.V1_ADVERTISEMENT,
   })
   @Retention(SOURCE)
+  @UsedByNative
   public @interface Kind {
-    public static final int UNKNOWN_ERROR = -1;
+    @UsedByNative public static final int UNKNOWN_ERROR = -1;
 
-    public static final int V0_ADVERTISEMENT = 1;
-    public static final int V1_ADVERTISEMENT = 2;
+    @UsedByNative public static final int V0_ADVERTISEMENT = 1;
+    @UsedByNative public static final int V1_ADVERTISEMENT = 2;
   }
 
   /** Checks if a {@link Kind} represents and error or not. */
@@ -50,10 +55,11 @@ public final class DeserializeResult implements AutoCloseable {
     return kind <= 0;
   }
 
-  private final @Kind int kind;
-  private final @Nullable DeserializedAdvertisement advertisement;
+  @Kind private final int kind;
+  @Nullable private final DeserializedAdvertisement advertisement;
 
   /** Create a DeserializeResult containing an error code */
+  @UsedByNative
   /* package */ DeserializeResult(@Kind int errorKind) {
     if (!isErrorKind(errorKind)) {
       throw new IllegalArgumentException(
@@ -64,13 +70,15 @@ public final class DeserializeResult implements AutoCloseable {
   }
 
   /** Create a DeserializeResult containing a V0 advertisement */
-  /* package */ DeserializeResult(DeserializedV0Advertisement advertisement) {
+  @UsedByNative
+  /* package */ DeserializeResult(DeserializedV0Advertisement<M> advertisement) {
     this.kind = Kind.V0_ADVERTISEMENT;
     this.advertisement = advertisement;
   }
 
   /** Create a DeserializeResult containing a V1 advertisement */
-  /* package */ DeserializeResult(DeserializedV1Advertisement advertisement) {
+  @UsedByNative
+  /* package */ DeserializeResult(DeserializedV1Advertisement<M> advertisement) {
     this.kind = Kind.V1_ADVERTISEMENT;
     this.advertisement = advertisement;
   }
@@ -91,12 +99,13 @@ public final class DeserializeResult implements AutoCloseable {
    *
    * @return the contained V0 advertisement or {@code null} if not present
    */
+  @SuppressWarnings("unchecked")
   @Nullable
-  public DeserializedV0Advertisement getAsV0() {
+  public DeserializedV0Advertisement<M> getAsV0() {
     if (this.kind != Kind.V0_ADVERTISEMENT) {
       return null;
     }
-    return (DeserializedV0Advertisement) this.advertisement;
+    return (DeserializedV0Advertisement<M>) this.advertisement;
   }
 
   /**
@@ -104,12 +113,13 @@ public final class DeserializeResult implements AutoCloseable {
    *
    * @return the contained V1 advertisement or {@code null} if not present
    */
+  @SuppressWarnings("unchecked")
   @Nullable
-  public DeserializedV1Advertisement getAsV1() {
+  public DeserializedV1Advertisement<M> getAsV1() {
     if (this.kind != Kind.V1_ADVERTISEMENT) {
       return null;
     }
-    return (DeserializedV1Advertisement) this.advertisement;
+    return (DeserializedV1Advertisement<M>) this.advertisement;
   }
 
   /** Closes the contained advertisement if it exists. */

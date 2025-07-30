@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #![allow(unsafe_code)]
+#![allow(missing_docs)]
 
 use jni::{
     descriptors::Desc,

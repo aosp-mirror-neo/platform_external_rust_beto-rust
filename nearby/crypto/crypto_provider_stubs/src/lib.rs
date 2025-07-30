@@ -20,14 +20,14 @@
 
 use std::fmt::Debug;
 
-use crypto_provider::aead::AeadInit;
 use crypto_provider::{
-    aead::{Aead, AeadError, AesGcm, AesGcmSiv},
+    aead::{Aead, AeadError, AeadInit, AesGcm, AesGcmSiv},
     aes::{
         cbc::{AesCbcIv, AesCbcPkcs7Padded, DecryptionError, EncryptionError},
         ctr::{AesCtr, NonceAndCounter},
         Aes, Aes128Key, Aes256Key, AesBlock, AesCipher, AesDecryptCipher, AesEncryptCipher,
     },
+    ecdsa::{self, InvalidSignatureBytes, P256EcdsaProvider},
     ed25519::{
         self, Ed25519Provider, InvalidPublicKeyBytes, KeyPairImpl, RawPrivateKey,
         RawPrivateKeyPermit, RawPublicKey, RawSignature, SignatureError, SignatureImpl,
@@ -62,6 +62,7 @@ impl crypto_provider::CryptoProvider for CryptoProviderStubs {
     type Aes256GcmSiv = Aes256Stubs;
     type Aes128Gcm = Aes128Stubs;
     type Aes256Gcm = Aes256Stubs;
+    type EcdsaP256 = P256EcdsaStubs;
     type CryptoRng = ();
 
     fn constant_time_eq(_a: &[u8], _b: &[u8]) -> bool {
@@ -468,6 +469,87 @@ impl Aead for Aes256Stubs {
 impl AesGcmSiv for Aes256Stubs {}
 
 impl AesGcm for Aes256Stubs {}
+
+pub struct P256EcdsaStubs;
+
+impl P256EcdsaProvider for P256EcdsaStubs {
+    type P256KeyPair = P256EcdsaKeyPairStubs;
+
+    type P256PublicKey = P256EcdsaPublicKeyStubs;
+
+    type P256Signature = P256EcdsaSignatureStubs;
+}
+
+pub struct P256EcdsaKeyPairStubs;
+
+impl ecdsa::KeyPair for P256EcdsaKeyPairStubs {
+    type P256PublicKey = P256EcdsaPublicKeyStubs;
+
+    type P256Signature = P256EcdsaSignatureStubs;
+
+    fn raw_private_key(&self, _permit: &ecdsa::RawPrivateKeyPermit) -> ecdsa::RawP256PrivateKey {
+        unimplemented!()
+    }
+
+    fn from_raw_private_key(
+        bytes: &ecdsa::RawP256PrivateKey,
+        _permit: &ecdsa::RawPrivateKeyPermit,
+    ) -> Self
+    where
+        Self: Sized,
+    {
+        unimplemented!()
+    }
+
+    fn sign(&self, msg: &[u8]) -> Self::P256Signature {
+        unimplemented!()
+    }
+
+    fn generate() -> Self {
+        unimplemented!()
+    }
+
+    fn public_key(&self) -> Self::P256PublicKey {
+        unimplemented!()
+    }
+}
+
+pub struct P256EcdsaPublicKeyStubs;
+
+impl ecdsa::PublicKey for P256EcdsaPublicKeyStubs {
+    type Signature = P256EcdsaSignatureStubs;
+
+    fn from_bytes(bytes: &ecdsa::RawP256PublicKey) -> Result<Self, ecdsa::InvalidPublicKeyBytes>
+    where
+        Self: Sized,
+    {
+        unimplemented!()
+    }
+
+    fn to_bytes(&self) -> ecdsa::RawP256PublicKey {
+        unimplemented!()
+    }
+
+    fn verify_strict(
+        &self,
+        message: &[u8],
+        signature: &Self::Signature,
+    ) -> Result<(), ecdsa::VerifyError> {
+        unimplemented!()
+    }
+}
+
+pub struct P256EcdsaSignatureStubs;
+
+impl ecdsa::Signature for P256EcdsaSignatureStubs {
+    fn from_bytes(bytes: &ecdsa::RawP256Signature) -> Result<Self, InvalidSignatureBytes> {
+        unimplemented!()
+    }
+
+    fn to_bytes(&self) -> ecdsa::RawP256Signature {
+        unimplemented!()
+    }
+}
 
 pub struct Ed25519Stubs;
 

@@ -39,6 +39,7 @@ pub(crate) enum IntermediateAdvContents<'d> {
     Ldt(LdtAdvContents<'d>),
 }
 
+#[cfg(test)]
 impl<'d> IntermediateAdvContents<'d> {
     #[cfg(test)]
     pub(crate) fn as_unencrypted(&self) -> Option<&UnencryptedAdvContents<'d>> {
@@ -49,16 +50,18 @@ impl<'d> IntermediateAdvContents<'d> {
     }
 
     #[cfg(test)]
-    pub(crate) fn as_ldt(&self) -> Option<&LdtAdvContents<'d>> {
+    pub(crate) fn as_ldt(&mut self) -> Option<&mut LdtAdvContents<'d>> {
         match self {
             IntermediateAdvContents::Unencrypted(_) => None,
             IntermediateAdvContents::Ldt(c) => Some(c),
         }
     }
+}
 
+impl IntermediateAdvContents<'_> {
     /// Performs basic structural checks on header and content, but doesn't deserialize DEs or
     /// decrypt.
-    pub(crate) fn deserialize<C: CryptoProvider>(
+    pub(crate) fn deserialize(
         encoding: V0Encoding,
         input: &[u8],
     ) -> Result<IntermediateAdvContents<'_>, AdvDeserializeError> {
@@ -72,7 +75,7 @@ impl<'d> IntermediateAdvContents<'d> {
             V0Encoding::Ldt => {
                 let (ciphertext, salt) =
                     parse_v0_salt(input).map_err(|_| AdvDeserializeError::InvalidStructure)?;
-                LdtAdvContents::new::<C>(salt, ciphertext)
+                LdtAdvContents::new(salt, ciphertext)
                     .ok_or(AdvDeserializeError::InvalidStructure)
                     .map(IntermediateAdvContents::Ldt)
             }
@@ -106,9 +109,9 @@ impl<'d> UnencryptedAdvContents<'d> {
 /// Contents of an encrypted advertisement before decryption.
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct LdtAdvContents<'d> {
-    /// Salt from the advertisement, converted into a padder.
-    /// Pre-calculated so it's only derived once across multiple decrypt attempts.
-    salt_padder: ldt::XorPadder<{ crypto_provider::aes::BLOCK_SIZE }>,
+    /// Salt from the advertisement, converted into a padder. This will be calculated on first use
+    /// and cached for later uses.
+    salt_padder: Option<ldt::XorPadder<{ crypto_provider::aes::BLOCK_SIZE }>>,
     /// The salt instance used for encryption of this advertisement.
     salt: V0Salt,
     /// Ciphertext containing the identity token and any data elements.
@@ -118,11 +121,19 @@ pub(crate) struct LdtAdvContents<'d> {
 
 impl<'d> LdtAdvContents<'d> {
     /// Returns `None` if `ciphertext` is not a valid LDT-XTS-AES ciphertext length.
-    pub(crate) fn new<C: CryptoProvider>(salt: V0Salt, ciphertext: &'d [u8]) -> Option<Self> {
+    pub(crate) fn new(salt: V0Salt, ciphertext: &'d [u8]) -> Option<Self> {
         if !ldt_np_adv::VALID_INPUT_LEN.contains(&ciphertext.len()) {
             return None;
         }
-        Some(Self { salt_padder: ldt_np_adv::salt_padder::<C>(salt), salt, ciphertext })
+        Some(Self { salt_padder: None, salt, ciphertext })
+    }
+
+    /// Get the salt padder. It will be calculated on the first call to this method and cached for
+    /// further calls.
+    fn salt_padder<C: CryptoProvider>(
+        &mut self,
+    ) -> &ldt::XorPadder<{ crypto_provider::aes::BLOCK_SIZE }> {
+        self.salt_padder.get_or_insert_with(|| ldt_np_adv::salt_padder::<C>(self.salt))
     }
 
     /// Try decrypting with an identity's LDT cipher and deserializing the resulting data elements.
@@ -130,11 +141,11 @@ impl<'d> LdtAdvContents<'d> {
     /// Returns the decrypted data if decryption and verification succeeded and the resulting DEs could be parsed
     /// successfully, otherwise `Err`.
     pub(crate) fn try_decrypt<C: CryptoProvider>(
-        &self,
+        &mut self,
         cipher: &ldt_np_adv::AuthenticatedNpLdtDecryptCipher<C>,
     ) -> Result<DecryptedAdvContents, DecryptError> {
         let (identity_token, plaintext) = cipher
-            .decrypt_and_verify(self.ciphertext, &self.salt_padder)
+            .decrypt_and_verify(self.ciphertext, self.salt_padder::<C>())
             .map_err(|_e| DecryptError::DecryptOrVerifyError)?;
 
         Ok(DecryptedAdvContents::new(identity_token, self.salt, plaintext))

@@ -64,7 +64,7 @@ impl<'a> JavaType<'a> {
     }
 }
 
-impl<'a> fmt::Display for JavaType<'a> {
+impl fmt::Display for JavaType<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             JavaType::Array { depth, ty } => {
@@ -84,13 +84,13 @@ impl<'a> From<NonArray<'a>> for JavaType<'a> {
     }
 }
 
-impl<'a> From<Primitive> for JavaType<'a> {
+impl From<Primitive> for JavaType<'_> {
     fn from(prim: Primitive) -> Self {
         JavaType::NonArray(NonArray::Primitive(prim))
     }
 }
 
-#[cfg(jni)]
+#[cfg(feature = "jni")]
 impl<'a> From<JavaType<'a>> for jni::signature::ReturnType {
     fn from(ty: JavaType<'a>) -> Self {
         match ty {
@@ -132,7 +132,7 @@ impl<'a> NonArray<'a> {
     }
 }
 
-impl<'a> fmt::Display for NonArray<'a> {
+impl fmt::Display for NonArray<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             NonArray::Primitive(p) => write!(f, "{p}"),
@@ -141,7 +141,7 @@ impl<'a> fmt::Display for NonArray<'a> {
     }
 }
 
-impl<'a> From<Primitive> for NonArray<'a> {
+impl From<Primitive> for NonArray<'_> {
     fn from(p: Primitive) -> Self {
         Self::Primitive(p)
     }
@@ -221,7 +221,7 @@ impl fmt::Display for Primitive {
     }
 }
 
-#[cfg(jni)]
+#[cfg(feature = "jni")]
 impl From<Primitive> for jni::signature::Primitive {
     fn from(p: Primitive) -> Self {
         match p {
@@ -275,7 +275,7 @@ impl<'a> From<JavaType<'a>> for ReturnType<'a> {
     }
 }
 
-#[cfg(jni)]
+#[cfg(feature = "jni")]
 impl<'a> From<ReturnType<'a>> for jni::signature::ReturnType {
     fn from(ty: ReturnType<'a>) -> Self {
         match ty {

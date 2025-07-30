@@ -586,7 +586,7 @@ struct XtsEncrypterTweaked<'a, A: Aes> {
     enc_cipher: &'a A::EncryptCipher,
 }
 
-impl<'a, A: Aes> XtsEncrypterTweaked<'a, A> {
+impl<A: Aes> XtsEncrypterTweaked<'_, A> {
     fn advance_to_next_block_num(&mut self) {
         self.tweak_state.advance_to_next_block()
     }
@@ -609,7 +609,7 @@ struct XtsDecrypterTweaked<'a, A: Aes> {
     dec_cipher: &'a A::DecryptCipher,
 }
 
-impl<'a, A: Aes> XtsDecrypterTweaked<'a, A> {
+impl<A: Aes> XtsDecrypterTweaked<'_, A> {
     fn advance_to_next_block_num(&mut self) {
         self.tweak_state.advance_to_next_block()
     }

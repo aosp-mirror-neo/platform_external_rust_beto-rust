@@ -52,7 +52,7 @@ pub extern "C" fn np_ffi_V0AdvertisementBuilder_into_advertisement(
 pub extern "C" fn np_ffi_deallocate_v0_advertisement_builder(
     adv_builder: V0AdvertisementBuilder,
 ) -> DeallocateResult {
-    adv_builder.deallocate()
+    adv_builder.deallocate_handle()
 }
 
 /// Creates a new V0 advertisement builder for a public advertisement.

@@ -12,7 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#![allow(unsafe_code, clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+#![allow(
+    unsafe_code,
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::panic,
+    missing_docs
+)]
 
 use jni::{
     descriptors::Desc,
@@ -21,19 +27,22 @@ use jni::{
     sys::jint,
     JNIEnv, JavaVM,
 };
-use std::error::Error;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::{
+    error::Error,
+    sync::atomic::{AtomicBool, Ordering},
+};
 
 mod common;
+
 use common::foo_class::*;
 
 static NATIVE_METHOD_CALLED: AtomicBool = AtomicBool::new(false);
 static TEST_PANIC: AtomicBool = AtomicBool::new(false);
 
 #[pourover::jni_method(
-    package = "com.example",
-    class = "Foo",
-    panic_returns = -1
+package = "com.example",
+class = "Foo",
+panic_returns = - 1
 )]
 extern "system" fn nativeReturnsInt<'local>(
     mut env: JNIEnv<'local>,
@@ -52,9 +61,9 @@ extern "system" fn nativeReturnsInt<'local>(
 }
 
 #[pourover::jni_method(
-    package = "com.example",
-    class = "Foo",
-    panic_returns = JObject::null().into(),
+package = "com.example",
+class = "Foo",
+panic_returns = JObject::null().into(),
 )]
 extern "system" fn nativeReturnsObject<'local>(
     env: JNIEnv<'local>,

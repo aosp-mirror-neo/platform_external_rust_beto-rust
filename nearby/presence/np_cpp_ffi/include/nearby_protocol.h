@@ -109,7 +109,7 @@ class V0Actions;
 // V1 Classes
 class DeserializedV1Advertisement;
 class DeserializedV1Section;
-class V1DataElement;
+class GenericV1DataElement;
 
 // Global static singleton class used to customize the deserialization library.
 // If no values are set, then the default values will be used. In most cases the
@@ -257,12 +257,13 @@ class V1MatchableCredential {
   V1MatchableCredential() = delete;
 
   // Creates a new V1MatchableCredential from key material, its calculated hmac
-  // value and some match data.
+  // values and some match data.
   [[nodiscard]] V1MatchableCredential(
       std::array<uint8_t, KEY_SEED_SIZE> key_seed,
-      std::array<uint8_t, HMAC_TAG_SIZE> expected_unsigned_metadata_key_hmac,
-      std::array<uint8_t, HMAC_TAG_SIZE> expected_signed_metadata_key_hmac,
-      std::array<uint8_t, PUBLIC_SIGNING_KEY_SIZE> pub_key,
+      std::array<uint8_t, HMAC_TAG_SIZE>
+          expected_mic_short_salt_identity_token_hmac,
+      std::array<uint8_t, HMAC_TAG_SIZE>
+          expected_mic_extended_salt_identity_token_hmac,
       MatchedCredentialData matched_credential_data);
 
  private:
@@ -361,7 +362,7 @@ class ByteBuffer {
 
  private:
   friend class V0AdvertisementBuilder;
-  friend class V1DataElement;
+  friend class GenericV1DataElement;
   friend class Deserializer;
   np_ffi::internal::ByteBuffer<N> internal_;
 };
@@ -679,7 +680,7 @@ class DeserializedV1Section {
   [[nodiscard]] DeserializedV1IdentityKind GetIdentityKind() const;
 
   // Tries to get the data element in the section at the given index
-  [[nodiscard]] absl::StatusOr<V1DataElement> TryGetDataElement(
+  [[nodiscard]] absl::StatusOr<GenericV1DataElement> TryGetDataElement(
       uint8_t index) const;
 
   // Decrypts the metadata of the credential which matched with this section
@@ -692,12 +693,13 @@ class DeserializedV1Section {
   GetIdentityDetails() const;
 
   // Attempts to derive a 16-byte DE salt for a DE in this section with the
-  // given DE offset. This operation may fail if the passed offset is 255
-  // (causes overflow) or if the section is leveraging a public identity, and
-  // hence, doesn't have an associated salt. The offset should come from a
-  // particular deserialized v1 de via `V1DataElement::GetOffset()`
+  // given DE type-code. This operation may fail if the passed DE type-code
+  // is forbidden (0xFFFFFFFF) or if the section is leveraging a public
+  // identity, and hence, doesn't have an associated salt. The type-code should
+  // come from a type-code on a particular deserialized v1 de belonging to the
+  // containing section.
   [[nodiscard]] absl::StatusOr<std::array<uint8_t, DERIVED_SALT_SIZE>>
-  DeriveSaltForOffset(uint8_t offset) const;
+  DeriveSaltForDeType(uint32_t de_type) const;
 
  private:
   friend class DeserializedV1Advertisement;
@@ -713,20 +715,19 @@ class DeserializedV1Section {
 };
 
 // A V1 Data Element
-class V1DataElement {
+class GenericV1DataElement {
  public:
   // Yields the unsigned 32-bit integer V1 DE type code
   [[nodiscard]] uint32_t GetDataElementTypeCode() const;
   // Yields the payload bytes of the data element
   [[nodiscard]] ByteBuffer<MAX_V1_DE_PAYLOAD_SIZE> GetPayload() const;
-  /// Gets the offset for this V1 data element.
-  [[nodiscard]] uint8_t GetOffset() const;
 
  private:
   friend class DeserializedV1Section;
-  explicit V1DataElement(np_ffi::internal::V1DataElement v1_data_element)
+  explicit GenericV1DataElement(
+      np_ffi::internal::GenericV1DataElement v1_data_element)
       : v1_data_element_(v1_data_element) {}
-  np_ffi::internal::V1DataElement v1_data_element_;
+  np_ffi::internal::GenericV1DataElement v1_data_element_;
 };
 
 // A builder for V0 advertisements

@@ -29,11 +29,19 @@ CFFIByteArray nullByteArray() {
 
 // Implementation of functions
 rust::Ukey2Handshake rust::Ukey2Handshake::ForInitiator() {
-  return Ukey2Handshake(initiator_new());
+  return ForInitiator({Ukey2HandshakeAlgorithm::AES_CBC_HMAC_SHA256});
+}
+
+rust::Ukey2Handshake rust::Ukey2Handshake::ForInitiator(std::vector<Ukey2HandshakeAlgorithm> algorithms) {
+  return Ukey2Handshake(initiator_new(algorithms.data(), algorithms.size()));
 }
 
 rust::Ukey2Handshake rust::Ukey2Handshake::ForResponder() {
-  return Ukey2Handshake(responder_new());
+  return ForResponder({Ukey2HandshakeAlgorithm::AES_CBC_HMAC_SHA256});
+}
+
+rust::Ukey2Handshake rust::Ukey2Handshake::ForResponder(std::vector<Ukey2HandshakeAlgorithm> algorithms) {
+  return Ukey2Handshake(responder_new(algorithms.data(), algorithms.size()));
 }
 
 bool rust::Ukey2Handshake::IsHandshakeComplete() {
@@ -74,6 +82,13 @@ std::string rust::Ukey2Handshake::GetVerificationString(size_t output_length) {
   std::string ret = std::string((const char*)array.handle, array.len);
   rust_dealloc_ffi_byte_array(array);
   return ret;
+}
+
+Ukey2HandshakeAlgorithm rust::Ukey2Handshake::GetNextProtocol() {
+    if (IsHandshakeComplete()) {
+        return get_next_protocol(handle_);
+    }
+    return Ukey2HandshakeAlgorithm::AES_CBC_HMAC_SHA256;
 }
 
 rust::D2DConnectionContextV1 rust::Ukey2Handshake::ToConnectionContext() {

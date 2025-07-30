@@ -12,9 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#![allow(clippy::unwrap_used, clippy::expect_used, clippy::indexing_slicing, clippy::panic)]
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    clippy::indexing_slicing,
+    clippy::panic,
+    missing_docs
+)]
 
-use crypto_provider::{ed25519, CryptoProvider, CryptoRng};
+use crypto_provider::{CryptoProvider, CryptoRng};
 use crypto_provider_default::CryptoProviderImpl;
 use np_adv::credential::matched::{
     EmptyMatchedCredential, MetadataMatchedCredential, WithMatchedCredential,
@@ -30,28 +36,22 @@ use np_adv::{
     deserialization_arena, deserialize_advertisement,
     extended::{
         data_elements::TxPowerDataElement,
+        de_type::HasDEType,
         deserialize::VerificationMode,
-        serialize::{
-            AdvBuilder, AdvertisementType, SignedEncryptedSectionEncoder, SingleTypeDataElement,
-            UnencryptedSectionEncoder,
-        },
-        NP_V1_ADV_MAX_PUBLIC_SECTION_COUNT,
+        serialize::{AdvBuilder, MicEncryptedSectionEncoder, UnencryptedSectionEncoder},
+        NP_V1_ADV_MAX_SECTION_COUNT,
     },
     shared_data::TxPower,
     AdvDeserializationError, AdvDeserializationErrorDetailsHazmat,
 };
-use np_hkdf::{v1_salt, DerivedSectionKeys};
+use np_hkdf::DerivedSectionKeys;
 use serde::{Deserialize, Serialize};
-
-type Ed25519ProviderImpl = <CryptoProviderImpl as CryptoProvider>::Ed25519;
 
 #[test]
 fn v1_deser_plaintext() {
-    let mut adv_builder = AdvBuilder::new(AdvertisementType::Plaintext);
+    let mut adv_builder = AdvBuilder::new();
     let mut section_builder = adv_builder.section_builder(UnencryptedSectionEncoder).unwrap();
-    section_builder
-        .add_de(|_salt| TxPowerDataElement::from(TxPower::try_from(6).unwrap()))
-        .unwrap();
+    section_builder.add_de(&TxPowerDataElement::from(TxPower::try_from(6).unwrap())).unwrap();
     section_builder.add_to_advertisement::<CryptoProviderImpl>();
     let adv = adv_builder.into_advertisement();
 
@@ -82,7 +82,7 @@ fn v1_deser_plaintext() {
     assert_eq!(1, data_elements.len());
 
     let de = &data_elements[0];
-    assert_eq!(v1_salt::DataElementOffset::from(0), de.offset());
+    assert_eq!(None, de.salt());
     assert_eq!(TxPowerDataElement::DE_TYPE, de.de_type());
     assert_eq!(&[6], de.contents());
 }
@@ -114,11 +114,10 @@ fn v1_deser_ciphertext() {
     let mut rng = <CryptoProviderImpl as CryptoProvider>::CryptoRng::new();
     let token_array: [u8; 16] = rng.gen();
     let identity_token = V1IdentityToken::from(token_array);
-    let private_key = ed25519::PrivateKey::generate::<Ed25519ProviderImpl>();
     let key_seed = rng.gen();
     let hkdf = np_hkdf::NpKeySeedHkdf::<CryptoProviderImpl>::new(&key_seed);
 
-    let broadcast_cred = V1BroadcastCredential::new(key_seed, identity_token, private_key.clone());
+    let broadcast_cred = V1BroadcastCredential::new(key_seed, identity_token);
 
     // Serialize and encrypt some identity metadata (sender-side)
     let sender_metadata = IdentityMetadata {
@@ -133,28 +132,27 @@ fn v1_deser_ciphertext() {
     >(&hkdf, identity_token, &sender_metadata_bytes);
 
     // prepare advertisement
-    let mut adv_builder = AdvBuilder::new(AdvertisementType::Encrypted);
+    let mut adv_builder = AdvBuilder::new();
 
     let mut section_builder = adv_builder
-        .section_builder(SignedEncryptedSectionEncoder::new_random_salt::<CryptoProviderImpl>(
+        .section_builder(MicEncryptedSectionEncoder::new_random_salt::<CryptoProviderImpl>(
             &mut rng,
             &broadcast_cred,
         ))
         .unwrap();
-    section_builder
-        .add_de(|_salt| TxPowerDataElement::from(TxPower::try_from(7).unwrap()))
-        .unwrap();
+    section_builder.add_de(&TxPowerDataElement::from(TxPower::try_from(7).unwrap())).unwrap();
     section_builder.add_to_advertisement::<CryptoProviderImpl>();
     let adv = adv_builder.into_advertisement();
+    println!("adv: {adv:?}");
 
     let discovery_credential = V1DiscoveryCredential::new(
         key_seed,
-        [0; 32],
-        [0; 32], // Zeroing out MIC HMAC, since it's unused in examples here.
-        hkdf.v1_signature_keys()
+        hkdf.v1_mic_short_salt_keys()
             .identity_token_hmac_key()
             .calculate_hmac::<CryptoProviderImpl>(identity_token.bytes()),
-        private_key.derive_public_key::<Ed25519ProviderImpl>(),
+        hkdf.v1_mic_extended_salt_keys()
+            .identity_token_hmac_key()
+            .calculate_hmac::<CryptoProviderImpl>(identity_token.bytes()),
     );
 
     let credentials: [MatchableCredential<V1, MetadataMatchedCredential<_>>; 1] =
@@ -173,7 +171,7 @@ fn v1_deser_ciphertext() {
             .into_v1()
             .expect("Should be V1");
 
-    assert_eq!(0, contents.invalid_sections_count());
+    assert_eq!(0, contents.invalid_sections_count(), "{contents:?}");
 
     let sections = contents.sections().collect::<Vec<_>>();
     assert_eq!(1, sections.len());
@@ -192,53 +190,21 @@ fn v1_deser_ciphertext() {
 
     let section = matched.contents();
 
-    assert_eq!(VerificationMode::Signature, section.verification_mode());
+    assert_eq!(VerificationMode::Mic, section.verification_mode());
     assert_eq!(&identity_token, section.identity_token());
 
     let data_elements = section.iter_data_elements().collect::<Result<Vec<_>, _>>().unwrap();
     assert_eq!(1, data_elements.len());
 
     let de = &data_elements[0];
-    assert_eq!(v1_salt::DataElementOffset::from(0), de.offset());
     assert_eq!(TxPowerDataElement::DE_TYPE, de.de_type());
     assert_eq!(&[7], de.contents());
-
-    // Uncomment if you need to regenerate C++ v1_private_identity_tests data
-    // {
-    //     use test_helper::hex_bytes;
-    //     use np_adv::extended::salt::MultiSalt;
-    //     use np_adv_credential_matched::MatchedCredential;
-    //     println!("adv:\n{}", hex_bytes(adv.as_slice()));
-    //     println!("key seed:\n{}", hex_bytes(key_seed));
-    //     println!(
-    //         "identity token hmac:\n{}",
-    //         hex_bytes(
-    //             hkdf.v1_signature_keys()
-    //                 .identity_token_hmac_key()
-    //                 .calculate_hmac(identity_token.bytes())
-    //         )
-    //     );
-    //     println!("public key:\n{}", hex_bytes(key_pair.public().to_bytes()));
-    //     println!(
-    //         "encrypted metadata:\n{}",
-    //         hex_bytes(encrypted_sender_metadata.fetch_encrypted_metadata().unwrap())
-    //     );
-    //     std::println!("offset is: {:?}", de.offset());
-    //     let derived_salt = match section.salt() {
-    //         MultiSalt::Short(_) => panic!(),
-    //         MultiSalt::Extended(s) => {
-    //             s.derive::<16, CryptoProviderImpl>(Some(de.offset())).unwrap()
-    //         }
-    //     };
-    //     println!("DE derived salt:\n{}", hex_bytes(derived_salt));
-    //     panic!();
-    // }
 }
 
 #[test]
 fn v1_deser_no_section() {
     // TODO: we shouldn't allow this invalid advertisement to be serialized
-    let adv_builder = AdvBuilder::new(AdvertisementType::Plaintext);
+    let adv_builder = AdvBuilder::new();
     let adv = adv_builder.into_advertisement();
     let cred_book = CredentialBookBuilder::<EmptyMatchedCredential>::build_cached_slice_book::<
         0,
@@ -259,12 +225,10 @@ fn v1_deser_no_section() {
 
 #[test]
 fn v1_deser_plaintext_over_max_sections() {
-    let mut adv_builder = AdvBuilder::new(AdvertisementType::Plaintext);
-    for _ in 0..NP_V1_ADV_MAX_PUBLIC_SECTION_COUNT {
+    let mut adv_builder = AdvBuilder::new();
+    for _ in 0..NP_V1_ADV_MAX_SECTION_COUNT {
         let mut section_builder = adv_builder.section_builder(UnencryptedSectionEncoder).unwrap();
-        section_builder
-            .add_de(|_salt| TxPowerDataElement::from(TxPower::try_from(7).unwrap()))
-            .unwrap();
+        section_builder.add_de(&TxPowerDataElement::from(TxPower::try_from(7).unwrap())).unwrap();
         section_builder.add_to_advertisement::<CryptoProviderImpl>();
     }
     let mut adv = adv_builder.into_advertisement().as_slice().to_vec();
@@ -272,7 +236,7 @@ fn v1_deser_plaintext_over_max_sections() {
     adv.extend_from_slice(
         [
             0x01, // Section header
-            V1_ENCODING_UNENCRYPTED,
+            V1_ENCODING_UNENCRYPTED.byte_value(),
         ]
         .as_slice(),
     );

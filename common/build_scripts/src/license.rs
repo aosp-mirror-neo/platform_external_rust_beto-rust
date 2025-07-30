@@ -51,6 +51,11 @@ pub const LICENSE_CHECKER: LicenseChecker = LicenseChecker {
         "**/fuzz/artifacts/**",
         "**/cmake-build-debug/**",
         "**/tags",
+        "**/*.dll",
+        "**/*.dll.lib",
+        "**/*.so",
+        "**/*.a",
+        "**/cooperative_cleaner/lib/build/**",
     ],
 };
 

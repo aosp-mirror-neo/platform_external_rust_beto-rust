@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::exception_wrapper;
 use jni::{
     objects::{JObject, JThrowable},
     JNIEnv,
@@ -19,59 +20,13 @@ use jni::{
 use np_adv::AdvDeserializationError;
 use pourover::desc::ClassDesc;
 
-static INVALID_HEADER_CLASS: ClassDesc = ClassDesc::new(
-    "com/google/android/nearby/presence/rust/DeserializationException$InvalidHeaderException",
-);
+exception_wrapper!(
+    /// Rust representation of `class DeserializationException.InvalidHeaderException`.
+    InvalidHeaderException, "com/google/android/nearby/presence/rust/DeserializationException$InvalidHeaderException");
 
-/// Rust representation of `class DeserializationException.InvalidHeaderException`.
-#[repr(transparent)]
-pub struct InvalidHeaderException<Obj>(pub Obj);
-
-impl<'local> InvalidHeaderException<JObject<'local>> {
-    /// Create a new instance.
-    pub fn construct(env: &mut JNIEnv<'local>) -> jni::errors::Result<Self> {
-        pourover::call_constructor!(env, &INVALID_HEADER_CLASS, "()V").map(Self)
-    }
-
-    /// Create a new instance and throw it.
-    pub fn throw_new(env: &mut JNIEnv<'local>) -> jni::errors::Result<()> {
-        Self::construct(env)?.throw(env)
-    }
-}
-
-impl<'local, Obj: AsRef<JObject<'local>>> InvalidHeaderException<Obj> {
-    /// Throw this exception.
-    pub fn throw<'env>(&self, env: &mut JNIEnv<'env>) -> jni::errors::Result<()> {
-        env.throw(<&JThrowable>::from(self.0.as_ref()))
-    }
-}
-
-static INVALID_FORMAT_CLASS: ClassDesc = ClassDesc::new(
-    "com/google/android/nearby/presence/rust/DeserializationException$InvalidFormatException",
-);
-
-/// Rust representation of `class DeserializationException.InvalidFormatException`.
-#[repr(transparent)]
-pub struct InvalidFormatException<Obj>(pub Obj);
-
-impl<'local> InvalidFormatException<JObject<'local>> {
-    /// Create a new instance.
-    pub fn construct(env: &mut JNIEnv<'local>) -> jni::errors::Result<Self> {
-        pourover::call_constructor!(env, &INVALID_FORMAT_CLASS, "()V").map(Self)
-    }
-
-    /// Create a new instance and throw it.
-    pub fn throw_new(env: &mut JNIEnv<'local>) -> jni::errors::Result<()> {
-        Self::construct(env)?.throw(env)
-    }
-}
-
-impl<'local, Obj: AsRef<JObject<'local>>> InvalidFormatException<Obj> {
-    /// Throw this exception.
-    pub fn throw<'env>(&self, env: &mut JNIEnv<'env>) -> jni::errors::Result<()> {
-        env.throw(<&JThrowable>::from(self.0.as_ref()))
-    }
-}
+exception_wrapper!(
+    /// Rust representation of `class DeserializationException.InvalidFormatException`.
+    InvalidFormatException, "com/google/android/nearby/presence/rust/DeserializationException$InvalidFormatException");
 
 /// Allow AdvDeserializationError to be thrown as a Java exception.
 impl super::ToJavaException for AdvDeserializationError {

@@ -17,17 +17,11 @@ mod happy_path {
     use alloc::vec;
 
     #[test]
-    fn parse_extended_bit_not_set() {
+    fn parse_unencrypted() {
         assert_eq!(
-            SectionHeader::parse(&[0b0000_0000, 3]).expect("Parsing should succeed"),
-            ([].as_slice(), (&[0u8][..], SectionHeader::Unencrypted, 3u8))
+            SectionHeader::parse(&[0b0000_0000]).expect("Parsing should succeed"),
+            ([].as_slice(), Ok(SectionHeader::Unencrypted))
         );
-    }
-
-    #[test]
-    fn parse_with_extended_bit_set() {
-        let _ = SectionHeader::parse(&[0b1000_0000, 0b0000_0000, 4])
-            .expect_err("Extended bits should not be parsed at this time");
     }
 
     #[test]
@@ -36,33 +30,17 @@ mod happy_path {
         section_header.push(0b0000_0001u8); //format
         section_header.extend_from_slice(&[0xFF; 2]); // short salt
         section_header.extend_from_slice(&[0xCC; 16]); // identity token
-        section_header.push(100); // payload length
 
         assert_eq!(
             SectionHeader::parse(section_header.as_slice()).expect("Parsing should succeed"),
             (
                 [].as_slice(),
-                (
-                    &[0b0000_0001u8][..],
-                    SectionHeader::Encrypted(EncryptedSectionHeader::MicShortSalt {
-                        salt: [0xFF; 2].into(),
-                        token: [0xCC; 16].into(),
-                    }),
-                    100
-                )
+                Ok(SectionHeader::Encrypted(EncryptedSectionHeader::MicShortSalt {
+                    salt: [0xFF; 2].into(),
+                    token: [0xCC; 16].into(),
+                }))
             )
         );
-    }
-
-    #[test]
-    fn parse_section_header_multi_byte_mic_with_short_salt() {
-        let mut section_header = vec![];
-        section_header.extend_from_slice(&[0b1000_0001u8, 0b0000_0000]); //format
-        section_header.extend_from_slice(&[0xFF; 2]); // short salt
-        section_header.extend_from_slice(&[0xCC; 16]); // identity token
-        section_header.push(100); // payload length
-        let _ = SectionHeader::parse(section_header.as_slice())
-            .expect_err("Extended bit parsing should fail at this time");
     }
 
     #[test]
@@ -71,44 +49,15 @@ mod happy_path {
         section_header.push(0b0000_0010u8); //format
         section_header.extend_from_slice(&[0xFF; 16]); // short salt
         section_header.extend_from_slice(&[0xCC; 16]); // identity token
-        section_header.push(100); // payload length
 
         assert_eq!(
             SectionHeader::parse(section_header.as_slice()).expect("Parsing should succeed"),
             (
                 [].as_slice(),
-                (
-                    &[0b0000_0010u8][..],
-                    SectionHeader::Encrypted(EncryptedSectionHeader::MicExtendedSalt {
-                        salt: [0xFF; 16].into(),
-                        token: [0xCC; 16].into(),
-                    }),
-                    100
-                )
-            )
-        );
-    }
-
-    #[test]
-    fn parse_section_header_sig_with_extended_salt() {
-        let mut section_header = vec![];
-        section_header.push(0b0000_0011u8); //format
-        section_header.extend_from_slice(&[0xFF; 16]); // short salt
-        section_header.extend_from_slice(&[0xCC; 16]); // identity token
-        section_header.push(100); // payload length
-
-        assert_eq!(
-            SectionHeader::parse(section_header.as_slice()).expect("Parsing should succeed"),
-            (
-                [].as_slice(),
-                (
-                    &[0b0000_0011u8][..],
-                    SectionHeader::Encrypted(EncryptedSectionHeader::SigExtendedSalt {
-                        salt: [0xFF; 16].into(),
-                        token: [0xCC; 16].into(),
-                    }),
-                    100
-                )
+                Ok(SectionHeader::Encrypted(EncryptedSectionHeader::MicExtendedSalt {
+                    salt: [0xFF; 16].into(),
+                    token: [0xCC; 16].into(),
+                }),)
             )
         );
     }
@@ -116,57 +65,23 @@ mod happy_path {
 
 mod error_condition {
     use super::super::*;
-    use alloc::vec;
 
     #[test]
     fn parse_single_byte_invalid_reserve() {
-        let _ = SectionHeader::parse(&[0b0001_0000, 3])
+        let _ = SectionHeader::parse(&[0b0001_0000])
             .expect_err("Invalid reserve bits should fail to parse");
-        let _ = SectionHeader::parse(&[0b0011_0000, 3])
+        let _ = SectionHeader::parse(&[0b0011_0000])
             .expect_err("Invalid reserve bits should fail to parse");
-        let _ = SectionHeader::parse(&[0b0111_0000, 3])
+        let _ = SectionHeader::parse(&[0b0111_0000])
             .expect_err("Invalid reserve bits should fail to parse");
-    }
-
-    #[test]
-    fn parse_multi_byte_invalid_reserve_bits() {
-        let _ = SectionHeader::parse(&[0b1000_0000, 0b1000_0000, 4])
+        let _ = SectionHeader::parse(&[0b1111_0000])
             .expect_err("Invalid reserve bits should fail to parse");
-        let _ = SectionHeader::parse(&[0b1000_0000, 0b1111_1111, 4])
-            .expect_err("Invalid reserve bits should fail to parse");
-        let _ = SectionHeader::parse(&[0b1000_0000, 0b0000_0001, 4])
-            .expect_err("Invalid reserve bits should fail to parse");
-        let _ = SectionHeader::parse(&[0b1000_0000, 0b0001_0000, 4])
-            .expect_err("Invalid reserve bits should fail to parse");
-        let _ = SectionHeader::parse(&[0b1001_0000, 0b0000_0000, 4])
-            .expect_err("Invalid reserve bits should fail to parse");
-        let _ = SectionHeader::parse(&[0b1100_0000, 0b0000_0000, 4])
-            .expect_err("Invalid reserve bits should fail to parse");
-        let _ = SectionHeader::parse(&[0b1100_0000, 0b0000_0001, 4])
-            .expect_err("Invalid reserve bits should fail to parse");
-    }
-
-    #[test]
-    fn parse_section_header_unencrypted_encoding_zero_length_payload() {
-        let _ = SectionHeader::parse(&[0b0000_0000, 0])
-            .expect_err("0 is an invalid section length for unencrypted sections");
     }
 
     #[test]
     fn parse_section_header_mic_with_short_salt_too_short() {
         let _ = SectionHeader::parse(&[0b0000_0001])
             .expect_err("Not enough bytes present to parse a mic with short salt");
-    }
-
-    #[test]
-    fn parse_section_header_mic_with_short_salt_missing_length() {
-        let mut section_header = vec![];
-        section_header.push(0b0000_0001u8); //format
-        section_header.extend_from_slice(&[0xFF; 2]); // short salt
-        section_header.extend_from_slice(&[0xCC; 16]); // identity token
-
-        let _ = SectionHeader::parse(section_header.as_slice())
-            .expect_err("Section payload length byte is missing");
     }
 }
 

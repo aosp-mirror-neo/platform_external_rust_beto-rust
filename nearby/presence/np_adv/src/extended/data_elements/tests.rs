@@ -16,22 +16,146 @@
 
 extern crate std;
 
-use super::*;
-use crate::extended::serialize::{section_tests::SectionBuilderExt, AdvBuilder};
-use crate::extended::serialize::{AdvertisementType, UnencryptedSectionEncoder};
-use crate::extended::V1_ENCODING_UNENCRYPTED;
+use alloc::format;
+use alloc::vec::Vec;
+use rand::rngs::StdRng;
+use rand::SeedableRng;
+use tinyvec::ArrayVec;
+
 use crypto_provider_default::CryptoProviderImpl;
+
+use crate::extended::data_elements::actions::{ActionId, ActionsDataElement};
+use crate::extended::deserialize::data_element::DataElementDeserializationResult;
+use crate::extended::serialize::UnencryptedSectionEncoder;
+use crate::extended::serialize::{section_tests::SectionBuilderExt, AdvBuilder};
+use crate::extended::V1_ENCODING_UNENCRYPTED;
+
+use super::*;
+
+#[test]
+fn deserialize_cast_id() {
+    // Successful case
+    let cast_id: [u8; CAST_ID_LENGTH] = [5u8; CAST_ID_LENGTH];
+    let de = DataElement::new(CastIdDataElement::DE_TYPE, &cast_id, None);
+    let de = DeserializedGoogleDE::try_deserialize(de).expect("Should recognize a cast id.");
+    let DeserializedGoogleDE::CastId(de) = de else {
+        panic!("Cast Id data elements don't deserialize to Cast Ids?");
+    };
+    let de = de.expect("A proper-length cast ID should deserialize correctly.");
+    assert_eq!(&cast_id, de.get_id_as_bytes());
+
+    // Failure case
+    let bad_cast_id: [u8; CAST_ID_LENGTH + 1] = [5u8; CAST_ID_LENGTH + 1];
+    let bad_de = DataElement::new(CastIdDataElement::DE_TYPE, &bad_cast_id, None);
+    let bad_de = DeserializedGoogleDE::try_deserialize(bad_de)
+        .expect("Should recognize even a malformatted cast id.");
+    let DeserializedGoogleDE::CastId(bad_de) = bad_de else {
+        panic!("Cast Id data elements don't deserialize to Cast Ids?");
+    };
+    let _ = bad_de.expect_err("Wrong-length cast IDs should yield a deserialization error.");
+}
+
+#[test]
+fn serialize_cast_id() {
+    let cast_id: [u8; CAST_ID_LENGTH] = [5u8; CAST_ID_LENGTH];
+    let de = CastIdDataElement::from(&cast_id);
+    let mut sink: ArrayVec<[u8; CAST_ID_LENGTH]> = ArrayVec::new();
+    de.write_de_contents(Unsalted, &mut sink).expect("Should be able to write a Cast Id.");
+    assert_eq!(sink.as_slice(), &cast_id);
+}
+
+#[test]
+fn deserialize_dedup_hint() {
+    // Successful case
+    let dedup_hint: [u8; DEDUP_HINT_LENGTH] = [2u8; DEDUP_HINT_LENGTH];
+    let de = DataElement::new(DeduplicationHintDataElement::DE_TYPE, &dedup_hint, None);
+    let de = DeserializedGoogleDE::try_deserialize(de).expect("Should recognize a dedup hint.");
+    let DeserializedGoogleDE::DedupHint(de) = de else {
+        panic!("Dedup Hint data elements don't deserialize to dedup hints?");
+    };
+    let de = de.expect("A proper-length deduplication hint should deserialize correctly.");
+    assert_eq!(dedup_hint, de.as_bytes());
+
+    // Failure case
+    let bad_dedup_hint: [u8; DEDUP_HINT_LENGTH + 2] = [2u8; DEDUP_HINT_LENGTH + 2];
+    let bad_de = DataElement::new(DeduplicationHintDataElement::DE_TYPE, &bad_dedup_hint, None);
+    let bad_de = DeserializedGoogleDE::try_deserialize(bad_de)
+        .expect("Should recognize even a malformatted dedup hint.");
+    let DeserializedGoogleDE::DedupHint(bad_de) = bad_de else {
+        panic!("Dedup Hint data elements don't deserialize to dedup hints?");
+    };
+    let _ = bad_de.expect_err("Wrong-length deduplication hints should fail to deserialize.");
+}
+
+#[test]
+fn serialize_dedup_hint() {
+    let dedup_hint: [u8; DEDUP_HINT_LENGTH] = [3u8; DEDUP_HINT_LENGTH];
+    let de = DeduplicationHintDataElement::from(dedup_hint);
+    let mut sink: ArrayVec<[u8; DEDUP_HINT_LENGTH]> = ArrayVec::new();
+    de.write_de_contents(Unsalted, &mut sink).expect("Should be able to write a Dedup hint.");
+    assert_eq!(sink.as_slice(), &dedup_hint);
+}
+
+#[test]
+fn deserialize_device_type() {
+    // Success case, with a recognized device type.
+    let device_type = DeviceType::TV;
+    let device_type_bytes: [u8; 1] = [device_type as u8];
+    let de = DataElement::new(DeviceTypeDataElement::DE_TYPE, &device_type_bytes, None);
+    let de = DeserializedGoogleDE::try_deserialize(de).expect("Should recognize a device type.");
+    let DeserializedGoogleDE::DeviceType(de) = de else {
+        panic!("Device type data elements don't deserialize to device types?");
+    };
+    let de = de.expect("One byte device types should always deserialize.");
+    let reconstructed_device_type = DeviceType::try_from(de).expect("TV should be a device type.");
+    assert_eq!(reconstructed_device_type, device_type);
+
+    // Success case, with an unrecognized device type.
+    let device_type_bytes: [u8; 1] = [255u8];
+    let de = DataElement::new(DeviceTypeDataElement::DE_TYPE, &device_type_bytes, None);
+    let de = DeserializedGoogleDE::try_deserialize(de)
+        .expect("Should recognize even an out-of-range device type.");
+    let DeserializedGoogleDE::DeviceType(de) = de else {
+        panic!("Device type data elements don't deserialize to device types?");
+    };
+    let de = de.expect("One byte device types should always deserialize.");
+    let device_type_val = DeviceType::try_from(de)
+        .expect_err("I strongly doubt that there are 255 recognizable kinds of devices.");
+    assert_eq!(device_type_val, 255u8);
+
+    // Failure case: More than one byte.
+    let bad_device_type_bytes: [u8; 2] = [1u8, 255u8];
+    let de = DataElement::new(DeviceTypeDataElement::DE_TYPE, &bad_device_type_bytes, None);
+    let de = DeserializedGoogleDE::try_deserialize(de)
+        .expect("Should recognize even a malformatted device type.");
+    let DeserializedGoogleDE::DeviceType(de) = de else {
+        panic!("Device type data elements don't deserialize to device types?");
+    };
+    let err = de.expect_err("Device types should always be expressed in one byte.");
+    assert_eq!(DeviceTypeDeserializationError::WrongLength, err);
+}
+
+#[test]
+fn serialize_device_type() {
+    let device_type = DeviceTypeDataElement::from(DeviceType::Laptop);
+    let mut sink: ArrayVec<[u8; 1]> = ArrayVec::new();
+    device_type
+        .write_de_contents(Unsalted, &mut sink)
+        .expect("Should be able to write a device type.");
+    assert_eq!(sink.as_slice(), &[DeviceType::Laptop as u8]);
+}
 
 #[test]
 fn serialize_tx_power_de() {
-    let mut adv_builder = AdvBuilder::new(AdvertisementType::Plaintext);
+    let mut adv_builder = AdvBuilder::new();
     let mut section_builder = adv_builder.section_builder(UnencryptedSectionEncoder).unwrap();
 
-    section_builder.add_de_res(|_| TxPower::try_from(3_i8).map(TxPowerDataElement::from)).unwrap();
+    let tx_power = TxPower::try_from(3_i8).unwrap();
+    section_builder.add_de(&TxPowerDataElement::from(tx_power)).unwrap();
 
     assert_eq!(
         &[
-            V1_ENCODING_UNENCRYPTED,
+            V1_ENCODING_UNENCRYPTED.0,
             2,    // section len
             0x15, // len 1 type 0x05
             3
@@ -40,40 +164,32 @@ fn serialize_tx_power_de() {
     );
 }
 
-#[test]
-fn serialize_actions_de_empty() {
-    let mut adv_builder = AdvBuilder::new(AdvertisementType::Plaintext);
-    let mut section_builder = adv_builder.section_builder(UnencryptedSectionEncoder).unwrap();
-
-    section_builder.add_de_res(|_| ActionsDataElement::try_from_actions(&[])).unwrap();
-
-    assert_eq!(
-        &[
-            V1_ENCODING_UNENCRYPTED, //header
-            1,                       // section len
-            0x06,                    // len 0 type 0x06
-        ],
-        section_builder.into_section::<CryptoProviderImpl>().as_slice()
-    );
+fn actions_ids_from_u16_collection<const N: usize>(actions: [u16; N]) -> ArrayVec<[ActionId; 64]> {
+    let mut result = ArrayVec::new();
+    result.extend_from_slice(&actions.map(|x| x.try_into().unwrap()));
+    result
 }
 
-#[rustfmt::skip]
 #[test]
 fn serialize_actions_de_non_empty() {
-    let mut adv_builder = AdvBuilder::new(AdvertisementType::Plaintext);
-    let mut section_builder =
-        adv_builder.section_builder(UnencryptedSectionEncoder).unwrap();
+    let mut adv_builder = AdvBuilder::new();
+    let mut section_builder = adv_builder.section_builder(UnencryptedSectionEncoder).unwrap();
 
-    section_builder
-        .add_de_res(|_| ActionsDataElement::try_from_actions(&[1, 1, 2, 3, 5, 8]))
-        .unwrap();
+    let actions = ActionsDataElement::try_from_actions(actions_ids_from_u16_collection([
+        1, 1, 2, 3, 5, 8, // fibonacci, of course
+    ]))
+    .unwrap();
 
+    section_builder.add_de(&actions).unwrap();
+
+    #[rustfmt::skip]
     assert_eq!(
         &[
-            V1_ENCODING_UNENCRYPTED,
+            V1_ENCODING_UNENCRYPTED.0,
             7, // section len
             0x66, // len 6 type 0x06
-            1, 1, 2, 3, 5, 8 // fibonacci, of course
+            0b00000100, // container type and len TTLLLLLL
+            1, 0, 0, 1, 2 // de-duped delta encoded fibonacci
         ],
         section_builder.into_section::<CryptoProviderImpl>().as_slice()
     );
@@ -82,17 +198,17 @@ fn serialize_actions_de_non_empty() {
 #[rustfmt::skip]
 #[test]
 fn serialize_context_sync_seq_num_de() {
-    let mut adv_builder = AdvBuilder::new(AdvertisementType::Plaintext);
+    let mut adv_builder = AdvBuilder::new();
     let mut section_builder =
         adv_builder.section_builder(UnencryptedSectionEncoder).unwrap();
 
-    section_builder
-        .add_de_res(|_| ContextSyncSeqNum::try_from(3).map(ContextSyncSeqNumDataElement::from))
-        .unwrap();
+    let de = ContextSyncSeqNum::try_from(3).unwrap();
+    let de = ContextSyncSeqNumDataElement::from(de);
+    section_builder.add_de(&de).unwrap();
 
     assert_eq!(
         &[
-            V1_ENCODING_UNENCRYPTED,
+            V1_ENCODING_UNENCRYPTED.0,
             3, // section len
             0x81, 0x13, // len 1 type 0x13
             3,    // seq num
@@ -101,103 +217,227 @@ fn serialize_context_sync_seq_num_de() {
     );
 }
 
-#[rustfmt::skip]
-#[test]
-fn serialize_connectivity_info_de_bluetooth() {
-    let mut adv_builder = AdvBuilder::new(AdvertisementType::Plaintext);
-    let mut section_builder =
-        adv_builder.section_builder(UnencryptedSectionEncoder).unwrap();
-
-    section_builder.add_de(|_| ConnectivityInfoDataElement::bluetooth([1; 4], [2; 6])).unwrap();
-
-    assert_eq!(
-        &[
-            V1_ENCODING_UNENCRYPTED,
-            13, // section len
-            0x8B, 0x11, // len 11 type 0x11
-            1,    // connectivity type
-            1, 1, 1, 1, // svc id
-            2, 2, 2, 2, 2, 2 // mac
-        ],
-        section_builder.into_section::<CryptoProviderImpl>().as_slice()
-    );
+fn random_ble_connectivity_info<R: rand::Rng>(rng: &mut R) -> BleConnectivityInfo {
+    let mut result = BleConnectivityInfo::default();
+    if rng.gen_bool(0.5) {
+        result.mac_address = Some(rand_ext::random_bytes_rc(rng));
+    }
+    if rng.gen_bool(0.5) {
+        let len = rng.gen_range(0..=MAX_GATT_SERVICE_IDENTIFIER_LEN);
+        let contents = rand_ext::random_bytes_rc(rng);
+        result.gatt_service_identifier = Some(tinyvec::ArrayVec::from_array_len(contents, len));
+    }
+    if rng.gen_bool(0.5) {
+        result.psm = Some(rand_ext::random_bytes_rc(rng));
+    }
+    if rng.gen_bool(0.5) {
+        result.device_token = Some(rand_ext::random_bytes_rc(rng));
+    }
+    result
 }
 
-#[rustfmt::skip]
-#[test]
-fn serialize_connectivity_info_de_mdns() {
-    let mut adv_builder = AdvBuilder::new(AdvertisementType::Plaintext);
-    let mut section_builder =
-        adv_builder.section_builder(UnencryptedSectionEncoder).unwrap();
-
-    section_builder.add_de(|_| ConnectivityInfoDataElement::mdns([1; 4], 2)).unwrap();
-
-    assert_eq!(
-        &[
-            V1_ENCODING_UNENCRYPTED,
-            8, // section len
-            0x86, 0x11, // len 11 type 0x11
-            2,    // connectivity type
-            1, 1, 1, 1, // svc id
-            2  // port
-        ],
-        section_builder.into_section::<CryptoProviderImpl>().as_slice()
-    );
+fn random_wifi_lan_connectivity_info<R: rand::Rng>(rng: &mut R) -> WifiLanConnectivityInfo {
+    let mut result = WifiLanConnectivityInfo::default();
+    match rng.gen_range(0..=2) {
+        1 => {
+            let addr: u32 = rng.gen();
+            result.ip = Some(core::net::Ipv4Addr::from(addr).into());
+        }
+        2 => {
+            let addr: u128 = rng.gen();
+            result.ip = Some(core::net::Ipv6Addr::from(addr).into());
+        }
+        _ => {}
+    }
+    if rng.gen_bool(0.5) {
+        result.port = Some(rng.gen());
+    }
+    if rng.gen_bool(0.5) {
+        result.bssid = Some(rand_ext::random_bytes_rc(rng));
+    }
+    result
 }
 
-#[rustfmt::skip]
-#[test]
-fn serialize_connectivity_info_de_wifi_direct() {
-    let mut adv_builder = AdvBuilder::new(AdvertisementType::Plaintext);
-    let mut section_builder =
-        adv_builder.section_builder(UnencryptedSectionEncoder).unwrap();
+fn test_connectivity_info_component_roundtrip<
+    T: ConnectivityInfoComponent + Eq + core::fmt::Debug,
+>(
+    input: T,
+) {
+    if input.is_some() {
+        let mut serialized = Vec::new();
+        serialized.push(input.field_bitmask());
+        input
+            .serialize_field_values_into_payload(&mut serialized)
+            .expect("Should be able to serialize nonempty connectivity info components.");
+        let serialized = serialized;
 
-    section_builder
-        .add_de(|_| ConnectivityInfoDataElement::wifi_direct([1; 10], [2; 10], [3; 2], 4))
-        .unwrap();
-
-    assert_eq!(
-        &[
-            V1_ENCODING_UNENCRYPTED,
-            26, // section len
-            0x98, 0x11, // len 24 type 0x11
-            3,    // connectivity type
-            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // ssid
-            2, 2, 2, 2, 2, 2, 2, 2, 2, 2, // password
-            3, 3, // freq
-            4  // port
-        ],
-        section_builder.into_section::<CryptoProviderImpl>().as_slice()
-    );
+        let (remaining, output) = T::parse_from_payload(&serialized)
+            .expect("Serializable connectivity info components should be deserializable.");
+        let empty_slice: &[u8] = &[];
+        assert_eq!(
+            remaining, empty_slice,
+            "Deserializing serialized connectivity info components should take all bytes."
+        );
+        assert_eq!(input, output, "Serialization->Deserialization round trip for connectivity info components should be the identity.");
+    }
 }
 
-#[rustfmt::skip]
 #[test]
-fn serialize_connectivity_capabilities_de_wifi_direct() {
-    let mut adv_builder = AdvBuilder::new(AdvertisementType::Plaintext);
-    let mut section_builder =
-        adv_builder.section_builder(UnencryptedSectionEncoder).unwrap();
+fn roundtrip_ble_connectivity_info() {
+    let mut rng = StdRng::from_entropy();
+    for _ in 0..10_000 {
+        let input = random_ble_connectivity_info(&mut rng);
+        test_connectivity_info_component_roundtrip(input);
+    }
+}
 
-    section_builder
-        .add_de(|_| ConnectivityCapabilityDataElement::wifi_direct([1; 3], [2; 3]))
-        .unwrap();
+#[test]
+fn roundtrip_wifi_lan_connectivity_info() {
+    let mut rng = StdRng::from_entropy();
+    for _ in 0..10_000 {
+        let input = random_wifi_lan_connectivity_info(&mut rng);
+        test_connectivity_info_component_roundtrip(input);
+    }
+}
 
-    assert_eq!(
-        &[
-            V1_ENCODING_UNENCRYPTED,
-            9, // section len
-            0x87, 0x12, // len 7 type 0x12
-            2,    // connectivity type
-            1, 1, 1, // supported
-            2, 2, 2, // connected
-        ],
-        section_builder.into_section::<CryptoProviderImpl>().as_slice()
+#[test]
+fn roundtrip_connectivity_info() {
+    let mut rng = StdRng::from_entropy();
+    for _ in 0..10_000 {
+        let input = ConnectivityInfoDataElement {
+            ble_info: random_ble_connectivity_info(&mut rng),
+            wifi_lan_info: random_wifi_lan_connectivity_info(&mut rng),
+        };
+
+        if !input.is_some() {
+            continue;
+        }
+
+        let mut serialized = Vec::new();
+        input
+            .write_de_contents(Unsalted, &mut serialized)
+            .expect("Should be able to serialize nonempty connectivity info");
+        let serialized = serialized;
+
+        let output = ConnectivityInfoDataElement::try_deserialize(None, &serialized)
+            .expect("Should be able to successfully deserialize serialized connectivity info");
+        assert_eq!(
+            input, output,
+            "Connectivity info serialization->deserialization round-trip should be the identity."
+        );
+    }
+}
+
+#[test]
+fn connectivity_info_trailing_mediums_ignored() {
+    for extra_medium in 2..=255u8 {
+        let input = ConnectivityInfoDataElement {
+            ble_info: BleConnectivityInfo { psm: Some([0u8, 255u8]), ..Default::default() },
+            wifi_lan_info: WifiLanConnectivityInfo { port: Some(u16::MAX), ..Default::default() },
+        };
+
+        let mut buffer = Vec::new();
+        input.write_de_contents(Unsalted, &mut buffer).unwrap();
+        buffer.push(extra_medium);
+        // Fake medium contents.
+        buffer.extend_from_slice(&[1u8; 10]);
+        let buffer = buffer;
+
+        let output = ConnectivityInfoDataElement::try_deserialize(None, &buffer)
+            .expect("Connectivity info should be forward-extensible in deserialization");
+        assert_eq!(
+            input, output,
+            "Connectivity info forward-extensibility should not affect known components"
+        );
+    }
+}
+
+#[test]
+fn connectivity_info_no_components() {
+    let err = ConnectivityInfoDataElement::try_deserialize(None, &[])
+        .expect_err("Empty connectivity info should not successfully deserialize.");
+    assert_eq!(err, ConnectivityInfoDeserializationError::NoComponents);
+}
+
+#[test]
+fn connectivity_info_duplicate_components() {
+    let ble_info = BleConnectivityInfo { psm: Some([1u8, 2u8]), ..Default::default() };
+
+    let mut buffer = Vec::new();
+    ble_info.serialize_if_populated(&mut buffer).unwrap();
+    ble_info.serialize_if_populated(&mut buffer).unwrap();
+    let buffer = buffer;
+
+    let err = ConnectivityInfoDataElement::try_deserialize(None, &buffer).expect_err(
+        "Duplicate connectivity info components should yield an error on deserialization",
     );
+    assert_eq!(err, ConnectivityInfoDeserializationError::DuplicateComponents);
+}
+
+#[test]
+fn connectivity_info_components_out_of_order() {
+    let ble_info = BleConnectivityInfo { psm: Some([1u8, 2u8]), ..Default::default() };
+    let wifi_lan_info = WifiLanConnectivityInfo { port: Some(16u16), ..Default::default() };
+
+    let mut buffer = Vec::new();
+    wifi_lan_info.serialize_if_populated(&mut buffer).unwrap();
+    ble_info.serialize_if_populated(&mut buffer).unwrap();
+    let buffer = buffer;
+
+    let err = ConnectivityInfoDataElement::try_deserialize(None, &buffer).expect_err(
+        "Out-of-order connectivity info components should yield an error on deserialization",
+    );
+    assert_eq!(err, ConnectivityInfoDeserializationError::ComponentsOutOfOrder);
+}
+
+#[test]
+fn connectivity_info_deserialize_empty_component() {
+    // Wifi-LAN with empty bitmask.
+    let buffer = [1u8, 0u8];
+
+    let err = ConnectivityInfoDataElement::try_deserialize(None, &buffer).expect_err(
+        "Connectivity info with an empty component should yield a deserialization error.",
+    );
+    assert_eq!(err, ConnectivityInfoDeserializationError::ComponentParseFailure(1));
+}
+
+#[test]
+fn wifi_connectivity_info_no_ipv4_and_ipv6() {
+    let contents = [
+        0b11000000, // Bitmask selecting ipv4 and ipv6.
+        192u8, 168u8, 1u8, 1u8, // Test Ipv4 address
+        1u8, 2u8, 3u8, 4u8, 5u8, 6u8, 7u8, 8u8, 9u8, 10u8, 11u8, 12u8, 13u8, 14u8, 15u8,
+        16u8, // Test Ipv6 address
+    ];
+    let _ = WifiLanConnectivityInfo::parse_from_payload(&contents)
+        .expect_err("Should not be able to specify both IPv4 and Ipv6 in WifiLanConnectivityInfo");
+}
+
+#[test]
+fn ble_connectivity_info_no_disallowed_bitmasks() {
+    // The top four bits of the BLE mask are taken, and the bottom
+    // four bits are explicitly disallowed.
+    for disallowed_bitmask in 1u8..=15u8 {
+        let _ = BleConnectivityInfo::parse_from_payload(&[disallowed_bitmask])
+            .expect_err(&format!("Bitmask {} should be disallowed", disallowed_bitmask));
+    }
+}
+
+#[test]
+fn wifi_lan_connectivity_info_no_disallowed_bitmasks() {
+    // The top four bits of the Wifi-lan mask are taken, and the bottom
+    // four bits are explicitly disallowed.
+    for disallowed_bitmask in 1u8..=15u8 {
+        let _ = WifiLanConnectivityInfo::parse_from_payload(&[disallowed_bitmask])
+            .expect_err(&format!("Bitmask {} should be disallowed", disallowed_bitmask));
+    }
 }
 
 mod coverage_gaming {
-    use super::*;
     use alloc::format;
+
+    use super::*;
+
     #[test]
     fn de_type_const_from() {
         let _ = DeType::const_from(3);
@@ -214,16 +454,9 @@ mod coverage_gaming {
     }
 
     #[test]
-    fn actions_de_error_derives() {
-        let err = ActionsDataElementError::ActionsTooLong;
-        let _ = format!("{:?}", err);
-        assert_eq!(err, err);
-    }
-
-    #[test]
     fn generic_data_element_debug() {
         let generic =
-            GenericDataElement::try_from(DeType::from(1000_u32), &[10, 11, 12, 13]).unwrap();
+            GenericDataElement::try_from(DeType::from(1000_u16), &[10, 11, 12, 13]).unwrap();
         let _ = format!("{:?}", generic);
     }
 }

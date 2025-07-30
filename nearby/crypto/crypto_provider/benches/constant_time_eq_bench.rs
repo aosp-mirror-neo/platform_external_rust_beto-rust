@@ -35,7 +35,7 @@ fn constant_time_eq_equals(c: &mut Criterion) {
         const TEST_LEN: usize = 1000;
         for i in (0..=TEST_LEN).step_by(100) {
             let _ = group.bench_function(
-                &format!(
+                format!(
                     "constant_time_eq impl {} differ by {:04} bytes",
                     std::any::type_name::<C>(),
                     i,

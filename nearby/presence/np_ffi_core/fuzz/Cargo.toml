@@ -1,0 +1,46 @@
+[package]
+name = "np_ffi_core_fuzz"
+version.workspace = true
+publish = false
+edition.workspace = true
+license.workspace = true
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+arbitrary.workspace = true
+derive_fuzztest.workspace = true
+handle_map.workspace = true
+np_ffi_core.workspace = true
+
+[target.'cfg(fuzzing)'.dependencies]
+libfuzzer-sys.workspace = true
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "nocrypto_deserialize"
+doc = false
+required-features = ["np_ffi_core/nocrypto"]
+
+[[bin]]
+name = "roundtrip_cast_id"
+doc = false
+required-features = ["np_ffi_core/nocrypto", "np_ffi_core/testing"]
+
+[[bin]]
+name = "roundtrip_dedup_hint"
+doc = false
+required-features = ["np_ffi_core/nocrypto", "np_ffi_core/testing"]
+
+[[bin]]
+name = "roundtrip_v1_actions"
+doc = false
+required-features = ["np_ffi_core/nocrypto", "np_ffi_core/testing"]
+
+[[bin]]
+name = "v1_de_deser"
+doc = false
+required-features = ["np_ffi_core/nocrypto", "np_ffi_core/testing"]

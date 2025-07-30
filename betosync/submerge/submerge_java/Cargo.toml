@@ -1,0 +1,33 @@
+[package]
+name = "submerge_java"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+license.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+# JNI wants a .so or equivalent
+crate-type = ["cdylib"]
+
+[dependencies]
+crdt = { workspace = true, features = ["testing"] }
+distributed_time.workspace = true
+submerge = { workspace = true, features = ["proto"] }
+
+anyhow.workspace = true
+arbitrary.workspace = true
+derive-where.workspace = true
+handle_map.workspace = true
+jni.workspace = true
+log.workspace = true
+parking_lot = { version = "0.12.3", features = ["arc_lock"] }
+pourover.workspace = true
+protobuf.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+
+[lints]
+workspace = true

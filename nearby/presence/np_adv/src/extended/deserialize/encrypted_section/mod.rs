@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#[cfg(feature = "devtools")]
+use crate::extended::NP_ADV_MAX_SECTION_LEN;
 use crate::{
     credential::v1::*,
     extended::{
         deserialize::{DecryptedSection, SectionMic, VerificationMode},
-        section_signature_payload::*,
-        V1IdentityToken, NP_ADV_MAX_SECTION_LEN, V1_IDENTITY_TOKEN_LEN,
+        V1IdentityToken, NP_ADV_MAX_SECTION_CONTENTS_LEN,
     },
-    NP_SVC_UUID,
 };
 
 use crate::deserialization_arena::DeserializationArenaAllocator;
@@ -44,7 +44,6 @@ use crypto_provider::{
     hmac::Hmac,
     CryptoProvider,
 };
-use np_hkdf::v1_salt::ExtendedV1Salt;
 
 #[cfg(test)]
 use crate::extended::deserialize::encrypted_section::tests::IdentityResolutionOrDeserializationError;
@@ -75,7 +74,7 @@ impl SectionIdentityResolutionContents {
     /// stored in some [`SectionIdentityResolutionMaterial`].
     ///
     /// This method does not decrypt an entire section's ciphertext aside from the metadata key,
-    /// and so verification (MIC or signature) needs to be done elsewhere.
+    /// and so verification needs to be done elsewhere.
     ///
     /// Returns `Some` if decrypting the metadata-key ciphertext produces plaintext whose HMAC
     /// matches the expected MAC. Otherwise, returns `None`.
@@ -119,10 +118,6 @@ pub(crate) struct IdentityMatch<C: CryptoProvider> {
     cipher: C::AesCtr128,
 }
 
-/// Maximum length of a section's contents, after the metadata-key.
-#[allow(unused)]
-const MAX_SECTION_CONTENTS_LEN: usize = NP_ADV_MAX_SECTION_LEN - V1_IDENTITY_TOKEN_LEN;
-
 /// Bare, decrypted contents from an encrypted section,
 /// including the decrypted metadata key and the decrypted section ciphertext.
 /// At this point, verification of the plaintext contents has not yet been performed.
@@ -130,12 +125,13 @@ pub(crate) struct RawDecryptedSection<'a> {
     // Only used with feature = "devtools"
     #[allow(unused)]
     pub(crate) identity_token: V1IdentityToken,
+    #[allow(unused)]
     pub(crate) nonce: AesCtrNonce,
     pub(crate) plaintext_contents: &'a [u8],
 }
 
 #[cfg(feature = "devtools")]
-impl<'a> RawDecryptedSection<'a> {
+impl RawDecryptedSection<'_> {
     pub(crate) fn to_raw_bytes(&self) -> ArrayView<u8, NP_ADV_MAX_SECTION_LEN> {
         let mut result = Vec::new();
         result.extend_from_slice(self.identity_token.as_slice());
@@ -149,15 +145,15 @@ impl<'a> RawDecryptedSection<'a> {
 #[derive(PartialEq, Eq, Debug)]
 pub(crate) struct EncryptedSectionContents<'adv, S> {
     adv_header: V1AdvHeader,
-    format_bytes: &'adv [u8],
+    format_byte: u8,
     pub(crate) salt: S,
     /// Ciphertext of identity token (part of section header)
     identity_token: CiphertextExtendedIdentityToken,
-    /// The portion of the ciphertext that has been encrypted.
-    /// Length must be in `[0, NP_ADV_MAX_SECTION_LEN]`.
+    /// The contents of the section after the length byte.
+    /// Length must be in `[0, NP_ADV_MAX_SECTION_CONTENTS_LEN]`.
     section_contents: &'adv [u8],
-    // The length byte exactly as it appears in the adv. This is the length of the encrypted
-    // contents plus any additional bytes of suffix
+    /// The length byte exactly as it appears in the adv. This is the length of the encrypted
+    /// contents plus any additional bytes of suffix
     total_section_contents_len: u8,
 }
 
@@ -168,20 +164,20 @@ impl<'adv, S: V1Salt> EncryptedSectionContents<'adv, S> {
     /// and the entire section contents as an undecrypted ciphertext.
     ///
     /// # Panics
-    /// If `all_ciphertext` is greater than `NP_ADV_MAX_SECTION_LEN` bytes,
+    /// If `all_ciphertext` is greater than `NP_ADV_MAX_SECTION_CONTENTS_LEN` bytes,
     /// or less than `IDENTITY_TOKEN_LEN` bytes.
     pub(crate) fn new(
         adv_header: V1AdvHeader,
-        format_bytes: &'adv [u8],
+        format_byte: u8,
         salt: S,
         identity_token: CiphertextExtendedIdentityToken,
         section_contents_len: u8,
         section_contents: &'adv [u8],
     ) -> Self {
-        assert!(section_contents.len() <= NP_ADV_MAX_SECTION_LEN - V1_IDENTITY_TOKEN_LEN);
+        assert!(section_contents.len() <= NP_ADV_MAX_SECTION_CONTENTS_LEN);
         Self {
             adv_header,
-            format_bytes,
+            format_byte,
             salt,
             identity_token,
             total_section_contents_len: section_contents_len,
@@ -243,106 +239,6 @@ impl<'adv, S: V1Salt> EncryptedSectionContents<'adv, S> {
     }
 }
 
-/// An encrypted section which is verified using a ed25519 signature
-#[derive(PartialEq, Eq, Debug)]
-pub(crate) struct SignatureEncryptedSection<'a> {
-    pub(crate) contents: EncryptedSectionContents<'a, ExtendedV1Salt>,
-}
-
-impl<'a> SignatureEncryptedSection<'a> {
-    /// Try deserializing into a [`DecryptedSection`] given an identity-match
-    /// with some paired verification material for the matched identity.
-    pub(crate) fn try_deserialize<P>(
-        &self,
-        arena: &mut DeserializationArenaAllocator<'a>,
-        identity_match: IdentityMatch<P>,
-        verification_material: &SignedSectionVerificationMaterial,
-    ) -> Result<DecryptedSection<'a>, DeserializationError<SignatureVerificationError>>
-    where
-        P: CryptoProvider,
-    {
-        let identity_token = identity_match.identity_token;
-        let raw_decrypted = self.contents.decrypt_ciphertext(arena, identity_match)?;
-        let nonce = raw_decrypted.nonce;
-        let remaining = raw_decrypted.plaintext_contents;
-
-        let (plaintext_des, sig) = remaining
-            .split_last_chunk::<{ crypto_provider::ed25519::SIGNATURE_LENGTH }>()
-            .ok_or(SignatureVerificationError::SignatureMissing)?;
-
-        let expected_signature = crypto_provider::ed25519::Signature::from(*sig);
-
-        let section_signature_payload = SectionSignaturePayload::new(
-            self.contents.format_bytes,
-            self.contents.salt.bytes(),
-            &nonce,
-            identity_token.as_slice(),
-            self.contents.total_section_contents_len,
-            plaintext_des,
-        );
-
-        let public_key = verification_material.signature_verification_public_key();
-
-        section_signature_payload.verify::<P::Ed25519>(expected_signature, &public_key).map_err(
-            |e| {
-                // Length of the payload should fit in the signature verification buffer.
-                debug_assert!(e != np_ed25519::SignatureVerificationError::PayloadTooBig);
-                SignatureVerificationError::SignatureMismatch
-            },
-        )?;
-
-        Ok(DecryptedSection::new(
-            VerificationMode::Signature,
-            self.contents.salt(),
-            identity_token,
-            plaintext_des,
-        ))
-    }
-
-    /// Try decrypting into some raw bytes given some raw signed crypto-material.
-    #[cfg(feature = "devtools")]
-    pub(crate) fn try_resolve_identity_and_decrypt<P: CryptoProvider>(
-        &self,
-        allocator: &mut DeserializationArenaAllocator<'a>,
-        identity_resolution_material: &SignedSectionIdentityResolutionMaterial,
-    ) -> Option<Result<ArrayView<u8, NP_ADV_MAX_SECTION_LEN>, ArenaOutOfSpace>> {
-        self.contents.try_resolve_identity_and_decrypt::<P>(
-            allocator,
-            identity_resolution_material.as_raw_resolution_material(),
-        )
-    }
-
-    /// Try deserializing into a [Section] given some raw signed crypto-material.
-    ///
-    /// A less-efficient, one-shot way of getting
-    /// [EncryptedSectionContents::compute_identity_resolution_contents] and then attempting
-    /// deserialization.
-    ///
-    /// Normally, id resolution contents would be calculated for a bunch of sections, and then have
-    /// many identities tried on them. This just works for one identity.
-    #[cfg(test)]
-    pub(crate) fn try_resolve_identity_and_deserialize<P: CryptoProvider>(
-        &self,
-        allocator: &mut DeserializationArenaAllocator<'a>,
-        identity_resolution_material: &SignedSectionIdentityResolutionMaterial,
-        verification_material: &SignedSectionVerificationMaterial,
-    ) -> Result<
-        DecryptedSection,
-        IdentityResolutionOrDeserializationError<SignatureVerificationError>,
-    > {
-        match self
-            .contents
-            .compute_identity_resolution_contents::<P>()
-            .try_match::<P>(identity_resolution_material.as_raw_resolution_material())
-        {
-            Some(identity_match) => self
-                .try_deserialize(allocator, identity_match, verification_material)
-                .map_err(|e| e.into()),
-            None => Err(IdentityResolutionOrDeserializationError::IdentityMatchingError),
-        }
-    }
-}
-
 /// An error when attempting to deserialize an encrypted advertisement,
 /// assuming that we already have an identity-match.
 ///
@@ -375,17 +271,6 @@ impl<V: VerificationError> From<V> for DeserializationError<V> {
 /// detailed.
 pub(crate) trait VerificationError: Debug + PartialEq + Eq {}
 
-/// An error when attempting to verify a signature
-#[derive(Debug, PartialEq, Eq)]
-pub(crate) enum SignatureVerificationError {
-    /// The provided signature did not match the calculated signature
-    SignatureMismatch,
-    /// The provided signature is missing
-    SignatureMissing,
-}
-
-impl VerificationError for SignatureVerificationError {}
-
 /// An encrypted section whose contents are verified to match a message integrity code (MIC)
 #[derive(PartialEq, Eq, Debug)]
 pub(crate) struct MicEncryptedSection<'a> {
@@ -417,10 +302,9 @@ impl<'a> MicEncryptedSection<'a> {
 
         let mut mic_hmac = hmac_key.build_hmac::<P>();
         // if mic is ok, the section was generated by someone holding at least the shared credential
-        mic_hmac.update(&NP_SVC_UUID);
         mic_hmac.update(&[self.contents.adv_header.contents()]);
         // section format
-        mic_hmac.update(self.contents.format_bytes);
+        mic_hmac.update(&[self.contents.format_byte]);
         // salt bytes
         mic_hmac.update(self.contents.salt.as_slice());
         // nonce

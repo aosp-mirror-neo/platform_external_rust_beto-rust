@@ -20,28 +20,17 @@ use crate::{
     credential::book::CredentialBook,
     deserialization_arena,
     deserialization_arena::ArenaOutOfSpace,
-    extended::serialize::{AddSectionError, AdvBuilder, AdvertisementType},
+    extended::serialize::{AddSectionError, AdvBuilder},
     header::NpVersionHeader,
-    tests::deser_v1_tests::{
-        add_mic_rand_salt_to_adv, add_sig_rand_salt_to_adv, SectionConfig, TestIdentity,
-    },
+    tests::deser_v1_tests::{add_mic_rand_length_salt_to_adv, SectionConfig, TestIdentity},
 };
 use crypto_provider_default::CryptoProviderImpl;
 use rand::{prelude::StdRng, seq::IteratorRandom, SeedableRng};
 
 #[test]
-fn v1_arena_out_of_space_error_sig() {
-    v1_arena_out_of_space_error_encrypted_adv(
-        // Need to use many DE's to be sure we go over the arena limit
-        add_sig_rand_salt_to_adv::<StdRng, CryptoProviderImpl, 5>,
-    )
-}
-
-#[test]
 fn v1_arena_out_of_space_error_mic() {
     v1_arena_out_of_space_error_encrypted_adv(
-        // Need to use many DE's to be sure we go over the arena limit
-        add_mic_rand_salt_to_adv::<StdRng, CryptoProviderImpl, 5>,
+        add_mic_rand_length_salt_to_adv::<StdRng, CryptoProviderImpl, 5>,
     )
 }
 
@@ -53,11 +42,8 @@ fn v1_arena_out_of_space_error_encrypted_adv(
     ) -> Result<SectionConfig<'a>, AddSectionError>,
 ) {
     let mut rng = StdRng::from_entropy();
-    let mut builder = AdvBuilder::new(AdvertisementType::Encrypted);
-    let identities =
-        crate::tests::deser_v1_tests::TestIdentities::generate::<1, _, CryptoProviderImpl>(
-            &mut rng,
-        );
+    let mut builder = AdvBuilder::new();
+    let identities = crate::tests::deser_v1_tests::TestIdentities::generate::<1, _>(&mut rng);
     let _ = add_to_adv(&mut rng, &identities.0[0], &mut builder);
     let adv = builder.into_advertisement().as_slice().to_vec();
     let cred_book = identities.build_cred_book::<CryptoProviderImpl>();
@@ -68,9 +54,9 @@ fn v1_arena_out_of_space_error_encrypted_adv(
         if let NpVersionHeader::V1(v1_header) = header { Some(v1_header) } else { None }.unwrap();
 
     let mut sections_in_processing =
-        crate::extended::deserialize::SectionsInProcessing::<'_, _>::from_advertisement_contents::<
-            CryptoProviderImpl,
-        >(h, remaining)
+        crate::extended::deserialize::SectionsInProcessing::<'_, _>::from_advertisement_contents(
+            h, remaining,
+        )
         .unwrap();
 
     // fill up allocator so we will run out of space
@@ -138,7 +124,7 @@ mod coverage_gaming {
 
     #[test]
     fn verification_mode_derives() {
-        let m = VerificationMode::Signature;
+        let m = VerificationMode::Mic;
         #[allow(clippy::clone_on_copy)]
         let _ = format!("{:?}", m.clone());
     }

@@ -26,7 +26,7 @@
 plugins {
     // Apply the java-library plugin for API and implementation separation.
     `java-library`
-    kotlin("jvm") version "1.8.0"
+    kotlin("jvm") version "1.9.24"
     id("me.champeau.jmh") version "0.7.1"
 }
 
@@ -48,7 +48,7 @@ dependencies {
 }
 
 kotlin {
-    jvmToolchain(17)
+    jvmToolchain(11)
 }
 
 tasks.jmh {

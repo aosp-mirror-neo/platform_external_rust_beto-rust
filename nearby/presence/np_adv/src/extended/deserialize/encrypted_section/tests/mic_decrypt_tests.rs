@@ -21,6 +21,7 @@ use crate::{
     deserialization_arena,
     extended::{
         data_elements::TxPowerDataElement,
+        de_type::{DeType, HasDEType},
         deserialize::{
             encrypted_section::tests::first_section_identity_token,
             section::intermediate::{
@@ -28,23 +29,16 @@ use crate::{
             },
             DataElement, DataElementParseError, Section,
         },
-        salt::{ShortV1Salt, SHORT_SALT_LEN},
-        serialize::{
-            AdvBuilder, AdvertisementType, CapacityLimitedVec, MicEncryptedSectionEncoder,
-            WriteDataElement,
-        },
+        salt::{ExtendedV1Salt, MultiSalt, ShortV1Salt, Unsalted, SHORT_SALT_LEN},
+        serialize::{AdvBuilder, MicEncryptedSectionEncoder, WriteDataElement},
         V1_ENCODING_ENCRYPTED_MIC_WITH_EXTENDED_SALT_AND_TOKEN,
-        V1_ENCODING_ENCRYPTED_MIC_WITH_SHORT_SALT_AND_TOKEN,
+        V1_ENCODING_ENCRYPTED_MIC_WITH_SHORT_SALT_AND_TOKEN, V1_IDENTITY_TOKEN_LEN,
     },
     shared_data::TxPower,
     NpVersionHeader,
 };
-use crypto_provider::ed25519;
 use crypto_provider_default::CryptoProviderImpl;
 use np_hkdf::{v1_salt::EXTENDED_SALT_LEN, DerivedSectionKeys};
-use sink::Sink;
-
-type Ed25519ProviderImpl = <CryptoProviderImpl as CryptoProvider>::Ed25519;
 
 #[test]
 fn deserialize_mic_encrypted_correct_keys_extended_salt() {
@@ -59,13 +53,9 @@ fn deserialize_mic_encrypted_correct_keys_short_salt() {
 fn deserialize_mic_encrypted_correct_keys(salt: MultiSalt) {
     let identity_token = V1IdentityToken::from([1; 16]);
     let key_seed = [2; 32];
-    let broadcast_cm = V1BroadcastCredential::new(
-        key_seed,
-        identity_token,
-        ed25519::PrivateKey::generate::<Ed25519ProviderImpl>(),
-    );
+    let broadcast_cm = V1BroadcastCredential::new(key_seed, identity_token);
 
-    let mut adv_builder = AdvBuilder::new(AdvertisementType::Encrypted);
+    let mut adv_builder = AdvBuilder::new();
     let mut section_builder = adv_builder
         .section_builder(MicEncryptedSectionEncoder::<_>::new::<CryptoProviderImpl>(
             salt,
@@ -74,7 +64,7 @@ fn deserialize_mic_encrypted_correct_keys(salt: MultiSalt) {
         .unwrap();
 
     let txpower_de = TxPowerDataElement::from(TxPower::try_from(5).unwrap());
-    section_builder.add_de(|_| txpower_de.clone()).unwrap();
+    section_builder.add_de(&txpower_de).unwrap();
     section_builder.add_to_advertisement::<CryptoProviderImpl>();
     let adv = adv_builder.into_advertisement();
 
@@ -92,15 +82,10 @@ fn deserialize_mic_encrypted_correct_keys(salt: MultiSalt) {
     let section = sections.into_iter().next().unwrap();
     let enc_section = section.as_ciphertext().unwrap();
 
-    let contents = if let CiphertextSection::MicEncrypted(contents) = &enc_section {
-        contents
-    } else {
-        panic!("incorrect flavor");
-    };
+    let CiphertextSection::MicEncrypted(contents) = &enc_section;
 
-    let private_key = ed25519::PrivateKey::generate::<Ed25519ProviderImpl>();
     // deserializing to Section works
-    let discovery_credential = V1BroadcastCredential::new(key_seed, identity_token, private_key)
+    let discovery_credential = V1BroadcastCredential::new(key_seed, identity_token)
         .derive_discovery_credential::<CryptoProviderImpl>();
 
     let arena = deserialization_arena!();
@@ -117,12 +102,17 @@ fn deserialize_mic_encrypted_correct_keys(salt: MultiSalt) {
             VerificationMode::Mic,
             salt,
             identity_token,
-            &[txpower_de.de_header().serialize().as_slice(), &[5],].concat(),
+            // Length one, unextended De header.
+            &[0b00010000u8 + (TxPowerDataElement::DE_TYPE.as_u32() as u8), 5u8],
         ),
         section
     );
     let data_elements = section.collect_data_elements().unwrap();
-    assert_eq!(data_elements, &[DataElement::new(0.into(), 0x05_u8.into(), &[5])]);
+    let maybe_extended_salt = match salt {
+        MultiSalt::Short(_) => None,
+        MultiSalt::Extended(salt) => Some(salt),
+    };
+    assert_eq!(data_elements, &[DataElement::new(0x05_u8.into(), &[5], maybe_extended_salt)]);
 
     let (_header, contents_bytes) =
         remaining.split_at(1 + 1 + salt.as_slice().len() + V1_IDENTITY_TOKEN_LEN);
@@ -130,14 +120,14 @@ fn deserialize_mic_encrypted_correct_keys(salt: MultiSalt) {
         &MicEncryptedSection {
             contents: EncryptedSectionContents {
                 adv_header,
-                format_bytes: &[match salt {
+                format_byte: match salt {
                     MultiSalt::Short(_) => {
-                        V1_ENCODING_ENCRYPTED_MIC_WITH_SHORT_SALT_AND_TOKEN
+                        V1_ENCODING_ENCRYPTED_MIC_WITH_SHORT_SALT_AND_TOKEN.0
                     }
                     MultiSalt::Extended(_) => {
-                        V1_ENCODING_ENCRYPTED_MIC_WITH_EXTENDED_SALT_AND_TOKEN
+                        V1_ENCODING_ENCRYPTED_MIC_WITH_EXTENDED_SALT_AND_TOKEN.0
                     }
-                }],
+                },
                 salt,
                 identity_token: first_section_identity_token(salt, remaining),
                 section_contents: &contents_bytes
@@ -176,8 +166,7 @@ fn deserialize_mic_encrypted_correct_keys(salt: MultiSalt) {
 
         let mut expected = Vec::new();
         // battery de
-        expected.extend_from_slice(txpower_de.clone().de_header().serialize().as_slice());
-        let _ = txpower_de.write_de_contents(&mut expected);
+        let _ = txpower_de.write_de(Unsalted, &mut expected);
 
         assert_eq!(identity_token, decrypted.identity_token);
         assert_eq!(&expected, decrypted.plaintext_contents);
@@ -300,7 +289,7 @@ fn deserialize_mic_encrypted_extended_salt_incorrect_salt_error() {
         DeserializeError::IdentityResolutionOrDeserializationError(
             IdentityResolutionOrDeserializationError::IdentityMatchingError,
         ),
-        |_| {},
+        None,
         // replace the extended salt bytes
         |adv| adv[2..18].fill(0xFF),
     );
@@ -312,7 +301,7 @@ fn deserialize_mic_encrypted_extended_salt_de_that_wont_parse() {
     do_bad_deserialize_tampered(
         ExtendedV1Salt::from([3; EXTENDED_SALT_LEN]).into(),
         DeserializeError::DataElementParseError(DataElementParseError::UnexpectedDataAfterEnd),
-        |sec| sec.try_push(0xFF).unwrap(),
+        Some(0xFF),
         |_| {},
     );
 }
@@ -325,7 +314,7 @@ fn deserialize_mic_encrypted_extended_salt_tampered_mic_error() {
         DeserializeError::IdentityResolutionOrDeserializationError(
             MicVerificationError::MicMismatch.into(),
         ),
-        |_| {},
+        None,
         |adv| {
             let mic_start = adv.len() - 16;
             adv[mic_start] ^= 0x01
@@ -341,7 +330,7 @@ fn deserialize_mic_encrypted_extended_salt_tampered_payload_error() {
         DeserializeError::IdentityResolutionOrDeserializationError(
             MicVerificationError::MicMismatch.into(),
         ),
-        |_| {},
+        None,
         |adv| {
             let before_mic = adv.len() - 17;
             adv[before_mic] ^= 0x01
@@ -356,7 +345,7 @@ fn deserialize_mic_encrypted_short_salt_incorrect_salt_error() {
         DeserializeError::IdentityResolutionOrDeserializationError(
             IdentityResolutionOrDeserializationError::IdentityMatchingError,
         ),
-        |_| {},
+        None,
         // replace the extended salt bytes
         |adv| adv[2..4].fill(0xFF),
     );
@@ -368,7 +357,7 @@ fn deserialize_mic_encrypted_short_salt_de_that_wont_parse() {
     do_bad_deserialize_tampered(
         ShortV1Salt::from([3; SHORT_SALT_LEN]).into(),
         DeserializeError::DataElementParseError(DataElementParseError::UnexpectedDataAfterEnd),
-        |sec| sec.try_push(0xFF).unwrap(),
+        Some(0xFF),
         |_| {},
     );
 }
@@ -381,7 +370,7 @@ fn deserialize_mic_encrypted_short_salt_tampered_mic_error() {
         DeserializeError::IdentityResolutionOrDeserializationError(
             MicVerificationError::MicMismatch.into(),
         ),
-        |_| {},
+        None,
         |adv| {
             let mic_start = adv.len() - 16;
             adv[mic_start] ^= 0x01
@@ -397,7 +386,7 @@ fn deserialize_mic_encrypted_short_salt_tampered_payload_error() {
         DeserializeError::IdentityResolutionOrDeserializationError(
             MicVerificationError::MicMismatch.into(),
         ),
-        |_| {},
+        None,
         |adv| {
             let before_mic = adv.len() - 17;
             adv[before_mic] ^= 0x01
@@ -410,13 +399,9 @@ fn arena_out_of_space_on_mic_verify() {
     let identity_token = V1IdentityToken::from([1; 16]);
     let key_seed = [2; 32];
     let section_salt = ExtendedV1Salt::from([3; 16]);
-    let broadcast_cm = V1BroadcastCredential::new(
-        key_seed,
-        identity_token,
-        ed25519::PrivateKey::generate::<Ed25519ProviderImpl>(),
-    );
+    let broadcast_cm = V1BroadcastCredential::new(key_seed, identity_token);
 
-    let mut adv_builder = AdvBuilder::new(AdvertisementType::Encrypted);
+    let mut adv_builder = AdvBuilder::new();
     let mut section_builder = adv_builder
         .section_builder(MicEncryptedSectionEncoder::<_>::new::<CryptoProviderImpl>(
             section_salt,
@@ -425,7 +410,7 @@ fn arena_out_of_space_on_mic_verify() {
         .unwrap();
 
     let txpower_de = TxPowerDataElement::from(TxPower::try_from(5).unwrap());
-    section_builder.add_de(|_| txpower_de.clone()).unwrap();
+    section_builder.add_de(&txpower_de).unwrap();
     section_builder.add_to_advertisement::<CryptoProviderImpl>();
     let adv = adv_builder.into_advertisement();
 
@@ -443,15 +428,10 @@ fn arena_out_of_space_on_mic_verify() {
     let section = sections.into_iter().next().unwrap();
     let enc_section = section.as_ciphertext().unwrap();
 
-    let contents = if let CiphertextSection::MicEncrypted(contents) = &enc_section {
-        contents
-    } else {
-        panic!("incorrect flavor");
-    };
+    let CiphertextSection::MicEncrypted(contents) = &enc_section;
 
-    let private_key = ed25519::PrivateKey::generate::<Ed25519ProviderImpl>();
     // deserializing to Section works
-    let discovery_credential = V1BroadcastCredential::new(key_seed, identity_token, private_key)
+    let discovery_credential = V1BroadcastCredential::new(key_seed, identity_token)
         .derive_discovery_credential::<CryptoProviderImpl>();
 
     let arena = deserialization_arena!();
@@ -480,13 +460,9 @@ fn do_bad_deserialize_params<C: CryptoProvider>(
     let key_seed = [2; 32];
     let key_seed_hkdf = np_hkdf::NpKeySeedHkdf::<C>::new(&key_seed);
 
-    let mut adv_builder = AdvBuilder::new(AdvertisementType::Encrypted);
+    let mut adv_builder = AdvBuilder::new();
 
-    let broadcast_cm = V1BroadcastCredential::new(
-        key_seed,
-        identity_token,
-        ed25519::PrivateKey::generate::<Ed25519ProviderImpl>(),
-    );
+    let broadcast_cm = V1BroadcastCredential::new(key_seed, identity_token);
 
     let mut section_builder = adv_builder
         .section_builder(MicEncryptedSectionEncoder::<_>::new::<CryptoProviderImpl>(
@@ -495,7 +471,7 @@ fn do_bad_deserialize_params<C: CryptoProvider>(
         ))
         .unwrap();
 
-    section_builder.add_de(|_| TxPowerDataElement::from(TxPower::try_from(7).unwrap())).unwrap();
+    section_builder.add_de(&TxPowerDataElement::from(TxPower::try_from(7).unwrap())).unwrap();
 
     section_builder.add_to_advertisement::<CryptoProviderImpl>();
 
@@ -514,11 +490,7 @@ fn do_bad_deserialize_params<C: CryptoProvider>(
 
     let section = sections.into_iter().next().unwrap();
     let enc_section = section.as_ciphertext().unwrap();
-    let contents = if let CiphertextSection::MicEncrypted(contents) = &enc_section {
-        contents
-    } else {
-        panic!("incorrect flavor");
-    };
+    let CiphertextSection::MicEncrypted(contents) = &enc_section;
 
     // start with correct crypto material
     let mut crypto_material = V1DiscoveryCredential::new(
@@ -531,12 +503,6 @@ fn do_bad_deserialize_params<C: CryptoProvider>(
             .v1_mic_extended_salt_keys()
             .identity_token_hmac_key()
             .calculate_hmac::<C>(&identity_token.0),
-        key_seed_hkdf
-            .v1_signature_keys()
-            .identity_token_hmac_key()
-            .calculate_hmac::<C>(&identity_token.0),
-        crypto_provider::ed25519::PrivateKey::generate::<C::Ed25519>()
-            .derive_public_key::<C::Ed25519>(),
     )
     .to_precalculated::<C>();
 
@@ -565,19 +531,15 @@ enum DeserializeError {
 fn do_bad_deserialize_tampered(
     salt: MultiSalt,
     expected_error: DeserializeError,
-    mangle_section: impl Fn(&mut CapacityLimitedVec<u8, NP_ADV_MAX_SECTION_LEN>),
+    mangle_section_extra_byte: Option<u8>,
     mangle_adv: impl Fn(&mut Vec<u8>),
 ) {
     let metadata_key = V1IdentityToken([1; 16]);
     let key_seed = [2; 32];
 
-    let mut adv_builder = AdvBuilder::new(AdvertisementType::Encrypted);
+    let mut adv_builder = AdvBuilder::new();
 
-    let broadcast_cm = V1BroadcastCredential::new(
-        key_seed,
-        metadata_key,
-        ed25519::PrivateKey::generate::<Ed25519ProviderImpl>(),
-    );
+    let broadcast_cm = V1BroadcastCredential::new(key_seed, metadata_key);
 
     let mut section_builder = adv_builder
         .section_builder(MicEncryptedSectionEncoder::<_>::new::<CryptoProviderImpl>(
@@ -586,9 +548,17 @@ fn do_bad_deserialize_tampered(
         ))
         .unwrap();
 
-    section_builder.add_de(|_| TxPowerDataElement::from(TxPower::try_from(7).unwrap())).unwrap();
+    section_builder.add_de(&TxPowerDataElement::from(TxPower::try_from(7).unwrap())).unwrap();
 
-    mangle_section(&mut section_builder.section);
+    if let Some(mangle_section_extra_byte) = mangle_section_extra_byte {
+        section_builder
+            .section
+            .push_slice(
+                DeType::try_from(0xFFFFFFFEu32).unwrap().into(),
+                &[mangle_section_extra_byte],
+            )
+            .unwrap();
+    }
 
     section_builder.add_to_advertisement::<CryptoProviderImpl>();
 
@@ -609,17 +579,9 @@ fn do_bad_deserialize_tampered(
 
     let section = sections.into_iter().next().unwrap();
     let enc_section = section.as_ciphertext().unwrap();
-    let contents = if let CiphertextSection::MicEncrypted(contents) = &enc_section {
-        contents
-    } else {
-        panic!("incorrect flavor");
-    };
+    let CiphertextSection::MicEncrypted(contents) = &enc_section;
 
-    // generate a random key pair since we need _some_ public key in our discovery
-    // credential, even if it winds up going unused
-    let private_key = ed25519::PrivateKey::generate::<Ed25519ProviderImpl>();
-
-    let discovery_credential = V1BroadcastCredential::new(key_seed, metadata_key, private_key)
+    let discovery_credential = V1BroadcastCredential::new(key_seed, metadata_key)
         .derive_discovery_credential::<CryptoProviderImpl>();
 
     match contents.try_resolve_identity_and_deserialize::<CryptoProviderImpl>(

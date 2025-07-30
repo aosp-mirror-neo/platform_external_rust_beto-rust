@@ -19,9 +19,57 @@ use jni::{
     sys::{jint, jlong},
     JNIEnv,
 };
-use np_ffi_core::deserialize::v0::{DeserializedV0IdentityKind, V0Payload};
+use np_ffi_core::deserialize::{
+    v0::{DeserializedV0IdentityDetails, DeserializedV0IdentityKind, V0Payload},
+    DecryptMetadataResult,
+};
 use np_ffi_core::v0::V0Actions as CoreV0Actions;
-use pourover::jni_method;
+use pourover::{desc::ClassDesc, jni_method};
+
+static IDENTITY_DETAILS_CLASS: ClassDesc =
+    ClassDesc::new("com/google/android/nearby/presence/rust/V0Payload$IdentityDetails");
+
+#[repr(transparent)]
+pub struct IdentityDetails<Obj>(pub Obj);
+
+impl<'local> IdentityDetails<JObject<'local>> {
+    pub fn construct(
+        env: &mut JNIEnv<'local>,
+        details: DeserializedV0IdentityDetails,
+    ) -> jni::errors::Result<Self> {
+        Self::construct_from_parts(
+            env,
+            details.cred_id(),
+            details.identity_token(),
+            details.salt(),
+            details.key_seed(),
+        )
+    }
+
+    /// Create an IdentityDetails instance
+    pub fn construct_from_parts(
+        env: &mut JNIEnv<'local>,
+        credential_id: i64,
+        identity_token: [u8; 14],
+        salt: [u8; 2],
+        key_seed: [u8; 32],
+    ) -> jni::errors::Result<Self> {
+        let credential_id = credential_id as jint;
+        let identity_token = env.auto_local(env.byte_array_from_slice(&identity_token)?);
+        let salt = env.auto_local(env.byte_array_from_slice(&salt)?);
+        let key_seed = env.auto_local(env.byte_array_from_slice(&key_seed)?);
+        pourover::call_constructor!(
+            env,
+            &IDENTITY_DETAILS_CLASS,
+            "(I[B[B[B)V",
+            credential_id,
+            identity_token.as_ref(),
+            salt.as_ref(),
+            key_seed.as_ref(),
+        )
+        .map(Self)
+    }
+}
 
 #[jni_method(package = "com.google.android.nearby.presence.rust", class = "V0Payload")]
 extern "system" fn nativeGetDataElement<'local>(
@@ -60,6 +108,44 @@ extern "system" fn nativeGetDataElement<'local>(
         Ok(de) => de,
         Err(_jni_err) => JObject::null(),
     }
+}
+
+#[jni_method(package = "com.google.android.nearby.presence.rust", class = "V0Payload")]
+extern "system" fn nativeGetIdentityDetails<'local>(
+    mut env: JNIEnv<'local>,
+    _cls: JClass<'local>,
+    handle_id: jlong,
+) -> JObject<'local> {
+    let v0_payload = V0Payload::from_handle(Handle::from_id(handle_id as u64));
+
+    use np_ffi_core::deserialize::v0::GetV0IdentityDetailsResult::*;
+    match v0_payload.get_identity_details() {
+        Success(details) => IdentityDetails::construct(&mut env, details)
+            .map_or_else(|_err| JObject::null(), |obj| obj.0),
+        Error => JObject::null(),
+    }
+}
+
+#[jni_method(package = "com.google.android.nearby.presence.rust", class = "V0Payload")]
+extern "system" fn nativeGetDecryptedMetadata<'local>(
+    env: JNIEnv<'local>,
+    _cls: JClass<'local>,
+    handle_id: jlong,
+) -> JObject<'local> {
+    let v0_payload = V0Payload::from_handle(Handle::from_id(handle_id as u64));
+
+    let DecryptMetadataResult::Success(metadata) = v0_payload.decrypt_metadata() else {
+        return JObject::null();
+    };
+
+    let Ok(buffer) = metadata.take_buffer() else {
+        return JObject::null();
+    };
+    let Ok(decrypted_metadata_array) = env.byte_array_from_slice(&buffer[..]) else {
+        return JObject::null();
+    };
+
+    decrypted_metadata_array.into()
 }
 
 #[jni_method(package = "com.google.android.nearby.presence.rust", class = "V0Payload")]

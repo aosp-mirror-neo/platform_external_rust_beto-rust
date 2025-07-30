@@ -16,7 +16,7 @@
 //!
 //! The design is an attempt to make it easy to provide implementations that are both idiomatic
 //! Rust (e.g. RustCrypto) as well as FFI-backed (e.g. boringSSL and other C impls).
-use core::{array, fmt};
+use core::array;
 
 pub mod ctr;
 
@@ -70,7 +70,7 @@ pub trait AesKey: for<'a> TryFrom<&'a [u8], Error = Self::TryFromError> {
     ///
     /// This is broken out as a separate type to allow the `fmt::Debug` requirement needed for
     /// `expect()`.
-    type TryFromError: fmt::Debug;
+    type TryFromError: core::fmt::Debug;
 
     /// The byte array type the key can be represented with
     type Array;
@@ -126,6 +126,12 @@ impl From<[u8; 16]> for Aes128Key {
 #[derive(Clone)]
 pub struct Aes256Key {
     key: [u8; 32],
+}
+
+impl core::fmt::Debug for Aes256Key {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> Result<(), core::fmt::Error> {
+        f.debug_struct("Aes256Key").finish()
+    }
 }
 
 impl AesKey for Aes256Key {

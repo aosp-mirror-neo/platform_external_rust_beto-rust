@@ -14,7 +14,7 @@
 
 #include <array>
 #include <cstdint>
-#include <random>
+#include <cstdlib>
 #include <span>
 #include <utility>
 #include <vector>
@@ -23,7 +23,6 @@
 #include "fuzztest/fuzztest.h"
 #include "gtest/gtest.h"
 #include "nearby_protocol.h"
-#include "np_cpp_ffi_types.h"
 #include "shared_test_util.h"
 
 // redefine test data as std::vector types since fuzztest does not support
@@ -76,9 +75,8 @@ struct IdentityData {
   uint32_t credential_id;
   std::array<uint8_t, 32> key_seed;
   std::array<uint8_t, 32> legacy_metadata_key_hmac;
-  std::array<uint8_t, 32> expected_unsigned_identity_token_hmac;
-  std::array<uint8_t, 32> expected_signed_identity_token_hmac;
-  std::array<uint8_t, 32> pub_key;
+  std::array<uint8_t, 32> expected_mic_short_salt_identity_token_hmac;
+  std::array<uint8_t, 32> expected_mic_extended_salt_identity_token_hmac;
   std::vector<uint8_t> encrypted_metadata_bytes;
 };
 
@@ -90,11 +88,10 @@ static struct IdentityData V0TestCaseIdentityData {
 
 static struct IdentityData V1TestCaseIdentityData {
   .credential_id = static_cast<uint32_t>(rand()), .key_seed = V1AdvKeySeed,
-  .expected_unsigned_identity_token_hmac =
+  .expected_mic_short_salt_identity_token_hmac =
+      V1AdvExpectedMicShortSaltIdentityTokenHmac,
+  .expected_mic_extended_salt_identity_token_hmac =
       V1AdvExpectedMicExtendedSaltIdentityTokenHmac,
-  .expected_signed_identity_token_hmac =
-      V1AdvExpectedSignatureIdentityTokenHmac,
-  .pub_key = V1AdvPublicKey, .encrypted_metadata_bytes = V1AdvEncryptedMetadata,
 };
 
 // Now lets try feeding the fuzzer some credential data that can successfully
@@ -108,6 +105,11 @@ void DeserializeWithCredentials(std::span<const IdentityData> identities,
   nearby_protocol::CredentialSlab slab;
   // populate book with fuzzer generated credential data
   for (auto data : identities) {
+    // Make sure the vector is not empty, as this is a prerequisite of the Rust
+    // code we call into.
+    if (data.encrypted_metadata_bytes.empty()) {
+      continue;
+    }
     nearby_protocol::MatchedCredentialData match_data(
         123, data.encrypted_metadata_bytes);
     nearby_protocol::V0MatchableCredential v0_cred(
@@ -116,8 +118,8 @@ void DeserializeWithCredentials(std::span<const IdentityData> identities,
     slab.AddV0Credential(v0_cred);
 
     nearby_protocol::V1MatchableCredential v1_cred(
-        data.key_seed, data.expected_unsigned_identity_token_hmac,
-        data.expected_signed_identity_token_hmac, data.pub_key, match_data);
+        data.key_seed, data.expected_mic_short_salt_identity_token_hmac,
+        data.expected_mic_extended_salt_identity_token_hmac, match_data);
     [[maybe_unused]] auto result = slab.AddV1Credential(v1_cred);
   }
 
@@ -146,35 +148,39 @@ DeserializeWithCredentialSeedData() {
 
 TEST(NpCppDeserializationFuzzers, InvalidPublicKeyInCredential) {
   std::vector<IdentityData> identities;
-  identities.push_back(
-      {1804289383,
-       {17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17,
-        17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17},
-       {136, 51,  222, 213, 77,  0,   146, 232, 128, 112, 213,
-        31,  24,  236, 34,  69,  117, 124, 36,  223, 227, 140,
-        178, 222, 119, 182, 120, 133, 252, 165, 103, 77},
-       {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-       {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-       {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-       fuzztest::ToByteArray("")});
-  identities.push_back({846930886,
-                        {49, 67, 99, 30,  202, 232, 151, 75,  150, 80,  204,
-                         28, 72, 37, 14,  129, 88,  6,   129, 81,  249, 235,
-                         37, 35, 3,  212, 151, 109, 149, 25,  145, 57},
-                        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-                        {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-                        {28,  188, 235, 220, 23,  181, 145, 229, 7,   157, 112,
-                         193, 232, 75,  204, 219, 75,  15,  118, 131, 89,  98,
-                         10,  45,  85,  11,  59,  54,  164, 146, 139, 19},
-                        {109, 13,  182, 9,   16,  177, 83,  196, 126, 16,  22,
-                         20,  156, 159, 242, 20,  15,  236, 83,  118, 227, 7,
-                         217, 211, 158, 174, 231, 69,  44,  3,   236, 109},
-                        fuzztest::ToByteArray("")});
+  identities.push_back(IdentityData{
+      .credential_id = 1804289383,
+      .key_seed = {17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17,
+                   17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17,
+                   17, 17, 17, 17, 17, 17, 17, 17, 17, 17},
+      .legacy_metadata_key_hmac = {136, 51,  222, 213, 77,  0,   146, 232,
+                                   128, 112, 213, 31,  24,  236, 34,  69,
+                                   117, 124, 36,  223, 227, 140, 178, 222,
+                                   119, 182, 120, 133, 252, 165, 103, 77},
+      .expected_mic_short_salt_identity_token_hmac = {0, 0, 0, 0, 0, 0, 0, 0,
+                                                      0, 0, 0, 0, 0, 0, 0, 0,
+                                                      0, 0, 0, 0, 0, 0, 0, 0,
+                                                      0, 0, 0, 0, 0, 0, 0, 0},
+      .expected_mic_extended_salt_identity_token_hmac =
+          {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+           0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+      .encrypted_metadata_bytes = fuzztest::ToByteArray("")});
+  identities.emplace_back(IdentityData{
+      .credential_id = 846930886,
+      .key_seed = {49, 67, 99, 30,  202, 232, 151, 75,  150, 80,  204,
+                   28, 72, 37, 14,  129, 88,  6,   129, 81,  249, 235,
+                   37, 35, 3,  212, 151, 109, 149, 25,  145, 57},
+      .legacy_metadata_key_hmac = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                   0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+      .expected_mic_short_salt_identity_token_hmac = {0, 0, 0, 0, 0, 0, 0, 0,
+                                                      0, 0, 0, 0, 0, 0, 0, 0,
+                                                      0, 0, 0, 0, 0, 0, 0, 0,
+                                                      0, 0, 0, 0, 0, 0, 0, 0},
+      .expected_mic_extended_salt_identity_token_hmac =
+          {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+           0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+      .encrypted_metadata_bytes = fuzztest::ToByteArray("")});
 
   DeserializeWithCredentials(
       identities,
@@ -228,7 +234,7 @@ void HandleDataElement(nearby_protocol::V0DataElement);
 
 void HandleV1Adv(nearby_protocol::DeserializedV1Advertisement);
 void HandleV1Section(nearby_protocol::DeserializedV1Section);
-void HandleV1DataElement(nearby_protocol::V1DataElement);
+void HandleV1DataElement(nearby_protocol::GenericV1DataElement);
 
 void HandleAdvertisementResult(
     nearby_protocol::DeserializeAdvertisementResult result) {

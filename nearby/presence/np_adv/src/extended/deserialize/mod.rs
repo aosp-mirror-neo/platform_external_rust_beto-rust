@@ -28,21 +28,27 @@ use crate::{
     deserialization_arena::{ArenaOutOfSpace, DeserializationArena, DeserializationArenaAllocator},
     extended::{
         deserialize::{
-            data_element::{DataElement, DataElementParseError, DataElementParsingIterator},
+            data_element::{
+                DataElementDeserializationResult, DataElementDeserializingIterator,
+                DataElementParsingIterator,
+            },
             encrypted_section::{
                 DeserializationError, MicVerificationError, SectionIdentityResolutionContents,
-                SignatureVerificationError,
             },
             section::intermediate::{
                 parse_sections, CiphertextSection, IntermediateSection, PlaintextSection,
             },
         },
         salt::MultiSalt,
-        V1IdentityToken, NP_V1_ADV_MAX_ENCRYPTED_SECTION_COUNT,
+        V1IdentityToken, NP_V1_ADV_MAX_SECTION_COUNT,
     },
     header::V1AdvHeader,
     AdvDeserializationError, AdvDeserializationErrorDetailsHazmat,
 };
+
+#[cfg(any(test, feature = "alloc"))]
+use crate::extended::deserialize::data_element::{DataElement, DataElementParseError};
+
 use crypto_provider::CryptoProvider;
 
 #[cfg(test)]
@@ -50,7 +56,8 @@ mod tests;
 
 pub mod data_element;
 pub(crate) mod encrypted_section;
-pub(crate) mod section;
+/// Define Section of Presence V1 Spec.
+pub mod section;
 
 /// Provides deserialization APIs which expose more of the internals, suitable for use only in
 /// dev tools.
@@ -69,9 +76,7 @@ where
     P: CryptoProvider,
 {
     let mut sections_in_processing =
-        SectionsInProcessing::<'_, B::Matched>::from_advertisement_contents::<P>(
-            header, remaining,
-        )?;
+        SectionsInProcessing::<'_, B::Matched>::from_advertisement_contents(header, remaining)?;
 
     let mut allocator = arena.into_allocator();
 
@@ -94,19 +99,22 @@ where
 }
 
 /// A section deserialized from a V1 advertisement.
-pub trait Section<'adv, E: Debug> {
-    /// The iterator type used to iterate over data elements
-    type Iterator: Iterator<Item = Result<DataElement<'adv>, E>>;
+pub trait Section<'adv> {
+    /// Iterator over the data elements in a section.
+    fn iter_data_elements(&self) -> DataElementParsingIterator<'adv>;
 
-    /// Iterator over the data elements in a section, except for any DEs related to resolving the
-    /// identity or otherwise validating the payload (e.g. MIC, Signature, any identity DEs like
-    /// Private Identity).
-    fn iter_data_elements(&self) -> Self::Iterator;
+    /// An iterator which attempts to deserialize the data elements
+    /// in a section to some target type implementing [`DataElementDeserializationResult`].
+    fn iter_deserialize_data_elements<F: DataElementDeserializationResult<'adv>>(
+        &self,
+    ) -> DataElementDeserializingIterator<'adv, F> {
+        DataElementDeserializingIterator::<'adv, F>::from(self.iter_data_elements())
+    }
 
     /// Collects the data elements into a vector, eagerly catching and resolving any errors during
     /// parsing.
     #[cfg(any(test, feature = "alloc"))]
-    fn collect_data_elements(&self) -> Result<Vec<DataElement<'adv>>, E>
+    fn collect_data_elements(&self) -> Result<Vec<DataElement<'adv>>, DataElementParseError>
     where
         Self: Sized,
     {
@@ -155,18 +163,20 @@ impl<'adv> DecryptedSection<'adv> {
     }
 }
 
-impl<'adv> HasIdentityMatch for DecryptedSection<'adv> {
+impl HasIdentityMatch for DecryptedSection<'_> {
     type Version = V1;
     fn identity_token(&self) -> V1IdentityToken {
         self.identity_token
     }
 }
 
-impl<'adv> Section<'adv, DataElementParseError> for DecryptedSection<'adv> {
-    type Iterator = DataElementParsingIterator<'adv>;
-
-    fn iter_data_elements(&self) -> Self::Iterator {
-        DataElementParsingIterator::new(self.plaintext)
+impl<'adv> Section<'adv> for DecryptedSection<'adv> {
+    fn iter_data_elements(&self) -> DataElementParsingIterator<'adv> {
+        let maybe_extended_salt = match self.salt() {
+            MultiSalt::Extended(x) => Some(x),
+            _ => None,
+        };
+        DataElementParsingIterator::new(self.plaintext, maybe_extended_salt.copied())
     }
 }
 
@@ -193,29 +203,26 @@ impl From<DeserializationError<MicVerificationError>> for SectionDeserializeErro
     }
 }
 
-impl From<DeserializationError<SignatureVerificationError>> for SectionDeserializeError {
-    fn from(
-        signature_deserialization_error: DeserializationError<SignatureVerificationError>,
-    ) -> Self {
-        match signature_deserialization_error {
-            DeserializationError::VerificationError(
-                SignatureVerificationError::SignatureMissing,
-            ) => Self::ParseError,
-            DeserializationError::VerificationError(
-                SignatureVerificationError::SignatureMismatch,
-            ) => Self::IncorrectCredential,
-            DeserializationError::ArenaOutOfSpace => Self::ArenaOutOfSpace,
-        }
-    }
+/// A ciphertext section which has not yet been resolved to an identity. This will cache the
+/// calculation of `SectionIdentityResolutionContents` on first use for speedy identity-resolution.
+struct ResolvableCiphertextSection<'a> {
+    identity_resolution_contents: Option<SectionIdentityResolutionContents>,
+    ciphertext_section: CiphertextSection<'a>,
 }
 
-/// A ciphertext section which has not yet been
-/// resolved to an identity, but for which some
-/// `SectionIdentityResolutionContents` have been
-/// pre-computed for speedy identity-resolution.
-struct ResolvableCiphertextSection<'a> {
-    identity_resolution_contents: SectionIdentityResolutionContents,
-    ciphertext_section: CiphertextSection<'a>,
+impl<'a> ResolvableCiphertextSection<'a> {
+    fn from_section(ciphertext_section: CiphertextSection<'a>) -> Self {
+        Self { identity_resolution_contents: None, ciphertext_section }
+    }
+
+    /// Get the identity resolution contents. They will be calculated on the first call to this
+    /// method and cached for further calls.
+    fn identity_resolution_contents<C: CryptoProvider>(
+        &mut self,
+    ) -> &SectionIdentityResolutionContents {
+        self.identity_resolution_contents
+            .get_or_insert_with(|| self.ciphertext_section.identity_resolution_contents::<C>())
+    }
 }
 
 /// A collection of possibly-deserialized sections which are separated according
@@ -225,14 +232,10 @@ struct ResolvableCiphertextSection<'a> {
 /// section ordering as they appeared within the original advertisement to ensure
 /// that the fully-deserialized advertisement may be correctly reconstructed.
 struct SectionsInProcessing<'adv, M: MatchedCredential> {
-    deserialized_sections: ArrayVecOption<
-        (usize, V1DeserializedSection<'adv, M>),
-        { NP_V1_ADV_MAX_ENCRYPTED_SECTION_COUNT },
-    >,
-    encrypted_sections: ArrayVecOption<
-        (usize, ResolvableCiphertextSection<'adv>),
-        { NP_V1_ADV_MAX_ENCRYPTED_SECTION_COUNT },
-    >,
+    deserialized_sections:
+        ArrayVecOption<(usize, V1DeserializedSection<'adv, M>), { NP_V1_ADV_MAX_SECTION_COUNT }>,
+    encrypted_sections:
+        ArrayVecOption<(usize, ResolvableCiphertextSection<'adv>), { NP_V1_ADV_MAX_SECTION_COUNT }>,
     malformed_sections_count: usize,
 }
 
@@ -240,7 +243,7 @@ impl<'adv, M: MatchedCredential> SectionsInProcessing<'adv, M> {
     /// Attempts to parse a V1 advertisement's contents after the version header
     /// into a collection of not-yet-fully-deserialized sections which may
     /// require credentials to be decrypted.
-    fn from_advertisement_contents<C: CryptoProvider>(
+    fn from_advertisement_contents(
         header: V1AdvHeader,
         remaining: &'adv [u8],
     ) -> Result<Self, AdvDeserializationError> {
@@ -257,13 +260,8 @@ impl<'adv, M: MatchedCredential> SectionsInProcessing<'adv, M> {
                     deserialized_sections.push((idx, V1DeserializedSection::Plaintext(p)))
                 }
                 IntermediateSection::Ciphertext(ciphertext_section) => {
-                    let identity_resolution_contents =
-                        ciphertext_section.identity_resolution_contents::<C>();
-                    let resolvable_ciphertext_section = ResolvableCiphertextSection {
-                        identity_resolution_contents,
-                        ciphertext_section,
-                    };
-                    encrypted_sections.push((idx, resolvable_ciphertext_section));
+                    encrypted_sections
+                        .push((idx, ResolvableCiphertextSection::from_section(ciphertext_section)));
                 }
             }
         }
@@ -287,10 +285,8 @@ impl<'adv, M: MatchedCredential> SectionsInProcessing<'adv, M> {
     ) -> Result<(), ArenaOutOfSpace> {
         let mut i = 0;
         while i < self.encrypted_sections.len() {
-            let (section_idx, section): &(usize, ResolvableCiphertextSection) =
-                &self.encrypted_sections[i];
+            let (section_idx, ref mut section) = self.encrypted_sections[i];
             // Fast-path: Check for an identity match, ignore if there's no identity match.
-            let identity_resolution_contents = &section.identity_resolution_contents;
             let identity_resolution_material = match &section.ciphertext_section {
                 CiphertextSection::MicEncrypted(m) => match m.contents.salt {
                     MultiSalt::Short(_) => crypto_material
@@ -300,12 +296,11 @@ impl<'adv, M: MatchedCredential> SectionsInProcessing<'adv, M> {
                         .mic_extended_salt_identity_resolution_material::<P>()
                         .into_raw_resolution_material(),
                 },
-
-                CiphertextSection::SignatureEncrypted(_) => crypto_material
-                    .signed_identity_resolution_material::<P>()
-                    .into_raw_resolution_material(),
             };
-            match identity_resolution_contents.try_match::<P>(&identity_resolution_material) {
+            match section
+                .identity_resolution_contents::<P>()
+                .try_match::<P>(&identity_resolution_material)
+            {
                 None => {
                     // Try again with another section
                     i += 1;
@@ -315,13 +310,6 @@ impl<'adv, M: MatchedCredential> SectionsInProcessing<'adv, M> {
                     // The identity matched, so now we need to more closely scrutinize
                     // the provided ciphertext. Try to decrypt and parse the section.
                     let deserialization_result = match &section.ciphertext_section {
-                        CiphertextSection::SignatureEncrypted(c) => c
-                            .try_deserialize(
-                                arena,
-                                identity_match,
-                                &crypto_material.signed_verification_material::<P>(),
-                            )
-                            .map_err(SectionDeserializeError::from),
                         CiphertextSection::MicEncrypted(c) => c
                             .try_deserialize(arena, identity_match, &crypto_material)
                             .map_err(SectionDeserializeError::from),
@@ -329,7 +317,7 @@ impl<'adv, M: MatchedCredential> SectionsInProcessing<'adv, M> {
                     match deserialization_result {
                         Ok(s) => {
                             self.deserialized_sections.push((
-                                *section_idx,
+                                section_idx,
                                 V1DeserializedSection::Decrypted(WithMatchedCredential::new(
                                     match_data.clone(),
                                     crypto_material.metadata_nonce::<P>(),
@@ -387,16 +375,13 @@ impl<'adv, M: MatchedCredential> SectionsInProcessing<'adv, M> {
 /// The contents of a deserialized and decrypted V1 advertisement.
 #[derive(Debug, PartialEq, Eq)]
 pub struct V1AdvertisementContents<'adv, M: MatchedCredential> {
-    sections: ArrayVecOption<V1DeserializedSection<'adv, M>, NP_V1_ADV_MAX_ENCRYPTED_SECTION_COUNT>,
+    sections: ArrayVecOption<V1DeserializedSection<'adv, M>, NP_V1_ADV_MAX_SECTION_COUNT>,
     invalid_sections: usize,
 }
 
 impl<'adv, M: MatchedCredential> V1AdvertisementContents<'adv, M> {
     fn new(
-        sections: ArrayVecOption<
-            V1DeserializedSection<'adv, M>,
-            NP_V1_ADV_MAX_ENCRYPTED_SECTION_COUNT,
-        >,
+        sections: ArrayVecOption<V1DeserializedSection<'adv, M>, NP_V1_ADV_MAX_SECTION_COUNT>,
         invalid_sections: usize,
     ) -> Self {
         Self { sections, invalid_sections }
@@ -406,7 +391,7 @@ impl<'adv, M: MatchedCredential> V1AdvertisementContents<'adv, M> {
     /// which could be successfully deserialized and decrypted
     pub fn into_sections(
         self,
-    ) -> ArrayVecOption<V1DeserializedSection<'adv, M>, NP_V1_ADV_MAX_ENCRYPTED_SECTION_COUNT> {
+    ) -> ArrayVecOption<V1DeserializedSection<'adv, M>, NP_V1_ADV_MAX_SECTION_COUNT> {
         self.sections
     }
 
@@ -431,6 +416,16 @@ pub enum V1DeserializedSection<'adv, M: MatchedCredential> {
     Decrypted(WithMatchedCredential<M, DecryptedSection<'adv>>),
 }
 
+// Allow easy DE iteration if the user doesn't care which kind of section it is
+impl<'adv, M: MatchedCredential> Section<'adv> for V1DeserializedSection<'adv, M> {
+    fn iter_data_elements(&self) -> DataElementParsingIterator<'adv> {
+        match self {
+            V1DeserializedSection::Plaintext(p) => p.iter_data_elements(),
+            V1DeserializedSection::Decrypted(d) => d.contents().iter_data_elements(),
+        }
+    }
+}
+
 /// The level of integrity protection in an encrypted section
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum VerificationMode {
@@ -439,11 +434,6 @@ pub enum VerificationMode {
     /// Since this is a symmetric operation, holders of the key material needed to verify a MIC
     /// can also forge MICs.
     Mic,
-    /// An asymmetric signature was verified.
-    ///
-    /// Since this is an asymmetric operation, only the holder of the private key can generate
-    /// signatures, so it offers a stronger level of authenticity protection than [Self::Mic].
-    Signature,
 }
 
 #[derive(PartialEq, Eq, Debug)]

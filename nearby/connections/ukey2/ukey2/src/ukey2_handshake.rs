@@ -368,6 +368,10 @@ impl Ukey2Server {
     pub fn completed_handshake(&self) -> &CompletedHandshake {
         &self.completed_handshake
     }
+
+    pub fn into_completed_handshake(self) -> CompletedHandshake {
+        self.completed_handshake
+    }
 }
 
 pub struct Ukey2ClientStage1<C: CryptoProvider> {
@@ -590,6 +594,10 @@ impl Ukey2Client {
 
     pub fn completed_handshake(&self) -> &CompletedHandshake {
         &self.completed_handshake
+    }
+
+    pub fn into_completed_handshake(self) -> CompletedHandshake {
+        self.completed_handshake
     }
 }
 

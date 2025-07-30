@@ -21,8 +21,9 @@ pub mod data_elements;
 pub mod de_type;
 pub mod deserialize;
 pub mod salt;
-pub mod section_signature_payload;
 pub mod serialize;
+
+use serialize::section::header::SECTION_HEADER_MAX_LEN;
 
 // TODO make this easy to use w/ configurable arena size
 /// Maximum size of an NP advertisement, including the adv header
@@ -33,17 +34,14 @@ pub const BLE_5_ADV_SVC_MAX_CONTENT_LEN: usize = 254
     - 2;
 
 /// Maximum number of sections in an advertisement
-pub const NP_V1_ADV_MAX_ENCRYPTED_SECTION_COUNT: usize = 8;
+pub const NP_V1_ADV_MAX_SECTION_COUNT: usize = 8;
 
-/// Maximum number of public sections in an advertisement
-pub const NP_V1_ADV_MAX_PUBLIC_SECTION_COUNT: usize = 1;
+/// Maximum size of a NP section, including its header
+pub const NP_ADV_MAX_SECTION_LEN: usize =
+    SECTION_HEADER_MAX_LEN + 1 + NP_ADV_MAX_SECTION_CONTENTS_LEN;
 
-/// Maximum size of a NP section, including its length header byte
-pub const NP_ADV_MAX_SECTION_LEN: usize = NP_ADV_MAX_SECTION_CONTENTS_LEN + 1;
-
-// TODO should this be 255 (or 256, if we +1 the length)?
-/// Maximum hypothetical size of a NP section's contents, excluding its header
-/// byte. This is longer than can fit in a BLE 5 extended adv, but other media
+/// Maximum hypothetical size of a NP section's contents, excluding its header.
+/// This is longer than can fit in a BLE 5 extended adv, but other media
 /// could fit it, like mDNS.
 const NP_ADV_MAX_SECTION_CONTENTS_LEN: usize = 255;
 
@@ -52,18 +50,29 @@ pub const V1_IDENTITY_TOKEN_LEN: usize = 16;
 
 // 4-bit encoding ids
 /// Encoding ID for unencrypted sections with no salt
-pub const V1_ENCODING_UNENCRYPTED: u8 = 0x00;
+pub const V1_ENCODING_UNENCRYPTED: EncodingType = EncodingType(0x00);
 /// Encoding ID for encrypted sections with a MIC and a short salt
-pub const V1_ENCODING_ENCRYPTED_MIC_WITH_SHORT_SALT_AND_TOKEN: u8 = 0x01;
+pub const V1_ENCODING_ENCRYPTED_MIC_WITH_SHORT_SALT_AND_TOKEN: EncodingType = EncodingType(0x01);
 /// Encoding ID for encrypted sections with a MIC and an extended salt
-pub const V1_ENCODING_ENCRYPTED_MIC_WITH_EXTENDED_SALT_AND_TOKEN: u8 = 0x02;
-/// Encoding ID for encrypted sections with a signature and an extended salt
-pub const V1_ENCODING_ENCRYPTED_SIGNATURE_WITH_EXTENDED_SALT_AND_TOKEN: u8 = 0x03;
+pub const V1_ENCODING_ENCRYPTED_MIC_WITH_EXTENDED_SALT_AND_TOKEN: EncodingType = EncodingType(0x02);
 
 // The maximum de length that fits into a non-extended de header
 const MAX_NON_EXTENDED_LEN: u8 = 7;
 // The maximum type code that fits into a non-extended de header
 const MAX_NON_EXTENDED_TYPE_CODE: u32 = 15;
+
+/// The type of encoding employed for a section, which
+/// may be any 4-bit unsigned integer.
+#[derive(Debug, Default, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+pub struct EncodingType(pub(crate) u8);
+
+impl EncodingType {
+    /// Gets the single-byte representation of this encoding-type,
+    /// with all four high bits set to zero (reserved).
+    pub fn byte_value(&self) -> u8 {
+        self.0
+    }
+}
 
 fn de_requires_extended_bit(type_code: u32, de_len: u8) -> bool {
     de_len > MAX_NON_EXTENDED_LEN || type_code > MAX_NON_EXTENDED_TYPE_CODE
