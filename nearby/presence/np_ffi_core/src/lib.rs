@@ -15,9 +15,6 @@
 //! Core functionality common to all NP Rust FFI layers
 
 #[macro_use]
-extern crate lazy_static;
-
-#[macro_use]
 pub mod utils;
 pub mod common;
 pub mod credentials;
@@ -25,3 +22,9 @@ pub mod deserialize;
 pub mod serialize;
 pub mod v0;
 pub mod v1;
+
+#[cfg(feature = "nocrypto")]
+pub(crate) type CryptoProviderImpl = crypto_provider_stubs::CryptoProviderStubs;
+
+#[cfg(any(feature = "boringssl", feature = "rustcrypto"))]
+pub(crate) type CryptoProviderImpl = crypto_provider_default::CryptoProviderImpl;

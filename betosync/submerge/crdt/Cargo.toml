@@ -1,0 +1,36 @@
+[package]
+name = "crdt"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+submerge_internal_proto = { workspace = true, optional = true }
+
+arbitrary.workspace = true
+derive-where.workspace = true
+distributed_time.workspace = true
+log.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+
+[features]
+default = []
+checker = []
+testing = []
+proto = ["dep:submerge_internal_proto", "distributed_time/proto"]
+enable-required-features = ["checker"]
+
+[dev-dependencies]
+derive_fuzztest.workspace = true
+serde_json.workspace = true
+
+[lints]
+workspace = true
+
+[[example]]
+name = "simulation_integer_max"
+required-features = ["checker"]

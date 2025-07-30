@@ -77,6 +77,13 @@ impl<A, const N: usize> ArrayVecOption<A, N> {
         self.0.push(Some(value))
     }
 
+    /// Tries to place an element onto the end of the vec.
+    /// Returns back the element if the capacity is exhausted,
+    /// otherwise returns None.
+    pub fn try_push(&mut self, value: A) -> Option<A> {
+        self.0.try_push(Some(value)).unwrap_or_else(|| None)
+    }
+
     /// Returns a reference to an element at the given index.
     pub fn get(&self, index: usize) -> Option<&A> {
         self.0.get(index).and_then(|opt| opt.as_ref())
@@ -128,6 +135,12 @@ impl<A, const N: usize> core::ops::Index<usize> for ArrayVecOption<A, N> {
     type Output = A;
     fn index(&self, index: usize) -> &Self::Output {
         self.0[index].as_ref().expect("This panics if provided index is out of bounds")
+    }
+}
+
+impl<A, const N: usize> core::ops::IndexMut<usize> for ArrayVecOption<A, N> {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        self.0[index].as_mut().expect("This panics if provided index is out of bounds")
     }
 }
 

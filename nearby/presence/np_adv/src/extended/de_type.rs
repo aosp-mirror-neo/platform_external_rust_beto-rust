@@ -14,41 +14,17 @@
 
 //! V1 DE type types
 
-/// Data element types for extended advertisements
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub struct DeType {
-    // 4 billion type codes should be enough for anybody
-    code: u32,
+pub use np_hkdf::v1_salt::{DeType, InvalidDeType, OptionDeType};
+
+/// Common base trait for things which have an
+/// associated [`DeType`] value.
+pub trait HasDEType {
+    /// The DE type for this structure.
+    const DE_TYPE: DeType;
 }
 
-impl DeType {
-    /// A `const` equivalent to `From<u32>` since trait methods can't yet be const.
-    pub(crate) const fn const_from(value: u32) -> Self {
-        Self { code: value }
-    }
-
-    /// Returns the type as a u32
-    pub fn as_u32(&self) -> u32 {
-        self.code
-    }
-}
-
-impl From<u8> for DeType {
-    fn from(value: u8) -> Self {
-        DeType { code: value.into() }
-    }
-}
-
-impl From<u32> for DeType {
-    fn from(value: u32) -> Self {
-        DeType { code: value }
-    }
-}
-
-impl From<DeType> for u32 {
-    fn from(value: DeType) -> Self {
-        value.code
-    }
+impl<H: HasDEType> HasDEType for &H {
+    const DE_TYPE: DeType = <H as HasDEType>::DE_TYPE;
 }
 
 #[cfg(test)]
@@ -57,7 +33,7 @@ mod test {
 
     #[test]
     fn u32_from_de_type() {
-        let de = DeType::from(8u32);
+        let de = DeType::from(8u8);
         let _val: u32 = de.into();
     }
 }

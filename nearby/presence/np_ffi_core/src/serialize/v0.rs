@@ -15,31 +15,41 @@
 
 use crate::common::*;
 use crate::credentials::V0BroadcastCredential;
-use crate::serialize::AdvertisementBuilderKind;
 use crate::utils::FfiEnum;
 use crate::v0::V0DataElement;
-use crypto_provider_default::CryptoProviderImpl;
+use crate::CryptoProviderImpl;
 use handle_map::{declare_handle_map, HandleLike, HandleMapFullError};
 use np_adv_dynamic::legacy::BoxedAdvConstructionError;
 
-/// A handle to a builder for V0 advertisements.
+/// Enum for V0 serialization expressing what kind of
+/// advertisement builder (public/encrypted) is in use.
 #[derive(Clone, Copy)]
-#[repr(C)]
-pub struct V0AdvertisementBuilder {
-    kind: AdvertisementBuilderKind,
-    handle: V0AdvertisementBuilderHandle,
+#[repr(u8)]
+pub enum AdvertisementBuilderKind {
+    /// The builder is for a public advertisement.
+    Public = 0,
+    /// The builder is for an encrypted advertisement.
+    Encrypted = 1,
 }
 
-impl V0AdvertisementBuilder {
-    /// Gets the kind of advertisement builder (public/encrypted).
-    pub fn kind(&self) -> AdvertisementBuilderKind {
-        self.kind
-    }
+/// A `#[repr(C)]` handle to a value of type `V0AdvertisementBuilderInternals`
+#[repr(C)]
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub struct V0AdvertisementBuilder {
+    handle_id: u64,
+}
 
+declare_handle_map!(
+    crate::common::default_handle_map_dimensions(),
+    V0AdvertisementBuilder,
+    V0AdvertisementBuilderInternals
+);
+
+impl V0AdvertisementBuilder {
     /// Attempts to add the given data element to the V0 advertisement builder behind this handle.
     /// This function does not take ownership of the handle.
     pub fn add_de(&self, de: V0DataElement) -> Result<AddV0DEResult, InvalidStackDataStructure> {
-        match self.handle.get_mut() {
+        match self.get_mut() {
             Ok(mut adv_builder_write_guard) => adv_builder_write_guard.add_de(de),
             Err(_) => Ok(AddV0DEResult::InvalidAdvertisementBuilderHandle),
         }
@@ -47,15 +57,15 @@ impl V0AdvertisementBuilder {
     /// Attempts to serialize the contents of the advertisement builder behind this handle to
     /// bytes. This function takes ownership of the handle.
     pub fn into_advertisement(self) -> SerializeV0AdvertisementResult {
-        match self.handle.deallocate() {
+        match self.deallocate() {
             Ok(adv_builder) => adv_builder.into_advertisement(),
             Err(_) => SerializeV0AdvertisementResult::InvalidAdvertisementBuilderHandle,
         }
     }
     /// Attempts to deallocate the V0 advertisement builder behind this handle. This function takes
     /// ownership of the handle.
-    pub fn deallocate(self) -> DeallocateResult {
-        self.handle.deallocate().map(|_| ()).into()
+    pub fn deallocate_handle(self) -> DeallocateResult {
+        self.deallocate().map(|_| ()).into()
     }
 }
 
@@ -113,9 +123,7 @@ impl CreateV0AdvertisementBuilderResult {
 /// Creates a new V0 advertisement builder for a public advertisement. The caller is given
 /// ownership of the created handle.
 pub fn create_v0_public_advertisement_builder() -> CreateV0AdvertisementBuilderResult {
-    V0AdvertisementBuilderHandle::allocate(V0AdvertisementBuilderInternals::new_public)
-        .map(|handle| V0AdvertisementBuilder { kind: AdvertisementBuilderKind::Public, handle })
-        .into()
+    V0AdvertisementBuilder::allocate(V0AdvertisementBuilderInternals::new_public).into()
 }
 
 /// Creates a new V0 advertisement builder for an encrypted advertisement. The caller is given
@@ -124,10 +132,12 @@ pub fn create_v0_encrypted_advertisement_builder(
     broadcast_cred: V0BroadcastCredential,
     salt: FixedSizeArray<2>,
 ) -> CreateV0AdvertisementBuilderResult {
-    V0AdvertisementBuilderHandle::allocate(move || {
-        V0AdvertisementBuilderInternals::new_ldt(broadcast_cred, salt.into_array())
+    if cfg!(feature = "nocrypto") {
+        return CreateV0AdvertisementBuilderResult::NoSpaceLeft;
+    }
+    V0AdvertisementBuilder::allocate(move || {
+        V0AdvertisementBuilderInternals::new_ldt(broadcast_cred, salt.into())
     })
-    .map(|handle| V0AdvertisementBuilder { kind: AdvertisementBuilderKind::Encrypted, handle })
     .into()
 }
 
@@ -186,6 +196,7 @@ impl V0AdvertisementBuilderInternals {
     pub(crate) fn new_public() -> Self {
         Self::new(np_adv::legacy::serialize::UnencryptedEncoder.into())
     }
+
     pub(crate) fn new_ldt(broadcast_cred: V0BroadcastCredential, salt: [u8; 2]) -> Self {
         // TODO: What do about salts? Need to prevent re-use fo the same salt,
         // but have no current rich representation of used salts...
@@ -194,11 +205,13 @@ impl V0AdvertisementBuilderInternals {
         let identity = np_adv::legacy::serialize::LdtEncoder::new(salt, &internal_broadcast_cred);
         Self::new(identity.into())
     }
+
     fn new(encoder: np_adv_dynamic::legacy::BoxedEncoder<CryptoProviderImpl>) -> Self {
         let adv_builder =
             np_adv_dynamic::legacy::BoxedAdvBuilder::<CryptoProviderImpl>::new(encoder);
         Self { adv_builder }
     }
+
     fn add_de(&mut self, de: V0DataElement) -> Result<AddV0DEResult, InvalidStackDataStructure> {
         let to_boxed = np_adv_dynamic::legacy::ToBoxedSerializeDataElement::try_from(de)?;
         use np_adv::legacy::serialize::AddDataElementError;
@@ -213,6 +226,7 @@ impl V0AdvertisementBuilderInternals {
             )) => Ok(AddV0DEResult::InsufficientAdvertisementSpace),
         }
     }
+
     fn into_advertisement(self) -> SerializeV0AdvertisementResult {
         self.adv_builder
             .into_advertisement()
@@ -229,20 +243,6 @@ impl V0AdvertisementBuilderInternals {
             })
     }
 }
-
-/// A `#[repr(C)]` handle to a value of type `V0AdvertisementBuilderInternals`
-#[repr(C)]
-#[derive(Clone, Copy, PartialEq, Eq)]
-struct V0AdvertisementBuilderHandle {
-    handle_id: u64,
-}
-
-declare_handle_map!(
-    advertisement_builder,
-    crate::common::default_handle_map_dimensions(),
-    super::V0AdvertisementBuilderHandle,
-    super::V0AdvertisementBuilderInternals
-);
 
 /// Result code for the operation of adding a DE to a V0
 /// advertisement builder.
@@ -271,5 +271,13 @@ impl From<np_adv_dynamic::legacy::BoxedAddDataElementError> for AddV0DEResult {
                 Self::InvalidIdentityTypeForDataElement
             }
         }
+    }
+}
+
+impl TryFrom<TxPower> for np_adv_dynamic::legacy::ToBoxedSerializeDataElement {
+    type Error = InvalidStackDataStructure;
+    fn try_from(value: TxPower) -> Result<Self, InvalidStackDataStructure> {
+        let tx_power: np_adv::shared_data::TxPower = value.try_into()?;
+        Ok(tx_power.into())
     }
 }

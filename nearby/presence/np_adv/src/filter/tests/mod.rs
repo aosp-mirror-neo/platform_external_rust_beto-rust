@@ -100,7 +100,7 @@ fn top_level_no_match_v0_adv() {
         &[
             VERSION_HEADER_V1,
             0x03, // Section Header
-            V1_ENCODING_UNENCRYPTED,
+            V1_ENCODING_UNENCRYPTED.byte_value(),
             0x15,
             0x03, // Length 1 Tx Power DE with value 3
         ],

@@ -18,17 +18,12 @@ mod unencrypted_encoder {
     use crate::header::V0Encoding;
     use crate::legacy::deserialize::intermediate::IntermediateAdvContents;
     use crate::legacy::deserialize::AdvDeserializeError;
-    use crypto_provider_default::CryptoProviderImpl;
 
     #[test]
     fn parse_zero_len_error() {
         assert_eq!(
             AdvDeserializeError::NoDataElements,
-            IntermediateAdvContents::deserialize::<CryptoProviderImpl>(
-                V0Encoding::Unencrypted,
-                &[],
-            )
-            .unwrap_err()
+            IntermediateAdvContents::deserialize(V0Encoding::Unencrypted, &[],).unwrap_err()
         );
     }
 }
@@ -38,7 +33,7 @@ mod ldt_encoder {
     use crate::legacy::deserialize::intermediate::IntermediateAdvContents;
     use crate::legacy::deserialize::AdvDeserializeError;
     use alloc::vec;
-    use crypto_provider_default::CryptoProviderImpl;
+
     use ldt_np_adv::{V0_IDENTITY_TOKEN_LEN, V0_SALT_LEN};
 
     #[test]
@@ -46,18 +41,13 @@ mod ldt_encoder {
         for len in 0..(V0_SALT_LEN + ldt_np_adv::VALID_INPUT_LEN.start) {
             assert_eq!(
                 AdvDeserializeError::InvalidStructure,
-                IntermediateAdvContents::deserialize::<CryptoProviderImpl>(
-                    V0Encoding::Ldt,
-                    &vec![0; len],
-                )
-                .unwrap_err()
+                IntermediateAdvContents::deserialize(V0Encoding::Ldt, &vec![0; len],).unwrap_err()
             );
         }
 
         // 1 more byte is enough
         let data = &[0; ldt_np_adv::VALID_INPUT_LEN.start + V0_SALT_LEN];
-        assert!(IntermediateAdvContents::deserialize::<CryptoProviderImpl>(V0Encoding::Ldt, data)
-            .is_ok())
+        assert!(IntermediateAdvContents::deserialize(V0Encoding::Ldt, data).is_ok())
     }
 
     #[test]
@@ -72,14 +62,12 @@ mod ldt_encoder {
 
         assert_eq!(
             AdvDeserializeError::InvalidStructure,
-            IntermediateAdvContents::deserialize::<CryptoProviderImpl>(V0Encoding::Ldt, data)
-                .unwrap_err()
+            IntermediateAdvContents::deserialize(V0Encoding::Ldt, data).unwrap_err()
         );
 
         // 1 fewer byte is enough
         let data = &[&salt, [0x11; V0_IDENTITY_TOKEN_LEN].as_slice(), &vec![0xCC; payload_len - 1]]
             .concat();
-        assert!(IntermediateAdvContents::deserialize::<CryptoProviderImpl>(V0Encoding::Ldt, data)
-            .is_ok())
+        assert!(IntermediateAdvContents::deserialize(V0Encoding::Ldt, data).is_ok())
     }
 }

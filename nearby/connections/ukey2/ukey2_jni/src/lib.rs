@@ -260,7 +260,7 @@ pub extern "system" fn Java_com_google_security_cryptauth_lib_securegcm_ukey2_D2
 ) -> jbyteArray {
     let empty_array = env.new_byte_array(0).unwrap();
     let result = if let Some(ctx) = HANDLE_MAPPING.lock().get_mut(&(context_handle as u64)) {
-        ctx.to_completed_handshake()
+        ctx.completed_handshake()
             .map_err(|_| JniError::HandshakeError(HandshakeError::HandshakeNotComplete))
             .map(|h| h.auth_string::<CryptoProvider>().derive_vec(length as usize).unwrap())
     } else {
@@ -338,7 +338,7 @@ pub extern "system" fn Java_com_google_security_cryptauth_lib_securegcm_ukey2_D2
     let result = if let Some(ctx) =
         CONNECTION_HANDLE_MAPPING.lock().get_mut(&(context_handle as u64))
     {
-        Ok(ctx.encode_message_to_peer::<CryptoProvider, _>(
+        Ok(ctx.encode_message_to_peer::<CryptoProvider>(
             env.convert_byte_array(unsafe { JByteArray::from_raw(payload) }).unwrap().as_slice(),
             if associated_data.is_null() {
                 None
@@ -380,7 +380,7 @@ pub extern "system" fn Java_com_google_security_cryptauth_lib_securegcm_ukey2_D2
     let result = if let Some(ctx) =
         CONNECTION_HANDLE_MAPPING.lock().get_mut(&(context_handle as u64))
     {
-        ctx.decode_message_from_peer::<CryptoProvider, _>(
+        ctx.decode_message_from_peer::<CryptoProvider>(
             env.convert_byte_array(unsafe { JByteArray::from_raw(message) }).unwrap().as_slice(),
             if associated_data.is_null() {
                 None
@@ -424,7 +424,7 @@ pub extern "system" fn Java_com_google_security_cryptauth_lib_securegcm_ukey2_D2
     context_handle: jlong,
 ) -> jint {
     if let Some(ctx) = CONNECTION_HANDLE_MAPPING.lock().get(&(context_handle as u64)) {
-        ctx.get_sequence_number_for_encoding()
+        ctx.encode_seq_num()
     } else {
         env.throw_new("com/google/security/cryptauth/lib/securegcm/ukey2/BadHandleException", "")
             .expect("failed to find error class");
@@ -440,7 +440,7 @@ pub extern "system" fn Java_com_google_security_cryptauth_lib_securegcm_ukey2_D2
     context_handle: jlong,
 ) -> jint {
     if let Some(ctx) = CONNECTION_HANDLE_MAPPING.lock().get(&(context_handle as u64)) {
-        ctx.get_sequence_number_for_decoding()
+        ctx.decode_seq_num()
     } else {
         env.throw_new("com/google/security/cryptauth/lib/securegcm/ukey2/BadHandleException", "")
             .expect("failed to find error class");

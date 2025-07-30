@@ -82,35 +82,29 @@ fn test(client_rng_seed: [u8; 32], server_rng_seed: [u8; 32], messages: Vec<Mess
         match sender {
             Type::SentByInitiator => {
                 let ciphertext = initiator_connection
-                    .encode_message_to_peer::<RustCrypto, _>(&payload, associated_data.as_ref());
+                    .encode_message_to_peer::<RustCrypto>(&payload, associated_data.as_ref());
                 let decoded = server_connection
-                    .decode_message_from_peer::<RustCrypto, _>(
-                        &ciphertext,
-                        associated_data.as_ref(),
-                    )
+                    .decode_message_from_peer::<RustCrypto>(&ciphertext, associated_data.as_ref())
                     .unwrap();
                 assert_eq!(decoded, payload);
             }
             Type::SentByServer => {
                 let ciphertext = server_connection
-                    .encode_message_to_peer::<RustCrypto, _>(&payload, associated_data.as_ref());
+                    .encode_message_to_peer::<RustCrypto>(&payload, associated_data.as_ref());
                 let decoded = initiator_connection
-                    .decode_message_from_peer::<RustCrypto, _>(
-                        &ciphertext,
-                        associated_data.as_ref(),
-                    )
+                    .decode_message_from_peer::<RustCrypto>(&ciphertext, associated_data.as_ref())
                     .unwrap();
                 assert_eq!(decoded, payload);
             }
             Type::ReceivedByInitiator => {
                 // Both Ok and Err results are possible here since the input is Arbitrary payload
                 let _unused_result = initiator_connection
-                    .decode_message_from_peer::<RustCrypto, _>(&payload, associated_data.as_ref());
+                    .decode_message_from_peer::<RustCrypto>(&payload, associated_data.as_ref());
             }
             Type::ReceivedByServer => {
                 // Both Ok and Err results are possible here since the input is Arbitrary payload
                 let _unused_result = server_connection
-                    .decode_message_from_peer::<RustCrypto, _>(&payload, associated_data.as_ref());
+                    .decode_message_from_peer::<RustCrypto>(&payload, associated_data.as_ref());
             }
         }
     }

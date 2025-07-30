@@ -43,7 +43,29 @@ pub trait SinkWriter {
     /// Returns `Some` if all data was successfully written to the [`Sink`],
     /// but if doing so failed at any point, returns `None`. If this method
     /// fails, the contents of the [`Sink`] should be considered to be invalid.
-    fn write_payload<S: Sink<Self::DataType> + ?Sized>(self, sink: &mut S) -> Option<()>;
+    fn write_payload<S: Sink<Self::DataType>>(self, sink: &mut S) -> Option<()>;
+}
+
+impl<T> Sink<T> for tinyvec::SliceVec<'_, T>
+where
+    T: Clone,
+{
+    fn try_extend_from_slice(&mut self, items: &[T]) -> Option<()> {
+        if items.len() > (self.capacity() - self.len()) {
+            return None;
+        }
+        // won't panic: just checked the length
+        self.extend_from_slice(items);
+        Some(())
+    }
+    fn try_push(&mut self, item: T) -> Option<()> {
+        if self.len() == self.capacity() {
+            None
+        } else {
+            self.push(item);
+            Some(())
+        }
+    }
 }
 
 impl<T, A> Sink<T> for tinyvec::ArrayVec<A>

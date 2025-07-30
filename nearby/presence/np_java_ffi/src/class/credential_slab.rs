@@ -85,9 +85,10 @@ extern "system" fn nativeAddV0DiscoveryCredential<'local>(
         let slab = CredentialSlab::from_handle(Handle::from_id(handle_id as u64));
 
         let core_cred = credential.get_as_core(&mut env)?;
-        let match_data = MatchedCredential::from_arc_bytes(
-            cred_id as u32,
-            env.convert_byte_array(&encrypted_metadata_bytes)?.into(),
+        let match_data = MatchedCredential::new(
+            cred_id as i64,
+            env.convert_byte_array(&encrypted_metadata_bytes)?.as_slice(),
+            core_cred.key_seed,
         );
 
         Ok::<_, jni::errors::Error>(match slab.add_v0(core_cred, match_data) {
@@ -121,9 +122,10 @@ extern "system" fn nativeAddV1DiscoveryCredential<'local>(
         let slab = CredentialSlab::from_handle(Handle::from_id(handle_id as u64));
 
         let core_cred = credential.get_as_core(&mut env)?;
-        let match_data = MatchedCredential::from_arc_bytes(
-            cred_id as u32,
-            env.convert_byte_array(&encrypted_metadata_bytes)?.into(),
+        let match_data = MatchedCredential::new(
+            cred_id as i64,
+            env.convert_byte_array(&encrypted_metadata_bytes)?.as_slice(),
+            core_cred.key_seed,
         );
 
         Ok::<_, jni::errors::Error>(match slab.add_v1(core_cred, match_data) {

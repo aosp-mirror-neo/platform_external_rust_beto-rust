@@ -12,15 +12,46 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use jni::{objects::JClass, sys::jlong, JNIEnv};
+use jni::{
+    objects::{JClass, JObject},
+    sys::jlong,
+    JNIEnv,
+};
 
 use crate::class::{InvalidHandleException, NoSpaceLeftException};
 use handle_map::{Handle, HandleLike};
 use np_ffi_core::credentials::{
     create_credential_book_from_slab, deallocate_credential_book, CreateCredentialBookResult,
-    CredentialBook, CredentialSlab,
+    CredentialBook as CredentialBookHandle, CredentialSlab,
 };
-use pourover::jni_method;
+use pourover::{desc::ClassDesc, jni_method};
+
+static CREDENTIAL_BOOK_CLASS: ClassDesc =
+    ClassDesc::new("com/google/android/nearby/presence/rust/credential/CredentialBook");
+
+/// Rust representation of `class CredentialBook`.
+#[repr(transparent)]
+pub struct CredentialBook<Obj>(pub Obj);
+
+impl<'local, Obj: AsRef<JObject<'local>>> CredentialBook<Obj> {
+    /// Get the raw handle id
+    pub fn get_id<'env>(&self, env: &mut JNIEnv<'env>) -> jni::errors::Result<jlong> {
+        pourover::call_method!(env, &CREDENTIAL_BOOK_CLASS, "getId", "()J", self.as_obj(),)
+    }
+
+    /// Get the associated Rust handle from this Java handle object
+    pub fn get_handle<'env>(
+        &self,
+        env: &mut JNIEnv<'env>,
+    ) -> jni::errors::Result<CredentialBookHandle> {
+        self.get_id(env).map(|id| Handle::from_id(id as u64)).map(CredentialBookHandle::from_handle)
+    }
+
+    /// Get a reference to the inner `jni` crate [`JObject`].
+    pub fn as_obj(&self) -> &JObject<'local> {
+        self.0.as_ref()
+    }
+}
 
 #[jni_method(
     package = "com.google.android.nearby.presence.rust.credential",
@@ -60,6 +91,7 @@ extern "system" fn deallocate_book<'local>(
     handle_id: jlong,
 ) {
     // Swallow errors here since there's nothing meaningful to do.
-    let _ =
-        deallocate_credential_book(CredentialBook::from_handle(Handle::from_id(handle_id as u64)));
+    let _ = deallocate_credential_book(CredentialBookHandle::from_handle(Handle::from_id(
+        handle_id as u64,
+    )));
 }

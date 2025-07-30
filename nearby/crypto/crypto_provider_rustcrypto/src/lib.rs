@@ -30,6 +30,8 @@ use subtle::ConstantTimeEq;
 mod aead;
 /// Contains the RustCrypto backed AES impl for CryptoProvider
 pub mod aes_cp;
+/// Contains the RustCrypto backed ECDSA P256 impl for CryptoProvider
+mod ecdsa;
 /// Contains the RustCrypto backed impl for ed25519 key generation, signing, and verification
 mod ed25519;
 /// Contains the RustCrypto backed hkdf impl for CryptoProvider
@@ -90,6 +92,7 @@ impl<R: CryptoRng + SeedableRng + RngCore + Eq + PartialEq + Debug + Clone + Sen
     type Aes256GcmSiv = aead::aes_gcm_siv::AesGcmSiv<aes::Aes256>;
     type Aes128Gcm = aead::aes_gcm::AesGcm<aes::Aes128>;
     type Aes256Gcm = aead::aes_gcm::AesGcm<aes::Aes256>;
+    type EcdsaP256 = ecdsa::P256Ecdsa;
     type CryptoRng = RcRng<R>;
 
     fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {

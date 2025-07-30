@@ -15,18 +15,19 @@
 //! High-level, early-stage parsed structures for a section: the header, then everything else.
 
 use crate::extended::{
-    deserialize, salt::ShortV1Salt, V1_ENCODING_ENCRYPTED_MIC_WITH_EXTENDED_SALT_AND_TOKEN,
-    V1_ENCODING_ENCRYPTED_MIC_WITH_SHORT_SALT_AND_TOKEN,
-    V1_ENCODING_ENCRYPTED_SIGNATURE_WITH_EXTENDED_SALT_AND_TOKEN, V1_ENCODING_UNENCRYPTED,
+    salt::ShortV1Salt, EncodingType, V1_ENCODING_ENCRYPTED_MIC_WITH_EXTENDED_SALT_AND_TOKEN,
+    V1_ENCODING_ENCRYPTED_MIC_WITH_SHORT_SALT_AND_TOKEN, V1_ENCODING_UNENCRYPTED,
     V1_IDENTITY_TOKEN_LEN,
 };
 use crate::helpers::parse_byte_array;
-use nom::{combinator, error, number, sequence};
+use nom::{combinator, number, sequence};
 use np_hkdf::v1_salt::{ExtendedV1Salt, EXTENDED_SALT_LEN};
 
 #[cfg(test)]
 mod tests;
 
+/// A successfully-parsed (pre-length) section header
+/// for a known encoding type.
 #[derive(PartialEq, Eq, Debug)]
 pub(crate) enum SectionHeader {
     Unencrypted,
@@ -34,79 +35,55 @@ pub(crate) enum SectionHeader {
 }
 
 impl SectionHeader {
-    /// Returns the parsed header and the remaining length of the section contents
+    /// Gets the 4-bit encoding ID of the encoding to be employed
+    /// according to the section header.
+    pub(crate) fn encoding_type(&self) -> EncodingType {
+        match self {
+            Self::Unencrypted => V1_ENCODING_UNENCRYPTED,
+            Self::Encrypted(x) => x.encoding_type(),
+        }
+    }
+    /// Attempts to parse a section header from the given bytes.
     ///
-    /// This structure makes it easy to get a slice of the entire header with
-    /// [combinator::consumed] for later inclusion in signatures etc, but also
-    /// to [nom::bytes::complete::take] the rest of the section with a minimum of
-    /// error-prone length calculations.
-    pub(crate) fn parse(input: &[u8]) -> nom::IResult<&[u8], (&[u8], Self, u8)> {
-        // Consume first 1-2 bytes of format
-        // 0bERRRSSSS first header byte
-        let (input, (format_bytes, (first_header_byte, maybe_second_byte))) =
-            combinator::consumed(nom::branch::alt((
-                // Extended bit not set, verify all reserved bits are 0
-                combinator::map(
-                    combinator::verify(number::complete::u8, |b| {
-                        !deserialize::hi_bit_set(*b) && (*b & 0x70) == 0
-                    }),
-                    |b| (b, None),
-                ),
-                // Extended bit is set, take another byte and verify all reserved bits are 0
-                combinator::map(
-                    nom::sequence::pair(
-                        combinator::verify(number::complete::u8, |b| {
-                            deserialize::hi_bit_set(*b) && (*b & 0x70) == 0
-                        }),
-                        combinator::verify(number::complete::u8, |second_byte| *second_byte == 0u8),
-                    ),
-                    |(b1, b2)| (b1, Some(b2)),
-                ),
-            )))(input)?;
-
-        let encoding = first_header_byte & 0x0F;
-
-        let (input, section_header) = match (encoding, maybe_second_byte) {
-            (V1_ENCODING_UNENCRYPTED, None) => Ok((input, (SectionHeader::Unencrypted))),
-            (V1_ENCODING_ENCRYPTED_MIC_WITH_SHORT_SALT_AND_TOKEN, None) => combinator::map(
-                sequence::tuple((ShortV1Salt::parse, CiphertextExtendedIdentityToken::parse)),
-                |(salt, token)| {
-                    SectionHeader::Encrypted(EncryptedSectionHeader::MicShortSalt { salt, token })
-                },
-            )(input),
-            (V1_ENCODING_ENCRYPTED_MIC_WITH_EXTENDED_SALT_AND_TOKEN, None) => combinator::map(
-                sequence::tuple((parse_v1_extended_salt, CiphertextExtendedIdentityToken::parse)),
-                |(salt, token)| {
-                    SectionHeader::Encrypted(EncryptedSectionHeader::MicExtendedSalt {
-                        salt,
-                        token,
-                    })
-                },
-            )(input),
-            (V1_ENCODING_ENCRYPTED_SIGNATURE_WITH_EXTENDED_SALT_AND_TOKEN, None) => {
-                combinator::map(
-                    sequence::tuple((
-                        parse_v1_extended_salt,
-                        CiphertextExtendedIdentityToken::parse,
-                    )),
-                    |(salt, token)| {
-                        SectionHeader::Encrypted(EncryptedSectionHeader::SigExtendedSalt {
-                            salt,
-                            token,
-                        })
-                    },
-                )(input)
-            }
-            _ => Err(nom::Err::Error(error::Error::new(input, error::ErrorKind::Alt))),
-        }?;
-
-        //finally parse the section payload length, this is the same regardless of encoding scheme
-        let (input, section_len) = combinator::verify(number::complete::u8, |b| {
-            // length cannot be 0 for an unencrypted section as this is meaningless
-            !(encoding == V1_ENCODING_UNENCRYPTED && *b == 0u8)
+    /// If the encoding type of the section header is recognized,
+    /// this method will return:
+    /// - The entire parsed section header if the formatting was valid.
+    /// - A nom parser error if the formatting was invalid.
+    ///
+    /// If the encoding type is unrecognized, this parser will
+    /// succeed, but it will only consume a single byte and
+    /// the result will be an `Err(EncodingType)` containing
+    /// the unrecognized encoding type.
+    pub(crate) fn parse(input: &[u8]) -> nom::IResult<&[u8], Result<Self, EncodingType>> {
+        // 0bRRRRSSSS first header byte expressing the section encoding.
+        let (input, encoding) = combinator::verify(number::complete::u8, |b| {
+            // Verify all reserved bits are zero.
+            (*b & 0xF0) == 0
         })(input)?;
 
-        Ok((input, (format_bytes, section_header, section_len)))
+        let encoding = EncodingType(encoding);
+        match encoding {
+            V1_ENCODING_UNENCRYPTED => Ok((input, Ok(SectionHeader::Unencrypted))),
+            V1_ENCODING_ENCRYPTED_MIC_WITH_SHORT_SALT_AND_TOKEN => combinator::map(
+                sequence::tuple((ShortV1Salt::parse, CiphertextExtendedIdentityToken::parse)),
+                |(salt, token)| {
+                    Ok(SectionHeader::Encrypted(EncryptedSectionHeader::MicShortSalt {
+                        salt,
+                        token,
+                    }))
+                },
+            )(input),
+            V1_ENCODING_ENCRYPTED_MIC_WITH_EXTENDED_SALT_AND_TOKEN => combinator::map(
+                sequence::tuple((parse_v1_extended_salt, CiphertextExtendedIdentityToken::parse)),
+                |(salt, token)| {
+                    Ok(SectionHeader::Encrypted(EncryptedSectionHeader::MicExtendedSalt {
+                        salt,
+                        token,
+                    }))
+                },
+            )(input),
+            _ => Ok((input, Err(encoding))),
+        }
     }
 }
 
@@ -119,7 +96,20 @@ fn parse_v1_extended_salt(input: &[u8]) -> nom::IResult<&[u8], ExtendedV1Salt> {
 pub(crate) enum EncryptedSectionHeader {
     MicShortSalt { salt: ShortV1Salt, token: CiphertextExtendedIdentityToken },
     MicExtendedSalt { salt: ExtendedV1Salt, token: CiphertextExtendedIdentityToken },
-    SigExtendedSalt { salt: ExtendedV1Salt, token: CiphertextExtendedIdentityToken },
+}
+impl EncryptedSectionHeader {
+    /// Gets the 4-bit encoding ID of the encoding to be employed
+    /// according to the section header.
+    pub(crate) fn encoding_type(&self) -> EncodingType {
+        match self {
+            Self::MicShortSalt { salt: _, token: _ } => {
+                V1_ENCODING_ENCRYPTED_MIC_WITH_SHORT_SALT_AND_TOKEN
+            }
+            Self::MicExtendedSalt { salt: _, token: _ } => {
+                V1_ENCODING_ENCRYPTED_MIC_WITH_EXTENDED_SALT_AND_TOKEN
+            }
+        }
+    }
 }
 
 /// 16-byte identity token, straight out of the section.

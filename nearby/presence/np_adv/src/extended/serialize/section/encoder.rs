@@ -13,27 +13,20 @@
 // limitations under the License.
 
 use crate::credential::v1::V1BroadcastCredential;
-use crate::extended::salt::{MultiSalt, ShortV1Salt, V1Salt};
-use crate::header::VERSION_HEADER_V1;
-use crate::{
-    extended::{
-        deserialize::SectionMic,
-        section_signature_payload::SectionSignaturePayload,
-        serialize::{section::header::SectionHeader, AdvertisementType, DeSalt},
-        V1IdentityToken, V1_IDENTITY_TOKEN_LEN,
-    },
-    NP_SVC_UUID,
+use crate::extended::salt::{DeSalt, MultiSalt, ShortV1Salt, V1Salt};
+use crate::extended::{
+    deserialize::SectionMic, salt::Unsalted, serialize::section::header::SectionHeader,
+    V1IdentityToken, V1_IDENTITY_TOKEN_LEN,
 };
+use crate::header::VERSION_HEADER_V1;
 use crypto_provider::{
     aes,
     aes::ctr::{AesCtr as _, AesCtrNonce, NonceAndCounter},
-    ed25519,
     hmac::Hmac,
     CryptoProvider, CryptoRng as _,
 };
-use np_hkdf::v1_salt::EXTENDED_SALT_LEN;
 use np_hkdf::{
-    v1_salt::{DataElementOffset, ExtendedV1Salt},
+    v1_salt::{DeType, ExtendedV1Salt},
     DerivedSectionKeys,
 };
 
@@ -42,11 +35,8 @@ pub trait SectionEncoder {
     /// How much space needs to be reserved after the DEs
     const SUFFIX_LEN: usize;
 
-    /// The advertisement type that can support this section
-    const ADVERTISEMENT_TYPE: AdvertisementType;
-
     /// The type of derived salt produced for a DE sharing a section with this identity.
-    type DerivedSalt;
+    type DerivedSalt: Into<Option<DeSalt>>;
 
     /// Header to write at the start of the section contents
     fn header(&self) -> SectionHeader;
@@ -68,7 +58,7 @@ pub trait SectionEncoder {
     );
 
     /// Produce a `Self::Output` salt for a DE.
-    fn de_salt(&self, de_offset: DataElementOffset) -> Self::DerivedSalt;
+    fn de_salt(&self, de_type: DeType) -> Self::DerivedSalt;
 }
 
 /// Encoder for plaintext data elements
@@ -79,9 +69,8 @@ impl UnencryptedSectionEncoder {}
 
 impl SectionEncoder for UnencryptedSectionEncoder {
     const SUFFIX_LEN: usize = 0;
-    const ADVERTISEMENT_TYPE: AdvertisementType = AdvertisementType::Plaintext;
 
-    type DerivedSalt = ();
+    type DerivedSalt = Unsalted;
 
     fn header(&self) -> SectionHeader {
         SectionHeader::unencrypted()
@@ -95,98 +84,8 @@ impl SectionEncoder for UnencryptedSectionEncoder {
         // no op
     }
 
-    fn de_salt(&self, _de_offset: DataElementOffset) -> Self::DerivedSalt {}
-}
-
-/// Encrypts the data elements and protects integrity with an np_ed25519 signature
-/// using key material derived from an NP identity.
-pub struct SignedEncryptedSectionEncoder {
-    pub(crate) salt: ExtendedV1Salt,
-    identity_token: V1IdentityToken,
-    private_key: ed25519::PrivateKey,
-    aes_key: aes::Aes128Key,
-}
-
-impl SignedEncryptedSectionEncoder {
-    /// Build a [SignedEncryptedSectionEncoder] from an identity type,
-    /// some broadcast crypto-material, and with a random salt.
-    pub fn new_random_salt<C: CryptoProvider>(
-        rng: &mut C::CryptoRng,
-        crypto_material: &V1BroadcastCredential,
-    ) -> Self {
-        let salt: ExtendedV1Salt = rng.gen::<[u8; 16]>().into();
-        Self::new::<C>(salt, crypto_material)
-    }
-
-    /// Build a [SignedEncryptedSectionEncoder] from an identity type,
-    /// a provided salt, and some broadcast crypto-material.
-    pub(crate) fn new<C: CryptoProvider>(
-        salt: ExtendedV1Salt,
-        crypto_material: &V1BroadcastCredential,
-    ) -> Self {
-        let identity_token = crypto_material.identity_token();
-        let key_seed = crypto_material.key_seed();
-        let key_seed_hkdf = np_hkdf::NpKeySeedHkdf::<C>::new(&key_seed);
-        let private_key = crypto_material.signing_key();
-        let aes_key = key_seed_hkdf.v1_signature_keys().aes_key();
-        Self { salt, identity_token, private_key, aes_key }
-    }
-}
-
-impl SectionEncoder for SignedEncryptedSectionEncoder {
-    /// Ed25519 signature
-    const SUFFIX_LEN: usize = crypto_provider::ed25519::SIGNATURE_LENGTH;
-    const ADVERTISEMENT_TYPE: AdvertisementType = AdvertisementType::Encrypted;
-
-    type DerivedSalt = DeSalt;
-
-    fn header(&self) -> SectionHeader {
-        SectionHeader::encrypted_signature_extended_salt(&self.salt, &self.identity_token)
-    }
-
-    fn postprocess<C: CryptoProvider>(
-        &mut self,
-        section_header_without_length: &mut [u8],
-        section_len: u8,
-        remaining_contents: &mut [u8],
-    ) {
-        let nonce: AesCtrNonce = self.salt.compute_nonce::<C>();
-        let mut cipher = C::AesCtr128::new(&self.aes_key, NonceAndCounter::from_nonce(nonce));
-
-        let start_of_identity_token = section_header_without_length.len() - V1_IDENTITY_TOKEN_LEN;
-        let (format_and_salt_bytes, identity_token) =
-            section_header_without_length.split_at_mut(start_of_identity_token);
-        debug_assert!(identity_token.len() == V1_IDENTITY_TOKEN_LEN);
-
-        let start_of_salt = format_and_salt_bytes.len() - EXTENDED_SALT_LEN;
-        let (format_bytes, salt_bytes) = format_and_salt_bytes.split_at_mut(start_of_salt);
-        debug_assert!(salt_bytes.len() == EXTENDED_SALT_LEN);
-        debug_assert!((1..=2).contains(&format_bytes.len()));
-
-        let start_of_signature = remaining_contents.len() - Self::SUFFIX_LEN;
-        let (plaintext_data_elements, sig) = remaining_contents.split_at_mut(start_of_signature);
-        debug_assert!(sig.len() == Self::SUFFIX_LEN);
-
-        let section_signature_payload = SectionSignaturePayload::new(
-            format_bytes,
-            salt_bytes,
-            &nonce,
-            identity_token,
-            section_len,
-            plaintext_data_elements,
-        );
-
-        sig.copy_from_slice(
-            &section_signature_payload.sign::<C::Ed25519>(&self.private_key).to_bytes(),
-        );
-
-        cipher.apply_keystream(identity_token);
-        cipher.apply_keystream(plaintext_data_elements);
-        cipher.apply_keystream(sig);
-    }
-
-    fn de_salt(&self, de_offset: DataElementOffset) -> Self::DerivedSalt {
-        DeSalt { salt: self.salt, de_offset }
+    fn de_salt(&self, _de_offset: DeType) -> Self::DerivedSalt {
+        Unsalted
     }
 }
 
@@ -255,8 +154,6 @@ impl<S: MicSectionEncoderSalt> SectionEncoder for MicEncryptedSectionEncoder<S> 
     /// Length of mic
     const SUFFIX_LEN: usize = SectionMic::CONTENTS_LEN;
 
-    const ADVERTISEMENT_TYPE: AdvertisementType = AdvertisementType::Encrypted;
-
     type DerivedSalt = S::DerivedSalt;
 
     fn header(&self) -> SectionHeader {
@@ -293,8 +190,6 @@ impl<S: MicSectionEncoderSalt> SectionEncoder for MicEncryptedSectionEncoder<S> 
 
         // calculate MAC per the spec
         let mut section_hmac = self.mic_hmac_key.build_hmac::<C>();
-        // svc uuid
-        section_hmac.update(NP_SVC_UUID.as_slice());
         // adv header
         section_hmac.update(&[VERSION_HEADER_V1]);
         // section format and salt
@@ -312,21 +207,21 @@ impl<S: MicSectionEncoderSalt> SectionEncoder for MicEncryptedSectionEncoder<S> 
         mic.copy_from_slice(&section_hmac.finalize()[..SectionMic::CONTENTS_LEN]);
     }
 
-    fn de_salt(&self, de_offset: DataElementOffset) -> Self::DerivedSalt {
-        self.salt.derive_de_salt(de_offset)
+    fn de_salt(&self, de_type: DeType) -> Self::DerivedSalt {
+        self.salt.derive_de_salt(de_type)
     }
 }
 
 /// Behavior for salts used with MIC sections.
 pub trait MicSectionEncoderSalt: V1Salt {
-    /// The type of derived data produced, or `()` if no data can be derived.
-    type DerivedSalt;
+    /// The type of derived data produced, or `Unsalted` if no data can be derived.
+    type DerivedSalt: Into<Option<DeSalt>>;
 
     /// Build the appropriate header for the type of salt used
     fn header(&self, identity_token: &V1IdentityToken) -> SectionHeader;
 
-    /// Derive a DE salt at the specified offset.
-    fn derive_de_salt(&self, de_offset: DataElementOffset) -> Self::DerivedSalt;
+    /// Derive a DE salt for the specified DE type.
+    fn derive_de_salt(&self, de_type: DeType) -> Self::DerivedSalt;
 
     /// Derive the AES key  suitable for this salt type
     fn derive_aes_key<C: CryptoProvider>(&self, hkdf: &np_hkdf::NpKeySeedHkdf<C>)
@@ -346,8 +241,8 @@ impl MicSectionEncoderSalt for ExtendedV1Salt {
         SectionHeader::encrypted_mic_extended_salt(self, identity_token)
     }
 
-    fn derive_de_salt(&self, de_offset: DataElementOffset) -> Self::DerivedSalt {
-        DeSalt { salt: *self, de_offset }
+    fn derive_de_salt(&self, de_type: DeType) -> Self::DerivedSalt {
+        DeSalt { salt: *self, de_type }
     }
 
     fn derive_aes_key<C: CryptoProvider>(
@@ -367,13 +262,15 @@ impl MicSectionEncoderSalt for ExtendedV1Salt {
 
 // TODO is this impl used?
 impl MicSectionEncoderSalt for ShortV1Salt {
-    type DerivedSalt = ();
+    type DerivedSalt = Unsalted;
 
     fn header(&self, identity_token: &V1IdentityToken) -> SectionHeader {
         SectionHeader::encrypted_mic_short_salt(*self, identity_token)
     }
 
-    fn derive_de_salt(&self, _de_offset: DataElementOffset) -> Self::DerivedSalt {}
+    fn derive_de_salt(&self, _de_type: DeType) -> Self::DerivedSalt {
+        Unsalted
+    }
 
     fn derive_aes_key<C: CryptoProvider>(
         &self,
@@ -400,10 +297,10 @@ impl MicSectionEncoderSalt for MultiSalt {
         }
     }
 
-    fn derive_de_salt(&self, de_offset: DataElementOffset) -> Self::DerivedSalt {
+    fn derive_de_salt(&self, de_type: DeType) -> Self::DerivedSalt {
         match self {
             MultiSalt::Short(_) => None,
-            MultiSalt::Extended(s) => Some(DeSalt { salt: *s, de_offset }),
+            MultiSalt::Extended(s) => Some(DeSalt { salt: *s, de_type }),
         }
     }
 

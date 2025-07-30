@@ -12,14 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::mapped_guard::{MappedGuard, RwMapping};
 use crate::NoPoisonMutex;
-use std::ops::{Deref, DerefMut};
+use core::ops::{Deref, DerefMut};
 
 /// A mutual exclusion primitive useful for protecting shared data
 pub struct Mutex<T>(std::sync::Mutex<T>);
 
 impl<T> NoPoisonMutex<T> for Mutex<T> {
-    type MutexGuard<'a> = std::sync::MutexGuard<'a, T> where T: 'a;
+    type MutexGuard<'a>
+        = std::sync::MutexGuard<'a, T>
+    where
+        T: 'a;
 
     fn lock(&self) -> Self::MutexGuard<'_> {
         self.0.lock().unwrap_or_else(|poison| poison.into_inner())
@@ -52,9 +56,15 @@ impl<T> RwLock<T> {
 }
 
 impl<T> crate::RwLock<T> for RwLock<T> {
-    type RwLockReadGuard<'a> = RwLockReadGuard<'a, T> where T: 'a;
+    type RwLockReadGuard<'a>
+        = RwLockReadGuard<'a, T>
+    where
+        T: 'a;
 
-    type RwLockWriteGuard<'a> = RwLockWriteGuard<'a, T> where T: 'a;
+    type RwLockWriteGuard<'a>
+        = RwLockWriteGuard<'a, T>
+    where
+        T: 'a;
 
     fn read(&self) -> Self::RwLockReadGuard<'_> {
         RwLockReadGuard(self.0.read().unwrap_or_else(|e| e.into_inner()))
@@ -70,39 +80,19 @@ pub struct RwLockReadGuard<'a, T>(std::sync::RwLockReadGuard<'a, T>);
 
 impl<'a, T> RwLockReadGuard<'a, T> {
     /// Make a new MappedRwLockReadGuard for a component of the locked data.
-    pub fn map<U, M>(s: Self, mapping: M) -> MappedRwLockReadGuard<'a, T, U, M>
+    pub fn map<M>(s: Self, mapping: M) -> MappedRwLockReadGuard<'a, M>
     where
-        M: RwMapping<Arg = T, Ret = U>,
+        M: RwMapping<Arg = T>,
     {
-        MappedRwLockReadGuard { mapping, guard: s }
+        MappedRwLockReadGuard::new(s, mapping)
     }
 }
 
-impl<'a, T> Deref for RwLockReadGuard<'a, T> {
+impl<T> Deref for RwLockReadGuard<'_, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
         self.0.deref()
-    }
-}
-
-/// An RAII read lock guard returned by RwLockReadGuard::map, which can point to a subfield of the protected data.
-pub struct MappedRwLockReadGuard<'a, T, U, M>
-where
-    M: RwMapping<Arg = T, Ret = U>,
-{
-    mapping: M,
-    guard: RwLockReadGuard<'a, T>,
-}
-
-impl<'a, T, U, M> Deref for MappedRwLockReadGuard<'a, T, U, M>
-where
-    M: RwMapping<Arg = T, Ret = U>,
-{
-    type Target = U;
-
-    fn deref(&self) -> &Self::Target {
-        self.mapping.map(&*self.guard)
     }
 }
 
@@ -111,15 +101,15 @@ pub struct RwLockWriteGuard<'a, T>(std::sync::RwLockWriteGuard<'a, T>);
 
 impl<'a, T> RwLockWriteGuard<'a, T> {
     /// Make a new MappedRwLockWriteGuard for a component of the locked data.
-    pub fn map<U, M>(s: Self, mapping: M) -> MappedRwLockWriteGuard<'a, T, U, M>
+    pub fn map<M>(s: Self, mapping: M) -> MappedRwLockWriteGuard<'a, M>
     where
-        M: RwMapping<Arg = T, Ret = U>,
+        M: RwMapping<Arg = T>,
     {
-        MappedRwLockWriteGuard { mapping, guard: s }
+        MappedRwLockWriteGuard::new(s, mapping)
     }
 }
 
-impl<'a, T> Deref for RwLockWriteGuard<'a, T> {
+impl<T> Deref for RwLockWriteGuard<'_, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -127,49 +117,15 @@ impl<'a, T> Deref for RwLockWriteGuard<'a, T> {
     }
 }
 
-impl<'a, T> DerefMut for RwLockWriteGuard<'a, T> {
+impl<T> DerefMut for RwLockWriteGuard<'_, T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.0.deref_mut()
     }
 }
 
+/// An RAII read lock guard returned by RwLockReadGuard::map, which can point to a subfield of the protected data.
+pub type MappedRwLockReadGuard<'a, M> = MappedGuard<RwLockReadGuard<'a, <M as RwMapping>::Arg>, M>;
+
 /// An RAII read lock guard returned by RwLockWriteGuard::map, which can point to a subfield of the protected data.
-pub struct MappedRwLockWriteGuard<'a, T, U, M>
-where
-    M: RwMapping<Arg = T, Ret = U>,
-{
-    mapping: M,
-    guard: RwLockWriteGuard<'a, T>,
-}
-
-impl<'a, P, T, M> Deref for MappedRwLockWriteGuard<'a, P, T, M>
-where
-    M: RwMapping<Arg = P, Ret = T>,
-{
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        self.mapping.map(&*self.guard)
-    }
-}
-
-impl<'a, P, T, M> DerefMut for MappedRwLockWriteGuard<'a, P, T, M>
-where
-    M: RwMapping<Arg = P, Ret = T>,
-{
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        self.mapping.map_mut(&mut *self.guard)
-    }
-}
-
-/// Mapping functions which define how to map from one locked data type to a component of that locked data
-pub trait RwMapping {
-    /// The original locked data type
-    type Arg;
-    /// The returned mapped locked data type which is a component of the original locked data
-    type Ret;
-    /// Maps from Arg into Ret
-    fn map<'a>(&self, arg: &'a Self::Arg) -> &'a Self::Ret;
-    /// Mutably maps from Arg into Ret
-    fn map_mut<'a>(&self, arg: &'a mut Self::Arg) -> &'a mut Self::Ret;
-}
+pub type MappedRwLockWriteGuard<'a, M> =
+    MappedGuard<RwLockWriteGuard<'a, <M as RwMapping>::Arg>, M>;

@@ -36,7 +36,8 @@ mod java_utils;
 mod tests;
 
 pub use d2d_connection_context_v1::{
-    Aes256Key, D2DConnectionContextV1, DecodeError, DeserializeError,
+    Aes256Key, D2DConnectionContextV1, DecodeError, DeserializeError, RxConnectionContext,
+    TxConnectionContext,
 };
 pub use d2d_handshake_context::{
     D2DHandshakeContext, HandleMessageError, HandshakeError, InitiatorD2DHandshakeContext,

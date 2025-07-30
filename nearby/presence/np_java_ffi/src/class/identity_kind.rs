@@ -26,13 +26,46 @@ use crate::class::V0AdvertisementError;
 static IDENTITY_KIND_CLASS: ClassDesc =
     ClassDesc::new("com/google/android/nearby/presence/rust/IdentityKind");
 
-/// Rust representation of `@IdentityKind`. These are `jints` on the Java side, so this type can't
-/// be instantiated.
-pub enum IdentityKind {}
+/// Rust representation of `@interface IdentityKind`.
+#[derive(Copy, Clone, PartialEq, Eq)]
+pub enum IdentityKind {
+    /// An illegible identity
+    NoMatchingCredentials,
+    /// A public identity
+    Plaintext,
+    /// An encrypted identity
+    Decrypted,
+}
 
 impl IdentityKind {
+    /// Convert a Java `int` to the Rust version. Will return `None` if the given `value` is not
+    /// valid.
+    pub fn from_java<'local>(
+        env: &mut JNIEnv<'local>,
+        value: jint,
+    ) -> jni::errors::Result<Option<Self>> {
+        if value == Self::no_matching_credentials(env)? {
+            Ok(Some(Self::NoMatchingCredentials))
+        } else if value == Self::plaintext(env)? {
+            Ok(Some(Self::Plaintext))
+        } else if value == Self::decrypted(env)? {
+            Ok(Some(Self::Decrypted))
+        } else {
+            Ok(None)
+        }
+    }
+
+    /// Convert to a Java `int` value.
+    pub fn to_java<'local>(&self, env: &mut JNIEnv<'local>) -> jni::errors::Result<jint> {
+        match self {
+            Self::NoMatchingCredentials => Self::no_matching_credentials(env),
+            Self::Plaintext => Self::plaintext(env),
+            Self::Decrypted => Self::decrypted(env),
+        }
+    }
+
     /// Fetch the `NO_MATCHING_CREDENTIALS` constant
-    pub fn no_matching_credentials<'local>(env: &mut JNIEnv<'local>) -> jni::errors::Result<jint> {
+    fn no_matching_credentials<'local>(env: &mut JNIEnv<'local>) -> jni::errors::Result<jint> {
         static NO_MATCHING_CREDENTIALS: StaticFieldDesc =
             IDENTITY_KIND_CLASS.static_field("NO_MATCHING_CREDENTIALS", "I");
         static VALUE: RwLock<Option<jint>> = RwLock::new(None);
@@ -40,14 +73,14 @@ impl IdentityKind {
     }
 
     /// Fetch the `PLAINTEXT` constant
-    pub fn plaintext<'local>(env: &mut JNIEnv<'local>) -> jni::errors::Result<jint> {
+    fn plaintext<'local>(env: &mut JNIEnv<'local>) -> jni::errors::Result<jint> {
         static PLAINTEXT: StaticFieldDesc = IDENTITY_KIND_CLASS.static_field("PLAINTEXT", "I");
         static VALUE: RwLock<Option<jint>> = RwLock::new(None);
         Self::lookup_static_value(env, &PLAINTEXT, &VALUE)
     }
 
     /// Fetch the `DECRYPTED` constant
-    pub fn decrypted<'local>(env: &mut JNIEnv<'local>) -> jni::errors::Result<jint> {
+    fn decrypted<'local>(env: &mut JNIEnv<'local>) -> jni::errors::Result<jint> {
         static DECRYPTED: StaticFieldDesc = IDENTITY_KIND_CLASS.static_field("DECRYPTED", "I");
         static VALUE: RwLock<Option<jint>> = RwLock::new(None);
         Self::lookup_static_value(env, &DECRYPTED, &VALUE)
@@ -82,36 +115,30 @@ impl IdentityKind {
 
         Ok(value)
     }
+}
 
-    /// Get the Java representation of [`V0AdvertisementError`].
-    pub fn error_for_v0<'local>(
-        env: &mut JNIEnv<'local>,
-        identity: V0AdvertisementError,
-    ) -> jni::errors::Result<jint> {
-        match identity {
-            V0AdvertisementError::NoMatchingCredentials => Self::no_matching_credentials(env),
+impl From<V0AdvertisementError> for IdentityKind {
+    fn from(err: V0AdvertisementError) -> Self {
+        match err {
+            V0AdvertisementError::NoMatchingCredentials => Self::NoMatchingCredentials,
         }
     }
+}
 
-    /// Get the Java representation of [`DeserializedV0IdentityKind`].
-    pub fn value_for_v0<'local>(
-        env: &mut JNIEnv<'local>,
-        identity: DeserializedV0IdentityKind,
-    ) -> jni::errors::Result<jint> {
-        match identity {
-            DeserializedV0IdentityKind::Plaintext => Self::plaintext(env),
-            DeserializedV0IdentityKind::Decrypted => Self::decrypted(env),
+impl From<DeserializedV0IdentityKind> for IdentityKind {
+    fn from(kind: DeserializedV0IdentityKind) -> Self {
+        match kind {
+            DeserializedV0IdentityKind::Plaintext => Self::Plaintext,
+            DeserializedV0IdentityKind::Decrypted => Self::Decrypted,
         }
     }
+}
 
-    /// Get the Java representation of [`DeserializedV1IdentityKind`].
-    pub fn value_for_v1<'local>(
-        env: &mut JNIEnv<'local>,
-        identity: DeserializedV1IdentityKind,
-    ) -> jni::errors::Result<jint> {
-        match identity {
-            DeserializedV1IdentityKind::Plaintext => Self::plaintext(env),
-            DeserializedV1IdentityKind::Decrypted => Self::decrypted(env),
+impl From<DeserializedV1IdentityKind> for IdentityKind {
+    fn from(kind: DeserializedV1IdentityKind) -> Self {
+        match kind {
+            DeserializedV1IdentityKind::Plaintext => Self::Plaintext,
+            DeserializedV1IdentityKind::Decrypted => Self::Decrypted,
         }
     }
 }

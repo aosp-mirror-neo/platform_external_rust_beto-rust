@@ -16,29 +16,27 @@
 
 package com.google.android.nearby.presence.rust.credential;
 
-import static com.google.android.nearby.presence.rust.credential.Utils.copyKeyBytes;
+import static com.google.android.nearby.presence.rust.credential.Utils.copyBytes;
+
+import com.google.android.nearby.presence.rust.UsedByNative;
 
 /** A V1 discovery credential in a format that is ready to be passed to native code. */
+@SuppressWarnings("UnusedVariable")
+@UsedByNative
 public final class V1DiscoveryCredential {
-  private final byte[] keySeed;
-  private final byte[] expectedMicShortSaltIdentityTokenHmac;
-  private final byte[] expectedMicExtendedSaltIdentityTokenHmac;
-  private final byte[] expectedSignatureIdentityTokenHmac;
-  private final byte[] pubKey;
+  @UsedByNative private final byte[] keySeed;
+  @UsedByNative private final byte[] expectedMicShortSaltIdentityTokenHmac;
+  @UsedByNative private final byte[] expectedMicExtendedSaltIdentityTokenHmac;
 
   /** Create the credential. Each array is exactly 32 bytes. */
   public V1DiscoveryCredential(
       byte[] keySeed,
       byte[] expectedMicShortSaltIdentityTokenHmac,
-      byte[] expectedMicExtendedSaltIdentityTokenHmac,
-      byte[] expectedSignatureIdentityTokenHmac,
-      byte[] pubKey) {
-    this.keySeed = copyKeyBytes(keySeed);
+      byte[] expectedMicExtendedSaltIdentityTokenHmac) {
+    this.keySeed = copyBytes(keySeed, 32);
     this.expectedMicShortSaltIdentityTokenHmac =
-        copyKeyBytes(expectedMicShortSaltIdentityTokenHmac);
+        copyBytes(expectedMicShortSaltIdentityTokenHmac, 32);
     this.expectedMicExtendedSaltIdentityTokenHmac =
-        copyKeyBytes(expectedMicExtendedSaltIdentityTokenHmac);
-    this.expectedSignatureIdentityTokenHmac = copyKeyBytes(expectedSignatureIdentityTokenHmac);
-    this.pubKey = copyKeyBytes(pubKey);
+        copyBytes(expectedMicExtendedSaltIdentityTokenHmac, 32);
   }
 }

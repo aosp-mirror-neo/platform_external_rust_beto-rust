@@ -20,7 +20,7 @@ use cmd_runner::{
     license_checker::LicenseSubcommand,
 };
 use license::LICENSE_CHECKER;
-use xshell::Shell;
+use xshell::{cmd, Shell};
 
 mod license;
 
@@ -42,6 +42,7 @@ enum Subcommand {
     License(LicenseSubcommand),
 }
 
+#[rustfmt::skip]
 fn main() -> anyhow::Result<()> {
     let args = Cli::parse();
     let root_dir = path::Path::new(
@@ -55,11 +56,13 @@ fn main() -> anyhow::Result<()> {
     sh.change_dir(&root_dir);
     match args.subcommand {
         Subcommand::VerifyCi { cargo_options } => {
-            cargo_options.check_workspace(&sh, "common")?;
+            cargo_options.check_workspace(&sh, "common", ["--features", "testing"])?;
             FormatterOptions { reformat: false }.check_format(&sh)?;
             LICENSE_CHECKER.check(&root_dir)?;
         }
-        Subcommand::CargoWorkspace(workspace) => workspace.run("common", &sh)?,
+        Subcommand::CargoWorkspace(workspace) => {
+            workspace.run(&sh, "common", ["--features", "testing"])?
+        }
         Subcommand::License(license) => license.run(&LICENSE_CHECKER, &root_dir)?,
     }
     Ok(())

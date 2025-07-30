@@ -15,6 +15,7 @@
 #![allow(clippy::unwrap_used)]
 
 use super::super::*;
+use crate::extended::salt::ExtendedV1Salt;
 use alloc::format;
 use crypto_provider_default::CryptoProviderImpl;
 
@@ -29,27 +30,9 @@ fn section_identity_resolution_content_derives() {
 }
 
 #[test]
-fn sig_encrypted_section_debug() {
-    let ss = SignatureEncryptedSection {
-        contents: EncryptedSectionContents::new(
-            V1AdvHeader::new(0),
-            &[0],
-            [0x00; 16].into(),
-            [0x00; V1_IDENTITY_TOKEN_LEN].into(),
-            1,
-            &[0x00; 1],
-        ),
-    };
-    let _ = format!("{:?}", ss);
-}
-
-#[test]
 fn error_enum_debug_derives() {
     let mic_err = MicVerificationError::MicMismatch;
     let _ = format!("{:?}", mic_err);
-
-    let sig_err = SignatureVerificationError::SignatureMissing;
-    let _ = format!("{:?}", sig_err);
 
     let deser_err = DeserializationError::ArenaOutOfSpace::<MicVerificationError>;
     let _ = format!("{:?}", deser_err);

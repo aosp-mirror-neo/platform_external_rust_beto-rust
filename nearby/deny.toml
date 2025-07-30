@@ -24,6 +24,10 @@ yanked = "warn"
 ignore = [
     # comment explaining why we have to ignore it
     # "RUSTSEC-FOO",
+
+    # instant is a dependency of rhai which is only used in the CLI for testing purposes
+    # at this time it's okay that this is un-maintained
+    "RUSTSEC-2024-0384",
 ]
 # Threshold for security vulnerabilities, any vulnerability with a CVSS score
 # lower than the range specified will be ignored. Note that ignored advisories
@@ -54,11 +58,12 @@ allow = [
     "Apache-2.0 WITH LLVM-exception",
     "BSD-3-Clause",
     "BSD-2-Clause",
-    "ISC",
-    "Unicode-DFS-2016",
-    "OpenSSL",
+    "Unicode-3.0",
     "Unlicense",
-    "CC0-1.0"
+    "CC0-1.0",
+    "ISC",
+    "MPL-2.0",
+    "Zlib",
 ]
 # The confidence threshold for detecting a license from license text.
 # The higher the value, the more closely the license text must be to the
@@ -73,17 +78,20 @@ exceptions = [
 
 
     # "Reciprocal" licensed crate pulled directly from crates.io without modifications
-    # Important: Update https://third-party-mirror.googlesource.com/webpki-roots/ if you update this version
-    { allow = ["MPL-2.0"], name = "webpki-roots", version = "0.25.2" },
-    # "Reciprocal" licensed crate pulled directly from crates.io without modifications
     # Important: Update https://third-party-mirror.googlesource.com/option-ext/ if you update this version
-    { allow = ["MPL-2.0"], name = "option-ext", version = "0.2.0" },
+    { allow = [
+        "MPL-2.0",
+    ], name = "option-ext", version = "0.2.0" },
     # "Reciprocal" licensed crate pulled directly from crates.io without modifications
     # Important: Update https://third-party-mirror.googlesource.com/smartstring/ if you update this version
-    { allow = ["MPL-2.0"], name = "smartstring", version = "1.0.1" },
+    { allow = [
+        "MPL-2.0",
+    ], name = "smartstring", version = "1.0.1" },
     # "Reciprocal" licensed crate pulled directly from crates.io without modifications
     # Important: Update https://third-party-mirror.googlesource.com/cbindgen/ if you update this version
-    { allow = ["MPL-2.0"], name = "cbindgen", version = "0.26.0" },
+    { allow = [
+        "MPL-2.0",
+    ], name = "cbindgen", version = "0.27.0" },
 ]
 
 # Some crates don't have (easily) machine readable licensing information,
@@ -112,7 +120,7 @@ version = "*"
 expression = "MIT AND ISC AND OpenSSL"
 license-files = [
     # Each entry is a crate relative path, and the (opaque) hash of its contents
-    { path = "LICENSE", hash = 0xbd0eed23 }
+    { path = "LICENSE", hash = 0xbd0eed23 },
 ]
 
 [licenses.private]
@@ -120,7 +128,7 @@ license-files = [
 # published to private registries.
 # To see how to mark a crate as unpublished (to the official registry),
 # visit https://doc.rust-lang.org/cargo/reference/manifest.html#the-publish-field.
-ignore = true
+ignore = false
 # One or more private registries that you might publish crates to, if a crate
 # is only published to private registries, and ignore is true, the crate will
 # not have its license(s) checked

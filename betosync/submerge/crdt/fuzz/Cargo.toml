@@ -1,0 +1,73 @@
+[package]
+name = "crdt_fuzz"
+version.workspace = true
+publish = false
+edition.workspace = true
+license.workspace = true
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+arbitrary.workspace = true
+crdt = { workspace = true, features = ["checker"] }
+derive_fuzztest.workspace = true
+distributed_time.workspace = true
+
+[target.'cfg(fuzzing)'.dependencies]
+libfuzzer-sys.workspace = true
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "default_bottom_state"
+doc = false
+[[bin]]
+name = "delta_lww_crdt_container"
+doc = false
+[[bin]]
+name = "delta_lww_map"
+doc = false
+[[bin]]
+name = "delta_register"
+doc = false
+[[bin]]
+name = "delta_set"
+doc = false
+[[bin]]
+name = "delta_vector_data"
+doc = false
+[[bin]]
+name = "merge_lww_crdt_container"
+doc = false
+[[bin]]
+name = "merge_lww_map"
+doc = false
+[[bin]]
+name = "merge_register"
+doc = false
+[[bin]]
+name = "merge_set"
+doc = false
+[[bin]]
+name = "merge_typed_crdt"
+doc = false
+[[bin]]
+name = "merge_vector_data"
+doc = false
+[[bin]]
+name = "simulator_everything"
+doc = false
+[[bin]]
+name = "simulator_lww_map"
+doc = false
+[[bin]]
+name = "simulator_register"
+doc = false
+[[bin]]
+name = "simulator_set"
+doc = false
+[[bin]]
+name = "simulator_vector_data"
+doc = false

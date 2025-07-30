@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#![allow(missing_docs)]
+
 use crypto_provider::aes::{Aes, BLOCK_SIZE};
 use crypto_provider::CryptoProvider;
 use crypto_provider_default::CryptoProviderImpl;

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::ptr::null_mut;
 
 use crypto_provider_default::CryptoProviderImpl as CryptoProvider;
@@ -158,7 +158,7 @@ pub extern "C" fn get_verification_string(handle: u64, length: usize) -> RustFFI
         .get(&handle)
         .map(|h| {
             let auth_vec = h
-                .to_completed_handshake()
+                .completed_handshake()
                 .unwrap()
                 .auth_string::<CryptoProvider>()
                 .derive_vec(length)
@@ -183,25 +183,91 @@ pub extern "C" fn to_connection_context(handle: u64) -> u64 {
     insert_conn_gen_handle(ctx)
 }
 
-// Responder-specific functions
+#[repr(C)]
+pub enum Ukey2HandshakeAlgorithm {
+    AesCbcHmacSha256,
+    AesGcm256,
+}
+
 #[no_mangle]
-pub extern "C" fn responder_new() -> u64 {
+pub extern "C" fn get_next_protocol(handle: u64) -> Ukey2HandshakeAlgorithm {
+    let next_protocol = HANDLE_MAPPING.lock().get(&handle).map(|instance| {
+        instance
+            .completed_handshake()
+            .map_or(NextProtocol::Aes256CbcHmacSha256, |ch| ch.next_protocol)
+    });
+    match next_protocol {
+        Some(protocol) => match protocol {
+            NextProtocol::Aes256GcmSiv => Ukey2HandshakeAlgorithm::AesGcm256,
+            NextProtocol::Aes256CbcHmacSha256 => Ukey2HandshakeAlgorithm::AesCbcHmacSha256,
+        },
+        None => Ukey2HandshakeAlgorithm::AesCbcHmacSha256,
+    }
+}
+
+// Responder-specific functions
+/// Creates a new responder-side UKEY2 handshake with the specified cryptographic protocols.
+/// # Safety
+/// The C++ layer wraps the size and pointer in a vector (so the data is never mismatched),
+/// and this pointer and size data does not outlive this function, and is therefore safe to
+/// pass on the stack.
+#[no_mangle]
+pub unsafe extern "C" fn responder_new(
+    algorithms: *mut Ukey2HandshakeAlgorithm,
+    algorithms_size: u32,
+) -> u64 {
+    let algo_slice = if algorithms.is_null() || algorithms_size == 0 {
+        &[Ukey2HandshakeAlgorithm::AesCbcHmacSha256]
+    } else {
+        std::slice::from_raw_parts(algorithms, algorithms_size as usize)
+    };
     let ctx = Box::new(ServerD2DHandshakeContext::<CryptoProvider>::new(
         HandshakeImplementation::PublicKeyInProtobuf,
-        &[NextProtocol::Aes256CbcHmacSha256],
+        &(Vec::from_iter(
+            algo_slice
+                .iter()
+                .map(|algo| match algo {
+                    Ukey2HandshakeAlgorithm::AesCbcHmacSha256 => NextProtocol::Aes256CbcHmacSha256,
+                    Ukey2HandshakeAlgorithm::AesGcm256 => NextProtocol::Aes256GcmSiv,
+                })
+                .collect::<HashSet<_>>()
+                .iter()
+                .cloned(),
+        )),
     ));
     insert_gen_handle(ctx)
 }
 
 // Initiator-specific functions
 
+/// Creates a new initiator-side UKEY2 handshake with the specified cryptographic protocols.
 /// # Safety
-/// We treat next_protocol as data, not as executable memory.
+/// The C++ layer wraps the size and pointer in a vector (so the data is never mismatched),
+/// and this pointer and size data does not outlive this function, and is therefore safe to
+/// pass on the stack.
 #[no_mangle]
-pub extern "C" fn initiator_new() -> u64 {
+pub unsafe extern "C" fn initiator_new(
+    algorithms: *mut Ukey2HandshakeAlgorithm,
+    algorithms_size: u32,
+) -> u64 {
+    let algo_slice = if algorithms.is_null() || algorithms_size == 0 {
+        &[Ukey2HandshakeAlgorithm::AesCbcHmacSha256]
+    } else {
+        std::slice::from_raw_parts(algorithms, algorithms_size as usize)
+    };
     let ctx = Box::new(InitiatorD2DHandshakeContext::<CryptoProvider>::new(
         HandshakeImplementation::PublicKeyInProtobuf,
-        vec![NextProtocol::Aes256CbcHmacSha256],
+        Vec::from_iter(
+            algo_slice
+                .iter()
+                .map(|algo| match algo {
+                    Ukey2HandshakeAlgorithm::AesCbcHmacSha256 => NextProtocol::Aes256CbcHmacSha256,
+                    Ukey2HandshakeAlgorithm::AesGcm256 => NextProtocol::Aes256GcmSiv,
+                })
+                .collect::<HashSet<_>>()
+                .iter()
+                .cloned(),
+        ),
     ));
     insert_gen_handle(ctx)
 }
@@ -229,7 +295,7 @@ pub unsafe extern "C" fn encode_message_to_peer(
     let ret = CONNECTION_HANDLE_MAPPING
         .lock()
         .get_mut(&handle)
-        .map(|c| c.encode_message_to_peer::<CryptoProvider, _>(msg, associated_data));
+        .map(|c| c.encode_message_to_peer::<CryptoProvider>(msg, associated_data));
     if let Some(msg) = ret {
         RustFFIByteArray::from_vec(msg)
     } else {
@@ -259,7 +325,7 @@ pub unsafe extern "C" fn decode_message_from_peer(
         .lock()
         .get_mut(&handle)
         .unwrap()
-        .decode_message_from_peer::<CryptoProvider, _>(msg, associated_data);
+        .decode_message_from_peer::<CryptoProvider>(msg, associated_data);
     if let Ok(decoded) = ret {
         RustFFIByteArray::from_vec(decoded)
     } else {
@@ -279,12 +345,12 @@ pub extern "C" fn get_session_unique(handle: u64) -> RustFFIByteArray {
 
 #[no_mangle]
 pub extern "C" fn get_sequence_number_for_encoding(handle: u64) -> i32 {
-    CONNECTION_HANDLE_MAPPING.lock().get(&handle).unwrap().get_sequence_number_for_encoding()
+    CONNECTION_HANDLE_MAPPING.lock().get(&handle).unwrap().encode_seq_num()
 }
 
 #[no_mangle]
 pub extern "C" fn get_sequence_number_for_decoding(handle: u64) -> i32 {
-    CONNECTION_HANDLE_MAPPING.lock().get(&handle).unwrap().get_sequence_number_for_decoding()
+    CONNECTION_HANDLE_MAPPING.lock().get(&handle).unwrap().decode_seq_num()
 }
 
 #[no_mangle]

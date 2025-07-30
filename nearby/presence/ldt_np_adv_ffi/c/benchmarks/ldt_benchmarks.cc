@@ -14,6 +14,7 @@
 
 #include "np_ldt.h"
 
+#include <cstdlib>
 #include <ctime>
 
 #include "benchmark/benchmark.h"

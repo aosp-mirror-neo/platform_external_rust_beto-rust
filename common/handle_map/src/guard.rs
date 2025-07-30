@@ -12,132 +12,87 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::shard::{ShardMap, ShardValue};
 use crate::Handle;
-use core::ops::{Deref, DerefMut};
-use lock_adapter::stdlib::RwMapping;
-use std::collections::HashMap;
+
+use lock_adapter::mapped_guard::RwMapping;
 use std::marker::PhantomData;
 
-/// A RAII read lock guard for an object in a [`HandleMap`](crate::HandleMap)
-/// pointed-to by a given [`Handle`]. When this struct is
-/// dropped, the underlying read lock on the associated
-/// shard will be dropped.
-pub struct ObjectReadGuardImpl<'a, T: 'a> {
-    pub(crate) guard: lock_adapter::stdlib::MappedRwLockReadGuard<
-        'a,
-        <Self as ObjectReadGuard>::Arg,
-        <Self as ObjectReadGuard>::Ret,
-        <Self as ObjectReadGuard>::Mapping,
-    >,
+/// A generic mapped read guard implementation.
+pub(crate) use lock_adapter::stdlib::MappedRwLockReadGuard as ReadGuard;
+
+/// A generic mapped read-write guard implementation.
+pub(crate) use lock_adapter::stdlib::MappedRwLockWriteGuard as ReadWriteGuard;
+
+/// The RwLock implementation to use
+pub(crate) use lock_adapter::stdlib::RwLock;
+
+/// The RwLock read guard implementation to use. Needs to be mapped to a value before being passed
+/// to clients.
+pub(crate) use lock_adapter::stdlib::RwLockReadGuard as RawReadGuard;
+
+/// The RwLock read-write guard implementation to use. Needs to be mapped to a value before being
+/// passed to clients.
+pub(crate) use lock_adapter::stdlib::RwLockWriteGuard as RawReadWriteGuard;
+
+/// An [`RwMapping`] implementation that looks up a type-erased [`ShardValue`] from a [`ShardMap`]
+/// with a given [`Handle`].
+pub struct LookupByHandle {
+    handle: Handle,
 }
 
-/// Trait implemented for an ObjectReadGuard which defines the associated types of the guard and a
-/// mapping for how the guard is retrieved from its parent object
-pub trait ObjectReadGuard: Deref<Target = Self::Ret> {
-    /// The mapping which defines how a guard is retrieved for `Self::Ret` from `Self::Arg`
-    type Mapping: RwMapping<Arg = Self::Arg, Ret = Self::Ret>;
-    /// The argument type input to the mapping functions
-    type Arg;
-    /// The Return type of the mapping functions
-    type Ret;
-}
-
-impl<'a, T> Deref for ObjectReadGuardImpl<'a, T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        self.guard.deref()
+impl LookupByHandle {
+    /// Create a mapping from the given [`Handle`]. This handle must exist in the guard's contained
+    /// [`ShardMap`]; if not, the mapping functions may panic.
+    pub fn new(handle: Handle) -> Self {
+        Self { handle }
     }
 }
 
-pub struct ObjectReadGuardMapping<'a, T> {
-    pub(crate) handle: Handle,
-    pub(crate) _marker: PhantomData<&'a T>,
-}
+impl RwMapping for LookupByHandle {
+    type Arg = ShardMap;
+    type Ret = ShardValue;
 
-impl<'a, T> RwMapping for ObjectReadGuardMapping<'a, T> {
-    type Arg = HashMap<Handle, T>;
-    type Ret = T;
-
-    fn map<'b>(&self, arg: &'b Self::Arg) -> &'b Self::Ret {
-        #[allow(clippy::expect_used)]
-        arg.get(&self.handle).expect("We know that the entry exists, since we've locked the shard and already checked that it exists prior to handing out this new, mapped read-lock.")
-    }
-
-    fn map_mut<'b>(&self, arg: &'b mut Self::Arg) -> &'b mut Self::Ret {
-        #[allow(clippy::expect_used)]
-        arg.get_mut(&self.handle).expect("We know that the entry exists, since we've locked the shard and already checked that it exists prior to handing out this new, mapped read-lock.")
-    }
-}
-
-impl<'a, T> ObjectReadGuard for ObjectReadGuardImpl<'a, T> {
-    type Mapping = ObjectReadGuardMapping<'a, T>;
-    type Arg = HashMap<Handle, T>;
-    type Ret = T;
-}
-
-/// A RAII read-write lock guard for an object in a [`HandleMap`](crate::HandleMap)
-/// pointed-to by a given [`Handle`]. When this struct is
-/// dropped, the underlying read-write lock on the associated
-/// shard will be dropped.
-pub struct ObjectReadWriteGuardImpl<'a, T: 'a> {
-    pub(crate) guard: lock_adapter::stdlib::MappedRwLockWriteGuard<
-        'a,
-        <Self as ObjectReadWriteGuard>::Arg,
-        <Self as ObjectReadWriteGuard>::Ret,
-        <Self as ObjectReadWriteGuard>::Mapping,
-    >,
-}
-
-/// Trait implemented for an object read guard which defines the associated types of the guard and a
-/// mapping for how the guard is retrieved from its parent object
-pub trait ObjectReadWriteGuard: Deref<Target = Self::Ret> + DerefMut<Target = Self::Ret> {
-    /// The mapping which defines how a guard is retrieved for `Ret` from `Arg`
-    type Mapping: RwMapping<Arg = Self::Arg, Ret = Self::Ret>;
-    /// The argument type input to the mapping functions
-    type Arg;
-    /// The Return type of the mapping functions
-    type Ret;
-}
-
-pub struct ObjectReadWriteGuardMapping<'a, T> {
-    pub(crate) handle: Handle,
-    pub(crate) _marker: PhantomData<&'a T>,
-}
-
-impl<'a, T> Deref for ObjectReadWriteGuardImpl<'a, T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        self.guard.deref()
-    }
-}
-
-impl<'a, T> DerefMut for ObjectReadWriteGuardImpl<'a, T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        self.guard.deref_mut()
-    }
-}
-
-impl<'a, T> ObjectReadWriteGuard for ObjectReadWriteGuardImpl<'a, T> {
-    type Mapping = ObjectReadWriteGuardMapping<'a, T>;
-    type Arg = HashMap<Handle, T>;
-    type Ret = T;
-}
-
-impl<'a, T> RwMapping for ObjectReadWriteGuardMapping<'a, T> {
-    type Arg = HashMap<Handle, T>;
-    type Ret = T;
-
-    fn map<'b>(&self, arg: &'b Self::Arg) -> &'b Self::Ret {
+    fn map<'a>(&self, arg: &'a Self::Arg) -> &'a Self::Ret {
         #[allow(clippy::expect_used)]
         arg.get(&self.handle)
-            .expect("Caller must verify that provided hande exists")
+            .expect("Caller must verify that provided handle exists")
     }
 
-    fn map_mut<'b>(&self, arg: &'b mut Self::Arg) -> &'b mut Self::Ret {
+    fn map_mut<'a>(&self, arg: &'a mut Self::Arg) -> &'a mut Self::Ret {
         #[allow(clippy::expect_used)]
         arg.get_mut(&self.handle)
-            .expect("Caller must verify that provided hande exists")
+            .expect("Caller must verify that provided handle exists")
+    }
+}
+
+/// An [`RwMapping`] implementation that performs downcast on a type-erased [`ShardValue`]
+/// instance. This is used to undo type erasure before giving a guard to a client. Type-erased
+/// values are always `'static`.
+pub struct Downcast<T> {
+    /// Keep `T` around for use in `impl RwMapping`.
+    _t: PhantomData<fn(T) -> T>,
+}
+
+impl<T: 'static> Downcast<T> {
+    pub fn new() -> Self {
+        Self { _t: PhantomData }
+    }
+}
+
+impl<T: 'static> RwMapping for Downcast<T> {
+    type Arg = ShardValue;
+    type Ret = T;
+
+    fn map<'a>(&self, arg: &'a Self::Arg) -> &'a Self::Ret {
+        #[allow(clippy::expect_used)]
+        arg.downcast_ref::<T>()
+            .expect("Caller must verify the type is correct")
+    }
+
+    fn map_mut<'a>(&self, arg: &'a mut Self::Arg) -> &'a mut Self::Ret {
+        #[allow(clippy::expect_used)]
+        arg.downcast_mut::<T>()
+            .expect("Caller must verify the type is correct")
     }
 }

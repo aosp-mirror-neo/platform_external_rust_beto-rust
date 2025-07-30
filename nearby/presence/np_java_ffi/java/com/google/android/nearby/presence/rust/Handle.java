@@ -24,10 +24,13 @@ package com.google.android.nearby.presence.rust;
  * <p>This may be a handle to an object that has already been deallocated. In that case, any native
  * uses of this handle should throw {@link Handle.InvalidHandleException}.
  */
+@UsedByNative
 public abstract class Handle {
 
   /** Thrown when an invalid handle is used */
-  public static final class InvalidHandleException extends Exception {
+  @UsedByNative
+  public static final class InvalidHandleException extends RuntimeException {
+    @UsedByNative
     public InvalidHandleException() {
       super("The given handle is no longer valid");
     }
@@ -39,6 +42,7 @@ public abstract class Handle {
     this.handleId = handleId;
   }
 
+  @UsedByNative
   public long getId() {
     return handleId;
   }

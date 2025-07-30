@@ -52,11 +52,16 @@ typedef struct {
   CD2DRestoreConnectionContextV1Status status;
 } CD2DRestoreConnectionContextV1Result;
 
+typedef enum {
+  AES_CBC_HMAC_SHA256 = 0,
+  AES_GCM_256 = 1,
+} Ukey2HandshakeAlgorithm;
+
 // Create a new ResponderD2DHandshakeContext
-Ukey2HandshakeContextHandle responder_new();
+Ukey2HandshakeContextHandle responder_new(Ukey2HandshakeAlgorithm algorithms[], uint32_t size);
 
 // Create a new InitiatorD2DHandshakeContext
-Ukey2HandshakeContextHandle initiator_new();
+Ukey2HandshakeContextHandle initiator_new(Ukey2HandshakeAlgorithm algorithms[], uint32_t size);
 
 // Utilities
 void rust_dealloc_ffi_byte_array(RustFFIByteArray array);
@@ -70,6 +75,7 @@ Ukey2ConnectionContextHandle to_connection_context(
     Ukey2HandshakeContextHandle handle);
 RustFFIByteArray get_verification_string(Ukey2HandshakeContextHandle handle,
                                          size_t output_length);
+Ukey2HandshakeAlgorithm get_next_protocol(Ukey2HandshakeContextHandle handle);
 
 // D2DConnectionContextV1 methods
 RustFFIByteArray encode_message_to_peer(Ukey2ConnectionContextHandle handle,

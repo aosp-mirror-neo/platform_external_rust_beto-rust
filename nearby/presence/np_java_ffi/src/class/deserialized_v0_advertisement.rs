@@ -20,7 +20,7 @@ use jni::{
 use np_ffi_core::deserialize::v0::{DeserializedV0IdentityKind, V0Payload};
 use pourover::desc::ClassDesc;
 
-use crate::class::IdentityKind;
+use crate::class::{CredentialBook, IdentityKind};
 
 static DESERIALIZED_V0_ADVERTISEMENT_CLASS: ClassDesc =
     ClassDesc::new("com/google/android/nearby/presence/rust/DeserializedV0Advertisement");
@@ -35,30 +35,32 @@ impl<'local> DeserializedV0Advertisement<JObject<'local>> {
         env: &mut JNIEnv<'local>,
         error: V0AdvertisementError,
     ) -> jni::errors::Result<Self> {
-        let error = IdentityKind::error_for_v0(env, error)?;
+        let error = IdentityKind::from(error).to_java(env)?;
 
         pourover::call_constructor!(env, &DESERIALIZED_V0_ADVERTISEMENT_CLASS, "(I)V", error)
             .map(Self)
     }
 
     /// Create a legible advertisment.
-    pub fn construct(
+    pub fn construct<'book>(
         env: &mut JNIEnv<'local>,
         num_des: u8,
         v0_payload: V0Payload,
         identity: DeserializedV0IdentityKind,
+        credential_book: CredentialBook<impl AsRef<JObject<'book>>>,
     ) -> jni::errors::Result<Self> {
         let num_des = jint::from(num_des);
         let payload_handle = v0_payload.get_as_handle().get_id() as jlong;
-        let identity = IdentityKind::value_for_v0(env, identity)?;
+        let identity = IdentityKind::from(identity).to_java(env)?;
 
         pourover::call_constructor!(
             env,
             &DESERIALIZED_V0_ADVERTISEMENT_CLASS,
-            "(IJI)V",
+            "(IJILcom/google/android/nearby/presence/rust/credential/CredentialBook;)V",
             num_des,
             payload_handle,
-            identity
+            identity,
+            credential_book.as_obj()
         )
         .map(Self)
     }

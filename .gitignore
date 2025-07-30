@@ -9,7 +9,10 @@ cmake-build/
 nearby/presence/lib/
 target/
 nearby/connections/ukey2/ukey2_c_ffi/cpp/build/
+nearby/connections/ukey2/ukey2_c_ffi/cpp/bin/
 nearby/presence/ldt_np_jni/java/LdtNpJni/build/
+nearby/presence/ldt_np_jni/java/LdtNpJni/bin/
 **/auth_token.txt
 /bazel-*
 /.clwb/.bazelproject
+/common/1p_internal/ph_client_sys/portable_ph_fake/cmake-build-debug/

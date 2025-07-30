@@ -33,6 +33,9 @@ pub mod spin;
 #[cfg(feature = "std")]
 pub mod stdlib;
 
+/// Helpers for projecting derived data from RAII guard objects.
+pub mod mapped_guard;
+
 /// A trait for mutex implementations that doesn't support poisoning. If the thread panicked while
 /// holding the mutex, the data will be released normally (as spin::Mutex would).
 pub trait NoPoisonMutex<T> {

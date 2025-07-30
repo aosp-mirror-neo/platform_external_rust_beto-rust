@@ -69,22 +69,6 @@ impl<'local, Obj: AsRef<JObject<'local>>> V1DiscoveryCredential<Obj> {
         self.get_array(env, &EXPECTED_MIC_EXTENDED_SALT_IDENTITY_TOKEN_HMAC)
     }
 
-    /// Get the expected signature identity token hmac.
-    pub fn get_expected_signature_identity_token_hmac<'env>(
-        &self,
-        env: &mut JNIEnv<'env>,
-    ) -> jni::errors::Result<[u8; 32]> {
-        static EXPECTED_SIGNATURE_IDENTITY_TOKEN_HMAC: FieldDesc =
-            V1_DISCOVERY_CREDENTIAL_CLS.field("expectedSignatureIdentityTokenHmac", "[B");
-        self.get_array(env, &EXPECTED_SIGNATURE_IDENTITY_TOKEN_HMAC)
-    }
-
-    /// Get the pub key.
-    pub fn get_pub_key<'env>(&self, env: &mut JNIEnv<'env>) -> jni::errors::Result<[u8; 32]> {
-        static PUB_KEY: FieldDesc = V1_DISCOVERY_CREDENTIAL_CLS.field("pubKey", "[B");
-        self.get_array(env, &PUB_KEY)
-    }
-
     /// Convert this to the `np_ffi_core` representation.
     pub fn get_as_core<'env>(
         &self,
@@ -94,8 +78,6 @@ impl<'local, Obj: AsRef<JObject<'local>>> V1DiscoveryCredential<Obj> {
             self.get_key_seed(env)?,
             self.get_expected_mic_short_salt_identity_token_hmac(env)?,
             self.get_expected_mic_extended_salt_identity_token_hmac(env)?,
-            self.get_expected_signature_identity_token_hmac(env)?,
-            self.get_pub_key(env)?,
         ))
     }
 }

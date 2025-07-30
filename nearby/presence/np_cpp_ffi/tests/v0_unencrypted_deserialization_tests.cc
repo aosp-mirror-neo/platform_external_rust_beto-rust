@@ -135,7 +135,7 @@ TEST_F(NpCppTest, V0LengthTwoActionsDataElement) {
 
   ASSERT_EQ(de.GetKind(), nearby_protocol::V0DataElementKind::Actions);
   auto actions = de.AsActions();
-  ASSERT_EQ(actions.GetAsU32(), 0x40400000);
+  ASSERT_EQ(actions.GetAsU32(), 0x40400000U);
 
   ASSERT_TRUE(actions.HasAction(nearby_protocol::ActionType::CrossDevSdk));
   ASSERT_TRUE(actions.HasAction(nearby_protocol::ActionType::NearbyShare));

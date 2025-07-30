@@ -21,14 +21,16 @@ import java.util.Arrays;
 /** Util functions used by multiple files. */
 final class Utils {
 
+  private Utils() {}
+
   /**
-   * Create a copy of a 32-byte array of key data. Will throw {@code IllegalArgumentException} if
-   * the array is not exactly 32 bytes.
+   * Create a copy of a {@code n}-byte array of data. Will throw {@code IllegalArgumentException} if
+   * the array is not exactly {@code n} bytes.
    */
-  public static byte[] copyKeyBytes(byte[] key) {
-    if (key.length != 32) {
+  public static byte[] copyBytes(byte[] key, int n) {
+    if (key.length != n) {
       throw new IllegalArgumentException(
-          String.format("Expected key length to be 32 bytes, got %s bytes", key.length));
+          String.format("Expected key length to be %s bytes, got %s bytes", n, key.length));
     }
     return Arrays.copyOf(key, key.length);
   }

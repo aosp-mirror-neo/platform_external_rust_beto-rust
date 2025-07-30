@@ -17,30 +17,40 @@
 package com.google.android.nearby.presence.rust;
 
 import androidx.annotation.Nullable;
+import com.google.android.cooperativecleaner.CooperativeCleaner;
 import com.google.android.nearby.presence.rust.credential.CredentialBook;
-import java.lang.ref.Cleaner;
+import com.google.android.nearby.presence.rust.credential.V0BroadcastCredential;
 
 /**
  * The main entrypoint to the library.
  *
- * <p>On Android call {@link #setCleaner} with a {@code SystemCleaner} instance before any other
- * method to avoid creating a new cleaner thread.
- *
  * <h3>Supported Features:</h3>
  *
  * <ul>
+ *   <li>Create credential books: {@link #newCredentialBookBuilder()}
  *   <li>Deserialize advertisements: {@link #deserializeAdvertisement}
+ *   <li>Serialize V0 advertisements: {@link #newPublicV0Builder}, {@link #newEncryptedV0Builder}
+ *   <li>Serialize V1 advertisements: {@link #newV1Builder}
  * </ul>
  */
-public final class NpAdv {
+public final class NpAdv extends NativeLibrary {
 
-  public static final String LIBRARY_NAME = "np_java_ffi";
+  public static final String DEFAULT_LIBRARY_NAME = "np_java_ffi";
 
-  static {
-    System.loadLibrary(LIBRARY_NAME);
+  // This is effectively an injected variable, but without depending on a DI implementation.
+  @SuppressWarnings("NonFinalStaticField")
+  @Nullable
+  private static CooperativeCleaner cleaner = null;
+
+  /** Create an instance of this library with a custom library name. */
+  public NpAdv(String libraryName) {
+    super(libraryName);
   }
 
-  private static @Nullable Cleaner CLEANER = null;
+  /** Create an instance of this library with the default library name {@code "np_java_ffi"}. */
+  public NpAdv() {
+    this(DEFAULT_LIBRARY_NAME);
+  }
 
   /**
    * Deserialize a Nearby Presence advertisement from its service data bytes.
@@ -49,43 +59,57 @@ public final class NpAdv {
    * @param credentialBook The credential book to use to decrypt.
    * @return A result containing the advertisement if it was able to be deserialized.
    */
-  public static <M extends CredentialBook.MatchedMetadata>
-      DeserializeResult deserializeAdvertisement(
-          byte[] serviceData, CredentialBook<M> credentialBook) {
-    DeserializeResult result = nativeDeserializeAdvertisement(serviceData, credentialBook.getId());
+  public <M extends CredentialBook.MatchedMetadata> DeserializeResult<M> deserializeAdvertisement(
+      byte[] serviceData, CredentialBook<M> credentialBook) {
+    this.ensureLoaded();
+
+    DeserializeResult<M> result = nativeDeserializeAdvertisement(serviceData, credentialBook);
     if (result == null) {
-      result = new DeserializeResult(DeserializeResult.Kind.UNKNOWN_ERROR);
+      result = new DeserializeResult<M>(DeserializeResult.Kind.UNKNOWN_ERROR);
     }
     return result;
   }
 
+  /** Create a {@link CredentialBook} builder. */
+  public <M extends CredentialBook.MatchedMetadata>
+      CredentialBook.Builder<M> newCredentialBookBuilder() {
+    return CredentialBook.<M>builder(this);
+  }
+
+  /** Create an empty {@link CredentialBook}. */
+  public CredentialBook<CredentialBook.NoMetadata> newEmptyCredentialBook() {
+    return CredentialBook.empty(this);
+  }
+
+  /** Create an advertisement builder for a public V0 advertisement. */
+  public V0AdvertisementBuilder newPublicV0Builder() {
+    return V0AdvertisementBuilder.newPublic(this);
+  }
+
+  /** Create an advertisement builder for an encrypted V0 advertisement. */
+  public V0AdvertisementBuilder newEncryptedV0Builder(
+      V0BroadcastCredential credential, byte[] salt) {
+    return V0AdvertisementBuilder.newEncrypted(this, credential, salt);
+  }
+
+  /** Create an advertisement builder for a V1 advertisement. */
+  public V1AdvertisementBuilder newV1Builder() {
+    return V1AdvertisementBuilder.newBuilder(this);
+  }
+
   /**
-   * Get the currently configured cleaner. If a cleaner is not configured, a new one will be created
-   * via the {@link Cleaner#create()} factory function.
+   * Get the currently configured cleaner. If a cleaner is not configured, a new one will be
+   * created.
    */
-  public static synchronized Cleaner getCleaner() {
-    if (CLEANER == null) {
-      CLEANER = Cleaner.create();
+  public static synchronized CooperativeCleaner getCleaner() {
+    if (cleaner == null) {
+      cleaner = new CooperativeCleaner();
     }
-    return CLEANER;
-  }
-
-  /**
-   * Configure a {@link Cleaner} to be used by this library. This cleaner will be used to ensure
-   * that {@link OwnedHandle} instances are properly freed. Since each {@code Cleaner} instance
-   * requires its own thread; this can be used to share a {@code Cleaner} instance to reduce the
-   * number of threads used.
-   *
-   * <p>On Android the {@code SystemCleaner} should be provided.
-   */
-  @Nullable
-  public static synchronized Cleaner setCleaner(Cleaner cleaner) {
-    Cleaner old = CLEANER;
-    CLEANER = cleaner;
-    return old;
+    return cleaner;
   }
 
   @Nullable
-  private static native DeserializeResult nativeDeserializeAdvertisement(
-      byte[] serviceData, long credentialBook);
+  private static native <M extends CredentialBook.MatchedMetadata>
+      DeserializeResult<M> nativeDeserializeAdvertisement(
+          byte[] serviceData, CredentialBook<M> credentialBook);
 }

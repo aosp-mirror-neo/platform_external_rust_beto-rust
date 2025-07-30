@@ -14,14 +14,7 @@
 
 //! NP Rust C FFI functionality common to V1 ser/deser flows.
 
-use np_ffi_core::deserialize::v1::*;
-
-/// Converts a `V1DataElement` to a `GenericV1DataElement` which
-/// only maintains information about the DE's type-code and payload.
-#[no_mangle]
-pub extern "C" fn np_ffi_V1DataElement_to_generic(de: V1DataElement) -> GenericV1DataElement {
-    de.to_generic()
-}
+use np_ffi_core::v1::V1DEType;
 
 /// Extracts the numerical value of the given V1 DE type code as
 /// an unsigned 32-bit integer.

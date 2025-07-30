@@ -14,9 +14,10 @@
 //! Common externally-accessible FFI constructs which are needed
 //! in order to define the interfaces in this crate's various modules.
 
+use crate::utils::FfiEnum;
+use crate::CryptoProviderImpl;
 use array_view::ArrayView;
 use crypto_provider::{CryptoProvider, CryptoRng};
-use crypto_provider_default::CryptoProviderImpl;
 use handle_map::HandleNotPresentError;
 use lock_adapter::stdlib::{RwLock, RwLockWriteGuard};
 use lock_adapter::RwLock as _;
@@ -124,16 +125,16 @@ pub struct CurrentHandleAllocations {
 /// for debugging, logging, and testing.
 pub fn global_config_get_current_allocation_count() -> CurrentHandleAllocations {
     CurrentHandleAllocations {
-        cred_book: crate::credentials::credential_book::get_current_allocation_count(),
-        cred_slab: crate::credentials::credential_slab::get_current_allocation_count(),
-        decrypted_metadata: crate::deserialize::decrypted_metadata::get_current_allocation_count(),
-        v0_payload: crate::deserialize::v0::v0_payload::get_current_allocation_count(),
+        cred_book: crate::credentials::CredentialBook::get_current_allocation_count(),
+        cred_slab: crate::credentials::CredentialSlab::get_current_allocation_count(),
+        decrypted_metadata: crate::deserialize::DecryptedMetadata::get_current_allocation_count(),
+        v0_payload: crate::deserialize::v0::V0Payload::get_current_allocation_count(),
         legible_v1_sections:
-            crate::deserialize::v1::legible_v1_sections::get_current_allocation_count(),
+            crate::deserialize::v1::LegibleV1Sections::get_current_allocation_count(),
         v0_advertisement_builder:
-            crate::serialize::v0::advertisement_builder::get_current_allocation_count(),
+            crate::serialize::v0::V0AdvertisementBuilder::get_current_allocation_count(),
         v1_advertisement_builder:
-            crate::serialize::v1::advertisement_builder::get_current_allocation_count(),
+            crate::serialize::v1::V1AdvertisementBuilder::get_current_allocation_count(),
     }
 }
 
@@ -179,6 +180,7 @@ impl RawAdvertisementPayload {
 /// to contain the actual payload. N is only
 /// permitted to be between 0 and 255.
 #[derive(Clone)]
+#[cfg_attr(any(test, feature = "testing"), derive(Debug, arbitrary::Arbitrary))]
 #[repr(C)]
 // TODO: Once generic const exprs are stabilized,
 // we could instead make N into a compile-time u8.
@@ -187,43 +189,171 @@ pub struct ByteBuffer<const N: usize> {
     bytes: [u8; N],
 }
 
-/// A FFI safe wrapper of a fixed size array
-#[derive(Clone)]
-#[repr(C)]
-pub struct FixedSizeArray<const N: usize>([u8; N]);
-
-impl<const N: usize> FixedSizeArray<N> {
-    /// Constructs a byte-buffer from a Rust-side-derived owned array
-    pub(crate) fn from_array(bytes: [u8; N]) -> Self {
-        Self(bytes)
-    }
-    /// Yields a slice of the bytes
-    pub fn as_slice(&self) -> &[u8] {
-        self.0.as_slice()
-    }
-    /// De-structures this FFI-compatible fixed-size array
-    /// into a bare Rust fixed size array.
-    pub fn into_array(self) -> [u8; N] {
-        self.0
+impl<const N: usize> Default for ByteBuffer<N> {
+    fn default() -> Self {
+        Self { len: 0, bytes: [0u8; N] }
     }
 }
+
+#[cfg(any(test, feature = "testing"))]
+impl<const N: usize> PartialEq for ByteBuffer<N> {
+    fn eq(&self, other: &Self) -> bool {
+        if self.len != other.len {
+            return false;
+        }
+        // Lengths equal, but not necessarily validated.
+        // If the lengths are greater than N, both
+        // are invalid structures, but they could still be equal.
+        let len = self.len as usize;
+        if len > N {
+            self.bytes == other.bytes
+        } else {
+            self.bytes[..len] == other.bytes[..len]
+        }
+    }
+}
+
+#[cfg(any(test, feature = "testing"))]
+impl<const N: usize> Eq for ByteBuffer<N> {}
 
 impl<const N: usize> ByteBuffer<N> {
     /// Constructs a byte-buffer from a Rust-side-derived
     /// ArrayView, which is assumed to be trusted to be
     /// properly initialized, and with a size-bound
     /// under 255 bytes.
-    pub(crate) fn from_array_view(array_view: ArrayView<u8, N>) -> Self {
+    pub fn from_array_view(array_view: ArrayView<u8, N>) -> Self {
         let (len, bytes) = array_view.into_raw_parts();
         let len = len as u8;
         Self { len, bytes }
     }
+    /// Constructs a byte-buffer from a Rust-side-derived
+    /// tinyvec::ArrayVec, which is assumed to be trusted
+    /// to be properly initialized, and with a size-bound
+    /// under 255 bytes.
+    pub fn from_array_vec(array_vec: tinyvec::ArrayVec<[u8; N]>) -> Self {
+        let len = array_vec.len() as u8;
+        let bytes = array_vec.into_inner();
+        Self { len, bytes }
+    }
     /// Yields a slice of the first `self.len` bytes of `self.bytes`.
-    pub fn as_slice(&self) -> Option<&[u8]> {
+    pub fn as_slice(&self) -> Result<&[u8], InvalidStackDataStructure> {
         if self.len as usize <= N {
-            Some(&self.bytes[..(self.len as usize)])
+            Ok(&self.bytes[..(self.len as usize)])
         } else {
-            None
+            Err(InvalidStackDataStructure)
+        }
+    }
+}
+
+impl<const N: usize> TryFrom<ByteBuffer<N>> for tinyvec::ArrayVec<[u8; N]> {
+    type Error = InvalidStackDataStructure;
+    fn try_from(buffer: ByteBuffer<N>) -> Result<Self, Self::Error> {
+        if buffer.len as usize <= N {
+            Ok(tinyvec::ArrayVec::from_array_len(buffer.bytes, buffer.len as usize))
+        } else {
+            Err(InvalidStackDataStructure)
+        }
+    }
+}
+
+/// A FFI safe wrapper of a fixed size array
+#[derive(Clone)]
+#[repr(C)]
+#[cfg_attr(any(test, feature = "testing"), derive(Debug, PartialEq, Eq, arbitrary::Arbitrary))]
+pub struct FixedSizeArray<const N: usize>([u8; N]);
+
+impl<const N: usize> FixedSizeArray<N> {
+    /// Yields a slice of the bytes
+    pub fn as_slice(&self) -> &[u8] {
+        self.0.as_slice()
+    }
+}
+
+impl<const N: usize> From<FixedSizeArray<N>> for [u8; N] {
+    fn from(arr: FixedSizeArray<N>) -> Self {
+        arr.0
+    }
+}
+
+impl<const N: usize> From<[u8; N]> for FixedSizeArray<N> {
+    fn from(arr: [u8; N]) -> Self {
+        Self(arr)
+    }
+}
+
+/// Discriminant for [`OptionalFixedSizeArray`].
+#[derive(Copy, Clone)]
+#[repr(u8)]
+pub enum OptionalFixedSizeArrayKind {
+    /// The optional fixed-size array isn't specified.
+    NotSpecified = 0,
+    /// The optional fixed-size array is present.
+    Present = 1,
+}
+
+/// A FFI safe wrapper of an optional fixed-size byte array.
+#[derive(Clone)]
+#[cfg_attr(any(test, feature = "testing"), derive(Debug, PartialEq, Eq, arbitrary::Arbitrary))]
+#[repr(C)]
+pub enum OptionalFixedSizeArray<const N: usize> {
+    /// The optional fixed-size array isn't specified.
+    NotSpecified,
+    /// The optional fixed-size array is present.
+    Present(FixedSizeArray<N>),
+}
+
+impl<const N: usize> FfiEnum for OptionalFixedSizeArray<N> {
+    type Kind = OptionalFixedSizeArrayKind;
+    fn kind(&self) -> Self::Kind {
+        match self {
+            Self::NotSpecified => OptionalFixedSizeArrayKind::NotSpecified,
+            Self::Present(_) => OptionalFixedSizeArrayKind::Present,
+        }
+    }
+}
+
+impl<const N: usize> Default for OptionalFixedSizeArray<N> {
+    fn default() -> Self {
+        Self::NotSpecified
+    }
+}
+
+impl<const N: usize> OptionalFixedSizeArray<N> {
+    /// Attempts to cast `self` to the `Present` variant,
+    /// returning `None` in the case where the passed value is of a different enum variant.
+    pub fn into_present(self) -> Option<FixedSizeArray<N>> {
+        match self {
+            Self::NotSpecified => None,
+            Self::Present(x) => Some(x),
+        }
+    }
+    /// Returns true iff this `OptionalFixedSizeArray` has contents.
+    pub fn is_present(&self) -> bool {
+        match self {
+            Self::NotSpecified => false,
+            Self::Present(_) => true,
+        }
+    }
+    /// Alias for the `From` method which can save type annotations.
+    pub fn into_rust(self) -> Option<[u8; N]> {
+        self.into()
+    }
+}
+
+impl<const N: usize> From<Option<[u8; N]>> for OptionalFixedSizeArray<N> {
+    fn from(arr: Option<[u8; N]>) -> Self {
+        match arr {
+            None => Self::NotSpecified,
+            Some(x) => Self::Present(x.into()),
+        }
+    }
+}
+
+impl<const N: usize> From<OptionalFixedSizeArray<N>> for Option<[u8; N]> {
+    fn from(arr: OptionalFixedSizeArray<N>) -> Self {
+        match arr {
+            OptionalFixedSizeArray::NotSpecified => None,
+            OptionalFixedSizeArray::Present(x) => Some(x.into()),
         }
     }
 }
@@ -259,24 +389,85 @@ pub(crate) fn get_global_crypto_rng() -> RwLockWriteGuard<'static, LazyInitCrypt
 /// If this kind of error is being raised, the foreign lang code must
 /// be messing with stack-allocated data structures for this library
 /// in an entirely unexpected way.
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct InvalidStackDataStructure;
 
-/// Error raised when attempting to cast an enum to
-/// one of its variants, but the value is actually
-/// of a different variant than the requested one.
-pub struct EnumCastError {
-    pub(crate) projection_method_name: String,
-    pub(crate) variant_enum_name: String,
-    pub(crate) variant_type_name: String,
+/// Discriminant for `BuildTxPowerResult`.
+#[repr(u8)]
+#[derive(Clone, Copy)]
+pub enum BuildTxPowerResultKind {
+    /// The transmission power was outside the
+    /// allowed -100dBm to 20dBm range.
+    OutOfRange = 0,
+    /// The transmission power was in range,
+    /// and so a `TxPower` struct was constructed.
+    Success = 1,
 }
 
-impl core::fmt::Debug for EnumCastError {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(
-            f,
-            "Attempted to cast a non-{} to a {} via {}",
-            &self.variant_enum_name, &self.variant_type_name, &self.projection_method_name
-        )
+/// Result type for attempting to construct a
+/// Tx Power from a signed byte.
+#[repr(C)]
+#[allow(missing_docs)]
+pub enum BuildTxPowerResult {
+    OutOfRange,
+    Success(TxPower),
+}
+
+impl FfiEnum for BuildTxPowerResult {
+    type Kind = BuildTxPowerResultKind;
+    fn kind(&self) -> Self::Kind {
+        match self {
+            Self::OutOfRange => BuildTxPowerResultKind::OutOfRange,
+            Self::Success(_) => BuildTxPowerResultKind::Success,
+        }
+    }
+}
+
+impl BuildTxPowerResult {
+    declare_enum_cast! {into_success, Success, TxPower}
+}
+
+/// Representation of a transmission power,
+/// as used for the Tx Power DE in V0 and V1.
+#[derive(Clone, Copy)]
+#[cfg_attr(any(test, feature = "testing"), derive(Debug, PartialEq, Eq, arbitrary::Arbitrary))]
+#[repr(C)]
+pub struct TxPower {
+    pub(crate) tx_power: i8,
+}
+
+impl TxPower {
+    /// Attempts to construct a new TxPower from the given signed-byte value.
+    pub fn build_from_signed_byte(tx_power: i8) -> BuildTxPowerResult {
+        match np_adv::shared_data::TxPower::try_from(tx_power) {
+            Ok(_) => BuildTxPowerResult::Success(Self { tx_power }),
+            Err(_) => BuildTxPowerResult::OutOfRange,
+        }
+    }
+    /// Yields this Tx Power value as an i8.
+    pub fn as_i8(&self) -> i8 {
+        self.tx_power
+    }
+}
+
+#[cfg(any(test, feature = "testing"))]
+impl TxPower {
+    /// Constructs a new transmission power in an unchecked fashion
+    /// from an `i8`.
+    pub fn from_i8_unchecked(tx_power: i8) -> Self {
+        Self { tx_power }
+    }
+}
+
+impl From<np_adv::shared_data::TxPower> for TxPower {
+    fn from(tx_power: np_adv::shared_data::TxPower) -> Self {
+        Self { tx_power: tx_power.as_i8() }
+    }
+}
+
+impl TryFrom<TxPower> for np_adv::shared_data::TxPower {
+    type Error = InvalidStackDataStructure;
+    fn try_from(value: TxPower) -> Result<Self, InvalidStackDataStructure> {
+        np_adv::shared_data::TxPower::try_from(value.as_i8()).map_err(|_| InvalidStackDataStructure)
     }
 }

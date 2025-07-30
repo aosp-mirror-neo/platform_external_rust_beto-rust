@@ -17,7 +17,8 @@
 package com.google.android.nearby.presence.rust;
 
 import androidx.annotation.Nullable;
-import java.lang.ref.Cleaner;
+import com.google.android.cooperativecleaner.CooperativeCleaner;
+import java.util.Arrays;
 
 /**
  * Internal handle type for deserialized V0 advertisements. It provides access to the native data
@@ -25,8 +26,41 @@ import java.lang.ref.Cleaner;
  */
 public final class V0Payload extends OwnedHandle {
 
-  static {
-    System.loadLibrary(NpAdv.LIBRARY_NAME);
+  /** Internal data class to pass identity data back from native code. */
+  @UsedByNative
+  public static final class IdentityDetails {
+    /**
+     * @see com.google.android.nearby.presence.rust.credential.CredentialBook.Builder
+     */
+    private final int credentialId;
+
+    private final byte[] identityToken;
+    private final byte[] salt;
+    private final byte[] keySeed;
+
+    @UsedByNative
+    public IdentityDetails(int credentialId, byte[] identityToken, byte[] salt, byte[] keySeed) {
+      this.credentialId = credentialId;
+      this.identityToken = Arrays.copyOf(identityToken, identityToken.length);
+      this.salt = Arrays.copyOf(salt, salt.length);
+      this.keySeed = Arrays.copyOf(keySeed, keySeed.length);
+    }
+
+    public int getCredentialId() {
+      return credentialId;
+    }
+
+    public byte[] getIdentityToken() {
+      return identityToken;
+    }
+
+    public byte[] getSalt() {
+      return salt;
+    }
+
+    public byte[] getKeySeed() {
+      return keySeed;
+    }
   }
 
   /**
@@ -38,7 +72,7 @@ public final class V0Payload extends OwnedHandle {
   }
 
   /** Create a V0Payload handle from the raw handle id. */
-  /* package-visible */ V0Payload(long handleId, Cleaner cleaner) {
+  private V0Payload(long handleId, CooperativeCleaner cleaner) {
     super(handleId, cleaner, V0Payload::deallocate);
   }
 
@@ -58,7 +92,23 @@ public final class V0Payload extends OwnedHandle {
   }
 
   @Nullable
+  public IdentityDetails getIdentityDetails() {
+    return nativeGetIdentityDetails(this.handleId);
+  }
+
+  @Nullable
+  public byte[] getDecryptedMetadata() {
+    return nativeGetDecryptedMetadata(this.handleId);
+  }
+
+  @Nullable
   private static native V0DataElement nativeGetDataElement(long handleId, int index);
+
+  @Nullable
+  private static native IdentityDetails nativeGetIdentityDetails(long handleId);
+
+  @Nullable
+  private static native byte[] nativeGetDecryptedMetadata(long handleId);
 
   private static native void deallocate(long handleId);
 }

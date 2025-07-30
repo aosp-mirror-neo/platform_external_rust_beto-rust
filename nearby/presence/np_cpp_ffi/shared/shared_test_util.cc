@@ -18,6 +18,9 @@
 
 #include "nearby_protocol.h"
 
+using nearby_protocol::KEY_SEED_SIZE;
+using nearby_protocol::HMAC_TAG_SIZE;
+
 std::string PanicReasonToString(nearby_protocol::PanicReason reason) {
   switch (reason) {
     case nearby_protocol::PanicReason::EnumCastFailed: {
@@ -64,13 +67,15 @@ nearby_protocol::V0MatchableCredential GenerateRandomCredentialV0() {
 }
 
 nearby_protocol::V1MatchableCredential GenerateRandomCredentialV1() {
-  auto key_seed = create_random_array<32>();
-  auto expected_unsigned_metadata_key_hmac = create_random_array<32>();
-  auto expected_signed_metadata_key_hmac = create_random_array<32>();
-  auto pub_key = create_random_array<32>();
+  auto key_seed = create_random_array<KEY_SEED_SIZE>();
+  auto expected_mic_short_salt_identity_token_hmac = create_random_array<HMAC_TAG_SIZE>();
+  auto expected_mic_extended_salt_identity_token_hmac = create_random_array<HMAC_TAG_SIZE>();
   auto encrypted_metadata_bytes = create_random_array<200>();
   nearby_protocol::MatchedCredentialData matched_cred(rand(),
                                                       encrypted_metadata_bytes);
-  return {key_seed, expected_unsigned_metadata_key_hmac,
-          expected_signed_metadata_key_hmac, pub_key, matched_cred};
+  return nearby_protocol::V1MatchableCredential(
+      key_seed,
+      expected_mic_short_salt_identity_token_hmac,
+      expected_mic_extended_salt_identity_token_hmac,
+      matched_cred);
 }

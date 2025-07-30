@@ -18,9 +18,8 @@ use crate::{unwrap, PanicReason};
 use np_ffi_core::common::{ByteBuffer, FixedSizeArray};
 use np_ffi_core::credentials::V1BroadcastCredential;
 use np_ffi_core::serialize::v1::*;
-use np_ffi_core::serialize::AdvertisementBuilderKind;
 use np_ffi_core::utils::FfiEnum;
-use np_ffi_core::v1::V1VerificationMode;
+use np_ffi_core::v1::{GenericV1DataElement, V1DEType, V1VerificationMode};
 
 /// Attempts to create a builder for a new public section within
 /// the advertisement builder behind this handle,
@@ -75,11 +74,9 @@ pub extern "C" fn np_ffi_V1AdvertisementBuilder_into_advertisement(
 /// Creates a new V1 advertisement builder for the given advertisement
 /// kind (public/encrypted).
 #[no_mangle]
-pub extern "C" fn np_ffi_create_v1_advertisement_builder(
-    kind: AdvertisementBuilderKind,
-) -> V1AdvertisementBuilder {
+pub extern "C" fn np_ffi_create_v1_advertisement_builder() -> V1AdvertisementBuilder {
     unwrap(
-        create_v1_advertisement_builder(kind).into_success(),
+        create_v1_advertisement_builder().into_success(),
         PanicReason::ExceededMaxHandleAllocations,
     )
 }
@@ -118,19 +115,19 @@ pub extern "C" fn np_ffi_CreateV1SectionBuilderResult_into_SUCCESS(
     unwrap(result.into_success(), PanicReason::EnumCastFailed)
 }
 
-/// Gets the tag of a `NextV1DE16ByteSaltResult` tagged-union.
+/// Gets the tag of a `V1DE16ByteSaltResult` tagged-union.
 #[no_mangle]
-pub extern "C" fn np_ffi_NextV1DE16ByteSaltResult_kind(
-    result: NextV1DE16ByteSaltResult,
-) -> NextV1DE16ByteSaltResultKind {
+pub extern "C" fn np_ffi_V1DE16ByteSaltResult_kind(
+    result: V1DE16ByteSaltResult,
+) -> V1DE16ByteSaltResultKind {
     result.kind()
 }
 
-/// Casts a `NextV1DE16ByteSaltResult` to the `Success` variant,
+/// Casts a `V1DE16ByteSaltResult` to the `Success` variant,
 /// panicking in the case where the passed value is of a different enum variant.
 #[no_mangle]
-pub extern "C" fn np_ffi_NextV1DE16ByteSaltResult_into_SUCCESS(
-    result: NextV1DE16ByteSaltResult,
+pub extern "C" fn np_ffi_V1DE16ByteSaltResult_into_SUCCESS(
+    result: V1DE16ByteSaltResult,
 ) -> FixedSizeArray<16> {
     unwrap(result.into_success(), PanicReason::EnumCastFailed)
 }
@@ -145,24 +142,27 @@ pub extern "C" fn np_ffi_V1SectionBuilder_add_to_advertisement(
     section_builder.add_to_advertisement()
 }
 
-/// Attempts to get the derived 16-byte V1 DE salt for the next
-/// DE to be added to the passed section builder. May fail if this
-/// section builder handle is invalid, or if the section
-/// is a public section.
+/// Attempts to get the derived 16-byte V1 DE salt for a
+/// data element with the given type code in the context
+/// of the passed section builder. May fail if this
+/// section builder handle is invalid, if the section
+/// is a public section, or if the DE type-code is
+/// forbidden (0xFFFFFFFF).
 #[no_mangle]
-pub extern "C" fn np_ffi_V1SectionBuilder_next_de_salt(
+pub extern "C" fn np_ffi_V1SectionBuilder_de_salt(
     section_builder: V1SectionBuilder,
-) -> NextV1DE16ByteSaltResult {
-    section_builder.next_de_salt()
+    de_type: V1DEType,
+) -> V1DE16ByteSaltResult {
+    section_builder.de_salt(de_type)
 }
 
 /// Attempts to add the given DE to the section builder behind
 /// this handle. The passed DE may have a payload of up to 127
 /// bytes, the maximum for a V1 DE.
 #[no_mangle]
-pub extern "C" fn np_ffi_V1SectionBuilder_add_127_byte_buffer_de(
+pub extern "C" fn np_ffi_V1SectionBuilder_add_generic_de(
     section_builder: V1SectionBuilder,
-    de: V1DE127ByteBuffer,
+    de: GenericV1DataElement,
 ) -> AddV1DEResult {
-    section_builder.add_127_byte_buffer_de(de)
+    section_builder.add_generic_de(de)
 }

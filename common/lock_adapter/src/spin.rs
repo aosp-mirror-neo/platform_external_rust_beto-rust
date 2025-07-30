@@ -18,7 +18,10 @@ use crate::NoPoisonMutex;
 pub struct Mutex<T>(spin::Mutex<T>);
 
 impl<T> NoPoisonMutex<T> for Mutex<T> {
-    type MutexGuard<'a> = spin::MutexGuard<'a, T> where T: 'a;
+    type MutexGuard<'a>
+        = spin::MutexGuard<'a, T>
+    where
+        T: 'a;
 
     fn lock(&self) -> Self::MutexGuard<'_> {
         self.0.lock()
@@ -47,8 +50,14 @@ impl<T> RwLock<T> {
 }
 
 impl<T> crate::RwLock<T> for RwLock<T> {
-    type RwLockReadGuard<'a> = spin::RwLockReadGuard<'a, T> where T: 'a;
-    type RwLockWriteGuard<'a> = spin::RwLockWriteGuard<'a, T> where T: 'a;
+    type RwLockReadGuard<'a>
+        = spin::RwLockReadGuard<'a, T>
+    where
+        T: 'a;
+    type RwLockWriteGuard<'a>
+        = spin::RwLockWriteGuard<'a, T>
+    where
+        T: 'a;
 
     fn read(&self) -> Self::RwLockReadGuard<'_> {
         self.0.read()

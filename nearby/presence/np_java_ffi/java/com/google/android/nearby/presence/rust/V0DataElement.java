@@ -41,10 +41,17 @@ public abstract class V0DataElement {
   public abstract void visit(Visitor v);
 
   /** Contains the TxPower information. See the spec for more information. */
+  @UsedByNative
   public static final class TxPower extends V0DataElement {
-    private final int txPower;
+    @UsedByNative private final int txPower;
 
-    public TxPower(int txPower) {
+    public TxPower(NpAdv npAdv, int txPower) {
+      this(txPower);
+      npAdv.ensureLoaded();
+    }
+
+    @UsedByNative
+    private TxPower(int txPower) {
       this.txPower = txPower;
     }
 
@@ -52,6 +59,7 @@ public abstract class V0DataElement {
       return txPower;
     }
 
+    @Override
     public void visit(Visitor v) {
       v.visitTxPower(this);
     }
@@ -68,7 +76,7 @@ public abstract class V0DataElement {
   })
   @Retention(SOURCE)
   public @interface V0ActionType {
-    // NOTE: Copied from `np_ffi_core::v0::BooleanActionType`.
+    // NOTE: Copied from `np_ffi_core::v0::ActionType`.
     public static final int CROSS_DEV_SDK = 1;
     public static final int CALL_TRANSFER = 4;
     public static final int ACTIVE_UNLOCK = 8;
@@ -78,15 +86,30 @@ public abstract class V0DataElement {
   }
 
   /** The Actions data element. See the spec for more information. */
+  @UsedByNative
   public static final class V0Actions extends V0DataElement {
-    static {
-      System.loadLibrary(NpAdv.LIBRARY_NAME);
+
+    @UsedByNative @IdentityKind private final int identityKind;
+    @UsedByNative private final int actionBits;
+
+    /**
+     * Create an actions data element.
+     *
+     * @throws IllegalArgumentException when {@code identityKind} is not {@link
+     *     IdentityKind#PLAINTEXT} or {@link IdentityKind#DECRYPTED}, or an {@code actions} value is
+     *     not a valid {@link V0ActionType}.
+     * @throws IllegalStateException when an action is not a valid action for the given identity
+     *     kind.
+     */
+    public V0Actions(NpAdv npAdv, @IdentityKind int identityKind, @V0ActionType int... actions) {
+      npAdv.ensureLoaded();
+      this.identityKind = identityKind;
+      this.actionBits = nativeMergeActions(identityKind, actions);
     }
 
-    private final @IdentityKind int identityKind;
-    private final int actionBits;
-
-    public V0Actions(@IdentityKind int identityKind, int actionBits) {
+    /** Used by native code. This must be private to avoid being confused with the above method. */
+    @UsedByNative
+    private V0Actions(@IdentityKind int identityKind, int actionBits) {
       this.identityKind = identityKind;
       this.actionBits = actionBits;
     }
@@ -105,10 +128,15 @@ public abstract class V0DataElement {
       return nativeHasAction(identityKind, actionBits, action);
     }
 
+    @Override
     public void visit(Visitor v) {
       v.visitV0Actions(this);
     }
 
-    private static native boolean nativeHasAction(int identityKind, int actionBits, int action);
+    private static native boolean nativeHasAction(
+        @IdentityKind int identityKind, int actionBits, @V0ActionType int action);
+
+    private static native int nativeMergeActions(
+        @IdentityKind int identityKind, @V0ActionType int[] actions);
   }
 }

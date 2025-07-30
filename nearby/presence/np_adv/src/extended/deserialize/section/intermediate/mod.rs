@@ -21,7 +21,6 @@ use crate::{
         deserialize::{
             encrypted_section::{
                 EncryptedSectionContents, MicEncryptedSection, SectionIdentityResolutionContents,
-                SignatureEncryptedSection,
             },
             section::header::{
                 CiphertextExtendedIdentityToken, EncryptedSectionHeader, SectionHeader,
@@ -29,14 +28,14 @@ use crate::{
             DataElementParsingIterator, Section, SectionMic,
         },
         salt::MultiSalt,
-        NP_V1_ADV_MAX_ENCRYPTED_SECTION_COUNT, NP_V1_ADV_MAX_PUBLIC_SECTION_COUNT,
+        EncodingType, NP_V1_ADV_MAX_SECTION_COUNT,
     },
     header::V1AdvHeader,
 };
-use crypto_provider::CryptoProvider;
-use nom::{branch, bytes, combinator, error, multi};
 
-use crate::extended::deserialize::data_element::DataElementParseError;
+use crypto_provider::CryptoProvider;
+use nom::{combinator, error};
+
 #[cfg(feature = "devtools")]
 use crate::{
     credential::v1::V1DiscoveryCryptoMaterial, deserialization_arena::DeserializationArenaAllocator,
@@ -55,34 +54,69 @@ pub(crate) fn parse_sections(
     adv_header: V1AdvHeader,
     adv_body: &[u8],
 ) -> Result<
-    ArrayVecOption<IntermediateSection, NP_V1_ADV_MAX_ENCRYPTED_SECTION_COUNT>,
+    ArrayVecOption<IntermediateSection, NP_V1_ADV_MAX_SECTION_COUNT>,
     nom::Err<error::Error<&[u8]>>,
 > {
-    combinator::all_consuming(branch::alt((
-        // Public advertisement
-        multi::fold_many_m_n(
-            1,
-            NP_V1_ADV_MAX_PUBLIC_SECTION_COUNT,
-            IntermediateSection::parser_unencrypted_section,
-            ArrayVecOption::default,
-            |mut acc, item| {
-                acc.push(item);
-                acc
-            },
-        ),
-        // Encrypted advertisement
-        multi::fold_many_m_n(
-            1,
-            NP_V1_ADV_MAX_ENCRYPTED_SECTION_COUNT,
-            IntermediateSection::parser_encrypted_with_header(adv_header),
-            ArrayVecOption::default,
-            |mut acc, item| {
-                acc.push(item);
-                acc
-            },
-        ),
-    )))(adv_body)
-    .map(|(_rem, sections)| sections)
+    let mut result = ArrayVecOption::default();
+
+    // Parse through at most NP_V1_ADV_MAX_SECTION_COUNT
+    // sections, bailing with errors if any section with a
+    // known encoding type fails to parse, or if the encoding
+    // types are not sorted.
+    //
+    // Not using nom parser combinators here due to the relatively complex
+    // logic around deciding whether/not to continue parsing,
+    // which is not entirely based on the number of sections
+    // nor on the content of the sections alone.
+    let mut remaining_contents = adv_body;
+    let mut largest_encountered_encoding_type: u8 = 0;
+    while !remaining_contents.is_empty() && result.len() < NP_V1_ADV_MAX_SECTION_COUNT {
+        // Attempt to grab a new section.
+        let (updated_remaining_contents, maybe_section_contents) =
+            SectionContents::parse(remaining_contents)?;
+        remaining_contents = updated_remaining_contents;
+
+        let Ok(section_contents) = maybe_section_contents else {
+            // We hit an encoding type which we do not recognize. Truncate the
+            // advertisement to only what we've parsed and bail from the loop.
+            remaining_contents = &[];
+            break;
+        };
+        // Ensure that the encoding type is nondecreasing through the adverisement sections.
+        let current_encoding_type = section_contents.header.encoding_type().0;
+        if current_encoding_type < largest_encountered_encoding_type {
+            return Err(nom::Err::Failure(nom::error::Error::new(
+                remaining_contents,
+                nom::error::ErrorKind::Verify,
+            )));
+        }
+        largest_encountered_encoding_type = current_encoding_type;
+
+        // Attempt to lift the section contents to an [`IntermediateSection`].
+        let intermediate_section = IntermediateSection::try_parse(adv_header, section_contents)
+            .ok_or(nom::Err::Failure(nom::error::Error::new(
+                remaining_contents,
+                nom::error::ErrorKind::NonEmpty,
+            )))?;
+        result.push(intermediate_section);
+    }
+    // We've parsed as many sections as we can, ensure there's at least one section
+    // and check whether/not there are trailing bytes to determine overall success/failure.
+    if !result.is_empty() {
+        if remaining_contents.is_empty() {
+            Ok(result)
+        } else {
+            Err(nom::Err::Failure(nom::error::Error::new(
+                remaining_contents,
+                nom::error::ErrorKind::Complete,
+            )))
+        }
+    } else {
+        Err(nom::Err::Failure(nom::error::Error::new(
+            remaining_contents,
+            nom::error::ErrorKind::Many1,
+        )))
+    }
 }
 
 /// A partially processed section that hasn't been decrypted (if applicable) yet.
@@ -95,66 +129,59 @@ pub(crate) enum IntermediateSection<'a> {
 }
 
 impl<'a> IntermediateSection<'a> {
-    fn parser_unencrypted_section(
-        np_adv_body: &'a [u8],
-    ) -> nom::IResult<&'a [u8], IntermediateSection<'a>> {
-        combinator::map_opt(SectionContents::parse, |sc| match sc.header {
-            SectionHeader::Unencrypted => {
-                Some(IntermediateSection::Plaintext(PlaintextSection::new(sc.contents)))
-            }
-            SectionHeader::Encrypted(_) => None,
-        })(np_adv_body)
-    }
-
-    pub(crate) fn parser_encrypted_with_header(
+    /// Given some section contents, attempts to construct
+    /// an [`IntermediateSection`] out of them. May return
+    /// `None` if the section is malformed according to
+    /// the rules of its encoding type.
+    pub(crate) fn try_parse(
         adv_header: V1AdvHeader,
-    ) -> impl Fn(&'a [u8]) -> nom::IResult<&[u8], IntermediateSection> {
-        move |adv_body| {
-            fn split_at_mic(contents: &[u8]) -> Option<(&[u8], SectionMic)> {
-                contents.len().checked_sub(SectionMic::CONTENTS_LEN).map(|len_before_mic| {
-                    let (before_mic, mic) = contents.split_at(len_before_mic);
-                    let mic = SectionMic::try_from(mic).expect("MIC length checked above");
+        section_contents: SectionContents<'a>,
+    ) -> Option<IntermediateSection<'a>> {
+        fn split_at_mic(contents: &[u8]) -> Option<(&[u8], SectionMic)> {
+            contents.len().checked_sub(SectionMic::CONTENTS_LEN).map(|len_before_mic| {
+                let (before_mic, mic) = contents.split_at(len_before_mic);
+                let mic = SectionMic::try_from(mic).expect("MIC length checked above");
 
-                    (before_mic, mic)
-                })
-            }
+                (before_mic, mic)
+            })
+        }
 
-            fn build_mic_section<'a>(
-                adv_header: V1AdvHeader,
-                format_bytes: &'a [u8],
-                salt: MultiSalt,
-                token: CiphertextExtendedIdentityToken,
-                contents_len: u8,
-                contents: &'a [u8],
-            ) -> Option<IntermediateSection<'a>> {
-                split_at_mic(contents).map(|(before_mic, mic)| {
-                    IntermediateSection::Ciphertext(CiphertextSection::MicEncrypted(
-                        MicEncryptedSection {
-                            contents: EncryptedSectionContents::new(
-                                adv_header,
-                                format_bytes,
-                                salt,
-                                token,
-                                contents_len,
-                                before_mic,
-                            ),
-                            mic,
-                        },
-                    ))
-                })
-            }
-
-            combinator::map_opt(
-                combinator::map_opt(SectionContents::parse, |sc| match sc.header {
-                    SectionHeader::Unencrypted => None,
-                    SectionHeader::Encrypted(e) => {
-                        Some((sc.format_bytes, sc.contents, sc.contents_len, e))
-                    }
-                }),
-                move |(format_bytes, contents, contents_len, header)| match header {
+        fn build_mic_section(
+            adv_header: V1AdvHeader,
+            format_byte: u8,
+            salt: MultiSalt,
+            token: CiphertextExtendedIdentityToken,
+            contents_len: u8,
+            contents: &[u8],
+        ) -> Option<IntermediateSection<'_>> {
+            split_at_mic(contents).map(|(before_mic, mic)| {
+                IntermediateSection::Ciphertext(CiphertextSection::MicEncrypted(
+                    MicEncryptedSection {
+                        contents: EncryptedSectionContents::new(
+                            adv_header,
+                            format_byte,
+                            salt,
+                            token,
+                            contents_len,
+                            before_mic,
+                        ),
+                        mic,
+                    },
+                ))
+            })
+        }
+        match section_contents.header {
+            SectionHeader::Unencrypted => Some(IntermediateSection::Plaintext(
+                PlaintextSection::new(section_contents.contents),
+            )),
+            SectionHeader::Encrypted(e) => {
+                let format_byte = section_contents.format_byte;
+                let contents = section_contents.contents;
+                let contents_len = section_contents.contents_len;
+                match e {
                     EncryptedSectionHeader::MicShortSalt { salt, token } => build_mic_section(
                         adv_header,
-                        format_bytes,
+                        format_byte,
                         salt.into(),
                         token,
                         contents_len,
@@ -162,28 +189,14 @@ impl<'a> IntermediateSection<'a> {
                     ),
                     EncryptedSectionHeader::MicExtendedSalt { salt, token } => build_mic_section(
                         adv_header,
-                        format_bytes,
+                        format_byte,
                         salt.into(),
                         token,
                         contents_len,
                         contents,
                     ),
-                    EncryptedSectionHeader::SigExtendedSalt { salt, token } => {
-                        Some(IntermediateSection::Ciphertext(
-                            CiphertextSection::SignatureEncrypted(SignatureEncryptedSection {
-                                contents: EncryptedSectionContents::new(
-                                    adv_header,
-                                    format_bytes,
-                                    salt,
-                                    token,
-                                    contents_len,
-                                    contents,
-                                ),
-                            }),
-                        ))
-                    }
-                },
-            )(adv_body)
+                }
+            }
         }
     }
 }
@@ -193,8 +206,8 @@ impl<'a> IntermediateSection<'a> {
 /// This is just the first stage of parsing sections, followed by [IntermediateSection].
 #[derive(PartialEq, Eq, Debug)]
 pub(crate) struct SectionContents<'adv> {
-    /// 1-2 bytes of the format saved for later use in verification
-    pub(crate) format_bytes: &'adv [u8],
+    /// The section header format byte saved for later use in verification
+    pub(crate) format_byte: u8,
     /// Section header contents which includes salt + identity token
     pub(crate) header: SectionHeader,
     /// Contents of the section after the header.
@@ -205,11 +218,32 @@ pub(crate) struct SectionContents<'adv> {
 }
 
 impl<'adv> SectionContents<'adv> {
-    pub(crate) fn parse(input: &'adv [u8]) -> nom::IResult<&'adv [u8], Self> {
-        let (input, (format_bytes, header, contents_len)) = SectionHeader::parse(input)?;
-        let (input, contents) = bytes::complete::take(contents_len)(input)?;
+    /// Attempts to parse the contents of a section (including the header)
+    /// from the given bytes.
+    ///
+    /// If the encoding type of the section header was unrecognized,
+    /// this method will bail on attempting to parse the entire section
+    /// contents and will instead consume only the first encoding-type byte,
+    /// but the parser WILL succeed as a nom parser.
+    pub(crate) fn parse(input: &'adv [u8]) -> nom::IResult<&'adv [u8], Result<Self, EncodingType>> {
+        match SectionHeader::parse(input)? {
+            (input, Ok(header)) => {
+                // Header parsed successfully, with a known encoding type.
+                let format_byte = header.encoding_type().0;
+                let (input, contents_len) = combinator::verify(nom::number::complete::u8, |b| {
+                    // length must be non-zero.
+                    *b != 0
+                })(input)?;
 
-        Ok((input, Self { format_bytes, header, contents, contents_len }))
+                let (input, contents) = nom::bytes::complete::take(contents_len)(input)?;
+
+                Ok((input, Ok(Self { format_byte, header, contents, contents_len })))
+            }
+            (input, Err(encoding_type)) => {
+                // Unknown encoding type.
+                Ok((input, Err(encoding_type)))
+            }
+        }
     }
 }
 
@@ -225,23 +259,20 @@ impl<'adv> PlaintextSection<'adv> {
     }
 }
 
-impl<'adv> Section<'adv, DataElementParseError> for PlaintextSection<'adv> {
-    type Iterator = DataElementParsingIterator<'adv>;
-
-    fn iter_data_elements(&self) -> Self::Iterator {
-        DataElementParsingIterator::new(self.contents)
+impl<'adv> Section<'adv> for PlaintextSection<'adv> {
+    fn iter_data_elements(&self) -> DataElementParsingIterator<'adv> {
+        DataElementParsingIterator::new(self.contents, None)
     }
 }
 
 #[derive(PartialEq, Eq, Debug)]
 pub(crate) enum CiphertextSection<'a> {
-    SignatureEncrypted(SignatureEncryptedSection<'a>),
     MicEncrypted(MicEncryptedSection<'a>),
 }
 
+#[cfg(feature = "devtools")]
 impl<'a> CiphertextSection<'a> {
     /// Try decrypting into some raw bytes given some raw unsigned crypto-material.
-    #[cfg(feature = "devtools")]
     pub(crate) fn try_resolve_identity_and_decrypt<
         C: V1DiscoveryCryptoMaterial,
         P: CryptoProvider,
@@ -251,11 +282,6 @@ impl<'a> CiphertextSection<'a> {
         crypto_material: &C,
     ) -> Option<Result<ArrayView<u8, { NP_ADV_MAX_SECTION_LEN }>, ArenaOutOfSpace>> {
         match self {
-            CiphertextSection::SignatureEncrypted(x) => {
-                let identity_resolution_material =
-                    crypto_material.signed_identity_resolution_material::<P>();
-                x.try_resolve_identity_and_decrypt::<P>(allocator, &identity_resolution_material)
-            }
             CiphertextSection::MicEncrypted(x) => match x.contents.salt {
                 MultiSalt::Short(_) => x.try_resolve_short_salt_identity_and_decrypt::<P>(
                     allocator,
@@ -268,7 +294,9 @@ impl<'a> CiphertextSection<'a> {
             },
         }
     }
+}
 
+impl CiphertextSection<'_> {
     /// Return the data needed to resolve identities.
     ///
     /// In the typical case of trying many identities across a few sections,
@@ -278,9 +306,6 @@ impl<'a> CiphertextSection<'a> {
         &self,
     ) -> SectionIdentityResolutionContents {
         match self {
-            CiphertextSection::SignatureEncrypted(x) => {
-                x.contents.compute_identity_resolution_contents::<C>()
-            }
             CiphertextSection::MicEncrypted(x) => {
                 x.contents.compute_identity_resolution_contents::<C>()
             }

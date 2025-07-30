@@ -16,6 +16,6 @@
 //! being compiled as an integration test.
 
 // Not every item is used in every test
-#![allow(dead_code)]
+#![allow(dead_code, missing_docs)]
 
 pub mod foo_class;

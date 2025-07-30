@@ -16,13 +16,9 @@
 
 use super::*;
 use crate::extended::V1_IDENTITY_TOKEN_LEN;
-use np_hkdf::v1_salt::{ExtendedV1Salt, EXTENDED_SALT_LEN};
 
 #[cfg(test)]
 mod mic_decrypt_tests;
-
-#[cfg(test)]
-mod signature_decrypt_tests;
 
 #[cfg(test)]
 mod coverage_gaming;
@@ -54,10 +50,6 @@ impl<V: VerificationError> From<V> for IdentityResolutionOrDeserializationError<
     }
 }
 
-pub(crate) fn first_section_contents(after_version_header: &[u8]) -> &[u8] {
-    &after_version_header[1 + EXTENDED_SALT_LEN + V1_IDENTITY_TOKEN_LEN + 1..]
-}
-
 pub(crate) fn first_section_identity_token(
     salt: MultiSalt,
     after_version_header: &[u8],
@@ -67,22 +59,4 @@ pub(crate) fn first_section_identity_token(
         .try_into()
         .map(|arr: [u8; V1_IDENTITY_TOKEN_LEN]| arr.into())
         .unwrap()
-}
-
-pub(crate) fn first_section_format(after_version_header: &[u8]) -> &[u8] {
-    // 1 byte of format comes at the beginning
-    &after_version_header[..1]
-}
-
-pub(crate) fn first_section_salt(after_version_header: &[u8]) -> ExtendedV1Salt {
-    // Next 16 bytes after 1 byte format
-    after_version_header[1..][..EXTENDED_SALT_LEN]
-        .try_into()
-        .map(|arr: [u8; EXTENDED_SALT_LEN]| arr.into())
-        .unwrap()
-}
-
-pub(crate) fn first_section_contents_len(after_version_header: &[u8]) -> u8 {
-    // section len is the first byte after format + salt + identity token
-    after_version_header[1 + EXTENDED_SALT_LEN + V1_IDENTITY_TOKEN_LEN..][0]
 }

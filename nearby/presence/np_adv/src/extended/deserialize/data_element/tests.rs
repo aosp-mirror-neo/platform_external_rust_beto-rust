@@ -48,17 +48,7 @@ fn parse_de_multi_byte_header_length_overrun() {
 fn parse_de_with_1_byte_header() {
     let data = [0x51, 0x01, 0x02, 0x03, 0x04, 0x05, 0xFF, 0xFF];
     assert_eq!(
-        Ok((
-            &data[6..],
-            ProtoDataElement {
-                header: DeHeader {
-                    de_type: 1_u8.into(),
-                    header_bytes: ArrayView::try_from_slice(&[0x51]).unwrap(),
-                    contents_len: 5_u8.try_into().unwrap(),
-                },
-                contents: &data[1..6],
-            }
-        )),
+        Ok((&data[6..], ProtoDataElement { de_type: 1_u8.into(), contents: &data[1..6] })),
         ProtoDataElement::parse(&data)
     );
 }
@@ -67,17 +57,7 @@ fn parse_de_with_1_byte_header() {
 fn parse_de_with_2_byte_header() {
     let data = [0x85, 0x10, 0x01, 0x02, 0x03, 0x04, 0x05, 0xFF, 0xFF];
     assert_eq!(
-        Ok((
-            &data[7..],
-            ProtoDataElement {
-                header: DeHeader {
-                    de_type: 16_u8.into(),
-                    header_bytes: ArrayView::try_from_slice(&[0x85, 0x10]).unwrap(),
-                    contents_len: 5_u8.try_into().unwrap(),
-                },
-                contents: &data[2..7],
-            }
-        )),
+        Ok((&data[7..], ProtoDataElement { de_type: 16_u8.into(), contents: &data[2..7] })),
         ProtoDataElement::parse(&data)
     );
 }
@@ -88,14 +68,7 @@ fn parse_de_with_3_byte_header() {
     assert_eq!(
         Ok((
             &data[8..],
-            ProtoDataElement {
-                header: DeHeader {
-                    header_bytes: ArrayView::try_from_slice(&[0x85, 0xC1, 0x41]).unwrap(),
-                    contents_len: 5_u8.try_into().unwrap(),
-                    de_type: 0b0000_0000_0000_0000_0010_0000_1100_0001_u32.into(),
-                },
-                contents: &data[3..8],
-            }
+            ProtoDataElement { de_type: 0b0010_0000_1100_0001_u16.into(), contents: &data[3..8] }
         )),
         ProtoDataElement::parse(&data)
     );
@@ -105,14 +78,7 @@ fn parse_de_with_3_byte_header() {
 fn parse_de_header_1_byte() {
     let data = [0x51, 0xFF, 0xFF];
     assert_eq!(
-        Ok((
-            &data[1..],
-            DeHeader {
-                de_type: 1_u8.into(),
-                contents_len: 5_u8.try_into().unwrap(),
-                header_bytes: ArrayView::try_from_slice(&[0x51]).unwrap(),
-            }
-        )),
+        Ok((&data[1..], DeHeader { de_type: 1_u8.into(), contents_len: 5_u8.try_into().unwrap() })),
         DeHeader::parse(&data)
     );
 }
@@ -121,14 +87,7 @@ fn parse_de_header_1_byte() {
 fn parse_de_header_2_bytes() {
     let data = [0x88, 0x01];
     assert_eq!(
-        Ok((
-            &data[2..],
-            DeHeader {
-                de_type: 1_u8.into(),
-                contents_len: 8_u8.try_into().unwrap(),
-                header_bytes: ArrayView::try_from_slice(&[0x88, 0x01]).unwrap(),
-            }
-        )),
+        Ok((&data[2..], DeHeader { de_type: 1_u8.into(), contents_len: 8_u8.try_into().unwrap() })),
         DeHeader::parse(&data)
     );
 }
@@ -140,9 +99,8 @@ fn parse_de_header_3_bytes() {
         Ok((
             &data[3..],
             DeHeader {
-                de_type: 0b0000_0000_0000_0000_0010_0000_1100_0001_u32.into(),
+                de_type: 0b0010_0000_1100_0001_u16.into(),
                 contents_len: 3_u8.try_into().unwrap(),
-                header_bytes: ArrayView::try_from_slice(&[0x83, 0xC1, 0x41]).unwrap(),
             }
         )),
         DeHeader::parse(&data)
@@ -156,9 +114,8 @@ fn parse_de_header_4_bytes() {
         Ok((
             &data[4..],
             DeHeader {
-                de_type: 0b0000_0000_0001_0000_0110_0000_1100_0001_u32.into(),
+                de_type: 0b0000_0000_0001_0000_0110_0000_1100_0001_u32.try_into().unwrap(),
                 contents_len: 3_u8.try_into().unwrap(),
-                header_bytes: ArrayView::try_from_slice(&[0x83, 0xC1, 0xC1, 0x41]).unwrap(),
             }
         )),
         DeHeader::parse(&data)
@@ -172,15 +129,13 @@ fn parse_de_header_max_length_extension() {
     // does make it to 5 bytes, we will only read the least significant 32 bits out of a possible 35.
     // The contents of the most significant 3 bits of type code must be 0's, otherwise the adv will
     // be discarded
-    let data = [0x80, 0x8F, 0xFF, 0xFF, 0xFF, 0x7F];
+    let data = [0x80, 0x8F, 0xFF, 0xFF, 0xFF, 0x7E];
     assert_eq!(
         Ok((
             &data[6..],
             DeHeader {
-                de_type: u32::MAX.into(),
-                contents_len: 0_u8.try_into().unwrap(),
-                header_bytes: ArrayView::try_from_slice(&[0x80, 0x8F, 0xFF, 0xFF, 0xFF, 0x7F])
-                    .unwrap(),
+                de_type: 0xFFFFFFFEu32.try_into().unwrap(),
+                contents_len: 0_u8.try_into().unwrap()
             }
         )),
         DeHeader::parse(&data)
@@ -240,20 +195,41 @@ fn parse_de_header_invalid_multi_byte_type_code() {
 }
 
 #[test]
-fn de_iteration_exposes_correct_data() {
+fn unsalted_de_iteration_exposes_correct_data() {
     let mut de_data = vec![];
     // de 1 byte header, type 5, len 5
     de_data.extend_from_slice(&[0x55, 0x01, 0x02, 0x03, 0x04, 0x05]);
     // de 2 byte header, type 16, len 1
     de_data.extend_from_slice(&[0x81, 0x10, 0x01]);
 
-    let iterator = DataElementParsingIterator::new(&de_data);
+    let iterator = DataElementParsingIterator::new(&de_data, None);
     let des = iterator.collect::<Result<Vec<_>, _>>().unwrap();
 
     assert_eq!(
         vec![
-            DataElement::new(0.into(), 5_u32.into(), &[0x01, 0x02, 0x03, 0x04, 0x05]),
-            DataElement::new(1.into(), 16_u32.into(), &[0x01]),
+            DataElement::new(5_u8.into(), &[0x01, 0x02, 0x03, 0x04, 0x05], None),
+            DataElement::new(16_u8.into(), &[0x01], None),
+        ],
+        des
+    );
+}
+
+#[test]
+fn salted_de_iteration_exposes_correct_data() {
+    let salt = ExtendedV1Salt::from([3u8; 16]);
+    let mut de_data = vec![];
+    // de 1 byte header, type 5, len 5
+    de_data.extend_from_slice(&[0x55, 0x01, 0x02, 0x03, 0x04, 0x05]);
+    // de 2 byte header, type 16, len 1
+    de_data.extend_from_slice(&[0x81, 0x10, 0x01]);
+
+    let iterator = DataElementParsingIterator::new(&de_data, Some(salt));
+    let des = iterator.collect::<Result<Vec<_>, _>>().unwrap();
+
+    assert_eq!(
+        vec![
+            DataElement::new(5_u8.into(), &[0x01, 0x02, 0x03, 0x04, 0x05], Some(salt),),
+            DataElement::new(16_u8.into(), &[0x01], Some(salt),),
         ],
         des
     );
@@ -265,10 +241,10 @@ fn de_iteration_single_de() {
     // de 2 byte header, type 16, len 1
     de_data.extend_from_slice(&[0x81, 0x10, 0x01]);
 
-    let iterator = DataElementParsingIterator::new(&de_data);
+    let iterator = DataElementParsingIterator::new(&de_data, None);
     let des = iterator.collect::<Result<Vec<_>, _>>().unwrap();
 
-    assert_eq!(vec![DataElement::new(0.into(), 16_u32.into(), &[0x01]),], des);
+    assert_eq!(vec![DataElement::new(16_u8.into(), &[0x01], None),], des);
 }
 
 #[test]
@@ -277,40 +253,24 @@ fn de_iteration_single_de_empty_contents() {
     // de 1 byte header, type 1, len 0
     de_data.extend_from_slice(&[0x01]);
 
-    let iterator = DataElementParsingIterator::new(&de_data);
+    let iterator = DataElementParsingIterator::new(&de_data, None);
     let des = iterator.collect::<Result<Vec<_>, _>>().unwrap();
 
-    assert_eq!(vec![DataElement::new(0.into(), 1_u32.into(), &[])], des);
+    assert_eq!(vec![DataElement::new(1_u8.into(), &[], None)], des);
 }
 
 #[test]
-fn de_iteration_max_number_des() {
+fn de_iteration_type_codes_out_of_order() {
     let mut de_data = vec![];
-    // de 1 byte header, type 1, len 0
-    // add this 255 times which is the max amount of
-    // supported DEs in a single section
-    for _ in 0..255 {
-        de_data.extend_from_slice(&[0x01]);
-    }
+    // de 1 byte header, type 1, len 0.
+    de_data.extend_from_slice(&[0x01]);
+    // de 1 byte header, type 0, len 0.
+    de_data.extend_from_slice(&[0x00]);
 
-    let iterator = DataElementParsingIterator::new(&de_data);
-    assert!(iterator.collect::<Result<Vec<_>, _>>().is_ok());
-}
+    let iterator = DataElementParsingIterator::new(&de_data, None);
+    let des = iterator.collect::<Result<Vec<_>, _>>().unwrap_err();
 
-#[test]
-fn de_iteration_over_max_number_des() {
-    let mut de_data = vec![];
-    // de 1 byte header, type 1, len 0
-    // add this 256 times to exceed max number of des in a section
-    for _ in 0..256 {
-        de_data.extend_from_slice(&[0x01]);
-    }
-
-    let iterator = DataElementParsingIterator::new(&de_data);
-    assert_eq!(
-        iterator.collect::<Result<Vec<_>, _>>(),
-        Err(DataElementParseError::TooManyDataElements)
-    );
+    assert_eq!(DataElementParseError::TypeCodesOutOfOrder, des)
 }
 
 #[test]
@@ -319,7 +279,7 @@ fn de_parse_error_invalid_length_header() {
     // de 1 byte header, type 1, len 2, but only one byte left to process
     de_data.extend_from_slice(&[0x21, 0x00]);
 
-    let iterator = DataElementParsingIterator::new(&de_data);
+    let iterator = DataElementParsingIterator::new(&de_data, None);
     assert_eq!(
         iterator.collect::<Result<Vec<_>, _>>(),
         Err(DataElementParseError::UnexpectedDataAfterEnd)
@@ -333,12 +293,9 @@ mod coverage_gaming {
     #[allow(clippy::clone_on_copy)]
     #[test]
     fn data_element_debug_and_clone() {
-        let de = DataElement::new(0.into(), 0_u32.into(), &[]);
+        let de = DataElement::new(0_u8.into(), &[], None);
         let _ = format!("{:?}", de);
         let _ = de.clone();
-        let iterator = DataElementParsingIterator::new(&[]);
-        let _ = format!("{:?}", iterator);
-        let _ = format!("{:?}", DataElementParseError::TooManyDataElements);
         let (_, header) = DeHeader::parse(&[0x11, 0xFF]).unwrap();
         let _ = format!("{:?}", header);
         let _ = header.clone();

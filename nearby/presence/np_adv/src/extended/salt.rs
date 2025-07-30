@@ -17,9 +17,28 @@
 use nom::combinator;
 
 use crypto_provider::{aes::ctr::AesCtrNonce, CryptoProvider, CryptoRng, FromCryptoRng};
-use np_hkdf::v1_salt::ExtendedV1Salt;
 
 use crate::helpers::parse_byte_array;
+
+pub use np_hkdf::v1_salt::{DeType, ExtendedV1Salt, OptionDeType};
+
+/// Derived salt for an individual V1 data element.
+#[derive(Clone, Copy, PartialEq, Debug, Eq)]
+pub struct DeSalt {
+    /// The containing section's extended V1 salt.
+    pub(crate) salt: ExtendedV1Salt,
+    /// The DE type of the data element.
+    pub(crate) de_type: DeType,
+}
+
+impl DeSalt {
+    /// Derive salt of the requested length.
+    ///
+    /// The length must be a valid HKDF-SHA256 length.
+    pub fn derive<const N: usize, C: CryptoProvider>(&self) -> Option<[u8; N]> {
+        self.salt.derive::<N, C>(OptionDeType::from(self.de_type))
+    }
+}
 
 /// Common behavior for V1 section salts.
 pub trait V1Salt: Copy + Into<MultiSalt> {
@@ -32,7 +51,7 @@ pub trait V1Salt: Copy + Into<MultiSalt> {
 
 impl V1Salt for ExtendedV1Salt {
     fn compute_nonce<C: CryptoProvider>(&self) -> AesCtrNonce {
-        self.derive::<12, C>(None).expect("AES-CTR nonce is a valid HKDF size")
+        self.derive::<12, C>(OptionDeType::NONE).expect("AES-CTR nonce is a valid HKDF size")
     }
 }
 
@@ -109,5 +128,48 @@ impl V1Salt for MultiSalt {
             Self::Short(s) => V1Salt::compute_nonce::<C>(s),
             Self::Extended(s) => s.compute_nonce::<C>(),
         }
+    }
+}
+
+/// Type-level predicate which indicates that
+/// a derived salt type can be used in call
+/// sites which expect this derived salt type.
+///
+/// Specifically, if `S: SaltConvertible<T>`,
+/// then a salt of type `T` suffices in
+/// all call sites which expect a salt
+/// of type `S` (possibly by omitting
+/// information, if `S` is `Unsalted`).
+pub trait SaltConvertible<T: Into<Option<DeSalt>>>: Into<Option<DeSalt>> {
+    /// Converts a salt of one type into a salt
+    /// usable in place of this salt type in method parameters.
+    fn convert(salt: T) -> Self;
+}
+
+/// Type-level token indicating that a section encoding
+/// scheme does not employ any sort of salt.
+pub struct Unsalted;
+
+impl From<Unsalted> for Option<DeSalt> {
+    fn from(_: Unsalted) -> Self {
+        None
+    }
+}
+
+impl SaltConvertible<DeSalt> for DeSalt {
+    fn convert(salt: DeSalt) -> Self {
+        salt
+    }
+}
+
+impl<T: Into<Option<DeSalt>>> SaltConvertible<T> for Option<DeSalt> {
+    fn convert(salt: T) -> Self {
+        salt.into()
+    }
+}
+
+impl<T: Into<Option<DeSalt>>> SaltConvertible<T> for Unsalted {
+    fn convert(_salt: T) -> Unsalted {
+        Unsalted
     }
 }

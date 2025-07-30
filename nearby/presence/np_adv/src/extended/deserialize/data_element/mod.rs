@@ -14,59 +14,509 @@
 
 //! Parsing logic for V1 data elements, header + contents
 
-use crate::extended::{de_requires_extended_bit, de_type::DeType, deserialize, DeLength};
-use array_view::ArrayView;
+use crate::extended::salt::DeSalt;
+use crate::extended::{
+    de_requires_extended_bit,
+    de_type::{DeType, HasDEType, OptionDeType},
+    deserialize, DeLength,
+};
+use core::{fmt, marker::PhantomData};
 use nom::{branch, bytes, combinator, error, number, sequence};
-use np_hkdf::v1_salt;
+use np_hkdf::v1_salt::ExtendedV1Salt;
 
 #[cfg(test)]
 mod tests;
 
+/// A representation of a V1 data element with a particular
+/// type-code, together with a mechanism to convert to
+/// the alternative representation. The `Self` type is taken
+/// to be this alternative representation.
+pub trait DeserializedDataElement<'a>: HasDEType
+where
+    Self: Sized + 'a,
+{
+    /// The type of errors rasied by `Self::try_deserialize`.
+    type DeserializationError: 'a;
+
+    /// Attempts to convert a DE with the `Self::DE_TYPE` type-code,
+    /// the given offset within the section, and the given
+    /// contents into an instance of this alternative representation.
+    ///
+    /// This method may possibly fail with an error.
+    ///
+    /// The returned representation may borrow from the raw slice contents
+    /// of the DE payload for situations where "zero-copy" deserialization
+    /// makes sense.
+    fn try_deserialize(
+        maybe_salt: Option<&DeSalt>,
+        contents: &'a [u8],
+    ) -> Result<Self, Self::DeserializationError>;
+}
+
+/// Type alias for the result type returned by
+/// [`DeserializedDataElement<'static>#try_deserialize`].
+/// While the `'static` lifetime will almost-never appear as the actual lifetime
+/// in a call to `try_deserialize`, this is useful for referring to the result
+/// type when the method's return type is in fact invariant with respect
+/// to the lifetime, as is the case for owned (lifetime-parameter-free)
+/// [`DeserializedDataElement`]-implementing structures via parametricity.
+pub type OwnedDEDeserializationResult<D> = DEDeserializationResult<'static, D>;
+
+/// Type alias for the result type returned by [`DeserializedDataElement<'a>#try_deserialize`]
+pub type DEDeserializationResult<'a, D> =
+    Result<D, <D as DeserializedDataElement<'a>>::DeserializationError>;
+
+/// Common trait for the results obtained via attempting to deserialize
+/// a [`DataElement`] into one or more DE-type-specific form(s).
+/// May be generated from individual [`DeserializedDataElement`]s
+/// via the [`define_data_element_deserializer`] macro.
+pub trait DataElementDeserializationResult<'adv>
+where
+    Self: Sized + 'adv,
+{
+    /// Attempts to deserialize a data element to this deserialized representation,
+    /// passing the DE along if the DE type code or other data means that it may
+    /// not be deserialized to this representation.
+    fn try_deserialize(data_element: DataElement<'adv>) -> Result<Self, DataElement<'adv>>;
+}
+
+/// An error raised when attempting to parse and deserialize a data
+/// element to a given type implementing [`DataElementDeserializationResult`].
+pub enum DataElementDeserializationError<'adv> {
+    /// The error occurred when attempting to parse the data element
+    /// from the containing section.
+    ParseError(DataElementParseError),
+    /// The deserializer gave up on trying to parse the data element,
+    /// likely because it doesn't have a recognized DE type.
+    Unrecognized(DataElement<'adv>),
+}
+
+/// Iterator which wraps a [`DataElementParsingIterator`] to perform additional
+/// per-DE deserialization steps beyond just interpreting generic [`DataElement`]s.
+pub struct DataElementDeserializingIterator<'adv, F: DataElementDeserializationResult<'adv>> {
+    iter: DataElementParsingIterator<'adv>,
+    _phantom: PhantomData<fn() -> F>,
+}
+
+impl<'adv, F: DataElementDeserializationResult<'adv>> From<DataElementParsingIterator<'adv>>
+    for DataElementDeserializingIterator<'adv, F>
+{
+    fn from(iter: DataElementParsingIterator<'adv>) -> Self {
+        Self { iter, _phantom: Default::default() }
+    }
+}
+
+impl<'adv, F: DataElementDeserializationResult<'adv>> Iterator
+    for DataElementDeserializingIterator<'adv, F>
+{
+    type Item = Result<F, DataElementDeserializationError<'adv>>;
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next().map(|maybe_data_element| match maybe_data_element {
+            Ok(data_element) => {
+                <F as DataElementDeserializationResult<'adv>>::try_deserialize(data_element)
+                    .map_err(DataElementDeserializationError::Unrecognized)
+            }
+            Err(parse_err) => Err(DataElementDeserializationError::ParseError(parse_err)),
+        })
+    }
+}
+
+#[macro_export]
+/// Macro to define [`DataElementDeserializationResult`]s by "gluing"
+/// together the associated result types of one or more [`DeserializedDataElement`]s
+/// which may or may not have data-to-be-borrowed from advertisement contents.
+/// The generated `enum` has a variant for each distinct DE type specified as part of the
+/// macro, with payloads set as the appropriate choice of either
+/// the associated [`DEDeserializationResult`] or [`OwnedDEDeserializationResult`] for
+/// the type, and the semantics of the `try_deserialize` method are specified to
+/// match against the incoming DE type and forward deserialization to the
+/// `try_deserialize` method on the associated deserialized DE type.
+///
+/// Caveats about the current form of the macro:
+///
+/// - The wrapped enum declaration may have a lifetime if the data is borrowed,
+///   but if so, this lifetime currently _must_ be named `'adv` (after the
+///   fact that any borrowed contents ultimately are of the same lifetime
+///   as a particular deserialized advertisement.)
+///
+/// - Any variants which borrow data from a deserialized advertisement
+///   must also be listed before variants which own data.
+///
+/// - Enumeration discriminants cannot be manually specified. (However,
+///   there is a generated `de_type` method which allows obtaining
+///   the data element type code of a deserialized DE).
+///
+/// # Examples
+/// ```
+/// #[macro_use] extern crate np_adv;
+/// use np_adv::extended::data_elements::*;
+/// define_data_element_deserializer! {
+///    /// Sample deserialization result type which
+///    /// owns all its data, and includes result types
+///    /// for deserializing Tx Power and context-sync
+///    /// sequence number data elements.
+///    #[derive(Debug, Clone)]
+///    pub enum OwnedDEDeserializationResult owns {
+///        /// A transmission power
+///        TxPower: TxPowerDataElement,
+///        /// A context sync sequence number
+///        ContextSyncSeqNum: ContextSyncSeqNumDataElement,
+///    }
+/// }
+///
+/// // Generated result enum:
+/// // /// Sample deserialization result type which
+/// // /// owns all its data, and includes result types
+/// // /// for deserializing Tx Power and context-sync
+/// // /// sequence number data elements.
+/// // #[derive(Debug, Clone)]
+/// // pub enum OwnedDeserializationResult {
+/// //    TxPower(Result<TxPowerDataElement, TxPowerMalformed>),
+/// //    ContextSyncSeqNum(Result<ContextSyncSeqNumDataElement, ContextSyncSeqNumMalformed>),
+/// // }
+/// // impl<'adv> DataElementDeserializationResult<'adv> for OwnedDeserializationResult {
+/// // ...
+/// // }
+///
+/// define_data_element_deserializer! {
+///     /// Sample deserialization result type which
+///     /// borrows all its data, and includes result types
+///     /// for deserializing Actions and a Cast ID.
+///     ///
+///     /// Note how we can specify arbitrary attributes (including derives)
+///     /// on the generated enum and arbitrary visibility specifiers.
+///     #[derive(Debug, Clone)]
+///     pub(crate) enum BorrowedDEDeserializationResult<'adv> borrows {
+///         /// A collection of actions.
+///         Actions: DeserializedActionsDE<'adv>,
+///         /// A Google Cast ID.
+///         CastId: CastIdDataElement<'adv>,
+///     }
+/// }
+///
+/// define_data_element_deserializer! {
+///     /// Sample deserialization result type which
+///     /// borrows some data for an Actions DE target, but
+///     /// owns other data for a Tx Power DE target.
+///     #[repr(u8)]
+///     enum CombinedDEDeserializationResult<'adv> borrows {
+///         /// A collection of actions.
+///         Actions: DeserializedActionsDE<'adv>,
+///     } owns {
+///         /// A transmission power
+///         TxPower: TxPowerDataElement,
+///     }
+/// }
+/// ```
+macro_rules! define_data_element_deserializer {
+    // The combined type is owned.
+    (
+        $(#[$combined_meta:meta])*
+        $visibility:vis enum $combined_type_name:ident owns {
+            $(
+                $(#[$owned_constituent_meta:meta])*
+                $owned_constituent_name:ident : $owned_constituent_type:ident
+            ),+ $(,)?
+        }
+    )
+    => {
+        $(#[$combined_meta])*
+        $visibility enum $combined_type_name {
+            $(
+                $(#[$owned_constituent_meta])*
+                $owned_constituent_name($crate::extended::deserialize::data_element::OwnedDEDeserializationResult<
+                    $owned_constituent_type
+                >
+            )),+
+        }
+        impl $combined_type_name {
+            /// Gets the data-element type of the deserialized DE.
+            $visibility fn de_type(&self) -> $crate::extended::de_type::DeType {
+                match &self {
+                    $(Self::$owned_constituent_name(_) =>
+                        <$owned_constituent_type as $crate::extended::de_type::HasDEType>::DE_TYPE),+
+                }
+            }
+        }
+        impl<'adv> $crate::extended::deserialize::data_element::DataElementDeserializationResult<'adv> for $combined_type_name {
+            fn try_deserialize(data_element: $crate::extended::deserialize::data_element::DataElement<'adv>)
+                -> Result<Self, $crate::extended::deserialize::data_element::DataElement<'adv>> {
+                    match data_element.de_type() {
+                        $(
+                            <$owned_constituent_type as $crate::extended::de_type::HasDEType>::DE_TYPE => {
+                                let result = <$owned_constituent_type as $crate::extended::deserialize::data_element::DeserializedDataElement<'adv>>::
+                                    try_deserialize(data_element.salt().as_ref(), data_element.contents());
+                                Ok(
+                                    $combined_type_name::$owned_constituent_name(result)
+                                )
+                            }
+                        ),+ ,
+                        _ => {
+                            Err(data_element)
+                        },
+                    }
+            }
+        }
+    };
+
+    // The combined type is (at least partially) borrowed.
+    (
+        $(#[$combined_meta:meta])*
+        $visibility:vis enum $combined_type_name:ident <'adv> borrows {
+         $(
+             $(#[$borrowed_constituent_meta:meta])*
+             $borrowed_constituent_name:ident : $borrowed_constituent_type:ident <'adv>
+          ),+ $(,)?
+        } $( owns {
+         $(
+             $(#[$owned_constituent_meta:meta])*
+             $owned_constituent_name:ident : $owned_constituent_type:ident
+          ),* $(,)?
+        })?
+    )
+
+    => {
+        $(#[$combined_meta])*
+        $visibility enum $combined_type_name<'adv> {
+            $(
+                $(#[$borrowed_constituent_meta])*
+                $borrowed_constituent_name($crate::extended::deserialize::data_element::DEDeserializationResult<
+                    'adv,
+                    $borrowed_constituent_type<'adv>
+                >
+            )),+ ,
+            $($(
+                $(#[$owned_constituent_meta])*
+                $owned_constituent_name($crate::extended::deserialize::data_element::OwnedDEDeserializationResult<
+                    $owned_constituent_type
+                >
+            )),*)?
+        }
+        impl<'adv> $combined_type_name<'adv> {
+            /// Gets the data-element type of the deserialized DE.
+            $visibility fn de_type(&self) -> $crate::extended::de_type::DeType {
+                match &self {
+                    $(Self::$borrowed_constituent_name(_) =>
+                        <$borrowed_constituent_type<'adv> as $crate::extended::de_type::HasDEType>::DE_TYPE),+ ,
+                    $($(Self::$owned_constituent_name(_) =>
+                        <$owned_constituent_type as $crate::extended::de_type::HasDEType>::DE_TYPE),*)?
+                }
+            }
+        }
+
+        impl<'adv> $crate::extended::deserialize::data_element::DataElementDeserializationResult<'adv> for $combined_type_name<'adv> {
+            fn try_deserialize(data_element: $crate::extended::deserialize::data_element::DataElement<'adv>)
+                -> Result<Self, $crate::extended::deserialize::data_element::DataElement<'adv>> {
+                    match data_element.de_type() {
+                        $(
+                            <$borrowed_constituent_type<'adv> as $crate::extended::de_type::HasDEType>::DE_TYPE => {
+                                let result = <$borrowed_constituent_type as $crate::extended::deserialize::data_element::DeserializedDataElement<'adv>>::
+                                    try_deserialize(data_element.salt().as_ref(), data_element.contents());
+                                Ok(
+                                    $combined_type_name::$borrowed_constituent_name(result)
+                                )
+                            }
+                        ),+ ,
+                        $($(
+                            <$owned_constituent_type as $crate::extended::de_type::HasDEType>::DE_TYPE => {
+                                let result = <$owned_constituent_type as $crate::extended::deserialize::data_element::DeserializedDataElement<'adv>>::
+                                    try_deserialize(data_element.salt().as_ref(), data_element.contents());
+                                Ok(
+                                    $combined_type_name::$owned_constituent_name(result)
+                                )
+                            }
+                        ),* ,)?
+                        _ => {
+                            Err(data_element)
+                        },
+                    }
+            }
+        }
+    };
+}
+
+pub use define_data_element_deserializer;
+
 /// A deserialized data element in a section.
 ///
-/// The DE has been processed to the point of exposing a DE type and its contents as a `&[u8]`, but
-/// no DE-type-specific processing has been performed.
+/// The DE has been processed to the point of exposing a DE type, a way to get derived salts,
+/// and its contents as a `&[u8]`, but no DE-type-specific processing has been performed.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct DataElement<'adv> {
-    offset: v1_salt::DataElementOffset,
-    de_type: DeType,
-    contents: &'adv [u8],
+    proto_de: ProtoDataElement<'adv>,
+    /// Copy of the containing section's extended salt, if any.
+    salt: Option<ExtendedV1Salt>,
 }
 
 impl<'adv> DataElement<'adv> {
-    pub(crate) fn new(
-        offset: v1_salt::DataElementOffset,
-        de_type: DeType,
-        contents: &'adv [u8],
-    ) -> Self {
-        Self { offset, de_type, contents }
+    /// Gets derived salts for this data element, if this is possible.
+    /// (Note: In the wild, only decrypted sections with extended salts
+    /// will have this populated.)
+    pub fn salt(&self) -> Option<DeSalt> {
+        self.salt.as_ref().map(|salt| DeSalt { de_type: self.de_type(), salt: *salt })
     }
+    /// The type of the DE
+    pub fn de_type(&self) -> DeType {
+        self.proto_de.de_type
+    }
+    /// The raw bytes of this DE's payload
+    pub fn contents(&self) -> &'adv [u8] {
+        self.proto_de.contents
+    }
+    /// Constructs a data element by optionally augmenting the given [`ProtoDataElement`]
+    /// with an [`ExtendedV1Salt`] if the containing section makes it possible to
+    /// derive salts for the DE.
+    pub fn from_proto_de(proto_de: ProtoDataElement<'adv>, salt: Option<ExtendedV1Salt>) -> Self {
+        Self { proto_de, salt }
+    }
+    /// Constructs a data element from the DE header, the contents of the DE,
+    /// and an optional [`DeSalt`] for computing derived salts.
+    pub fn new(de_type: DeType, contents: &'adv [u8], salt: Option<ExtendedV1Salt>) -> Self {
+        let proto_de = ProtoDataElement { de_type, contents };
+        Self { proto_de, salt }
+    }
+
+    /// Constructs a data element without the ability to derive DE salts
+    /// from the DE type and its contents.
+    pub fn unsalted(de_type: DeType, contents: &'adv [u8]) -> Self {
+        Self::new(de_type, contents, None)
+    }
+}
+
+/// An iterator that parses the given [`DataElement`]s iteratively. In environments where memory is
+/// not severely constrained, it is usually safer to collect this into `Result<Vec<OffsetDataElement>>`
+/// so the validity of the whole advertisement can be checked before proceeding with further
+/// processing.
+pub struct DataElementParsingIterator<'adv> {
+    /// A reference to the slice of section contents that we're parsing.
+    input: &'adv [u8],
+    /// The data element type of the most-recently-parsed DE (if any).
+    last_encountered_de_type: OptionDeType,
+    /// A copy of the enclosing section's extended salt (if any).
+    maybe_extended_salt: Option<ExtendedV1Salt>,
+}
+
+impl<'adv> DataElementParsingIterator<'adv> {
+    pub(crate) fn new(input: &'adv [u8], maybe_extended_salt: Option<ExtendedV1Salt>) -> Self {
+        Self { input, last_encountered_de_type: OptionDeType::NONE, maybe_extended_salt }
+    }
+}
+
+/// Each [`Self::Item`] is a parsing result of a Data Element. The result includes a parsed
+/// Data Element for success, or [`DataElementParseError`] for failure.
+/// Suggest to throw away all the Data Elements from the iterator if one Data Element is corrupted.
+/// The caller can collect the Result to the top level as [`Result<Vec<_>, _>`] before iterating
+/// the Data Elements.
+impl<'adv> Iterator for DataElementParsingIterator<'adv> {
+    type Item = Result<DataElement<'adv>, DataElementParseError>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match ProtoDataElement::parse(self.input) {
+            Ok((rem, proto_de)) => {
+                // Parsed the DE successfully, verify that the type-code is
+                // strictly increasing.
+                let current_de_type: OptionDeType = proto_de.de_type.into();
+                if current_de_type > self.last_encountered_de_type {
+                    self.input = rem;
+                    self.last_encountered_de_type = current_de_type;
+                    Some(Ok(DataElement { proto_de, salt: self.maybe_extended_salt }))
+                } else {
+                    Some(Err(DataElementParseError::TypeCodesOutOfOrder))
+                }
+            }
+            Err(nom::Err::Failure(e)) => Some(Err(DataElementParseError::NomError(e.code))),
+            Err(nom::Err::Incomplete(_)) => {
+                panic!("Should always complete since we are parsing using the `nom::complete` APIs")
+            }
+            Err(nom::Err::Error(_)) => {
+                // nom `Error` is recoverable, it usually means we should move on the parsing the
+                // next section. There is nothing after data elements within a section, so we just
+                // check that there is no remaining data.
+                if !self.input.is_empty() {
+                    return Some(Err(DataElementParseError::UnexpectedDataAfterEnd));
+                }
+                None
+            }
+        }
+    }
+}
+
+/// The error that may arise while parsing data elements.
+#[derive(Debug, PartialEq, Eq)]
+pub enum DataElementParseError {
+    /// Unexpected data found after the end of the data elements portion. This means either the
+    /// parser was fed with additional data (it should only be given the bytes within a section,
+    /// not the whole advertisement), or the length field in the header of the data element is
+    /// malformed.
+    UnexpectedDataAfterEnd,
+    /// The data elements were not in strictly increasing order by type code.
+    TypeCodesOutOfOrder,
+    /// A parse error is returned during nom.
+    NomError(error::ErrorKind),
+}
+
+impl fmt::Display for DataElementParseError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            DataElementParseError::UnexpectedDataAfterEnd => write!(f, "Unexpected data after end"),
+            DataElementParseError::TypeCodesOutOfOrder => {
+                write!(f, "DE type codes are out of order")
+            }
+            DataElementParseError::NomError(_) => write!(f, "Nom error"),
+        }
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for DataElementParseError {}
+
+/// A reduced-information variant of a [`DataElement`] that completely
+/// lacks the ability to derive DE salts due to not tracking its offset
+/// within a section (in any form).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct ProtoDataElement<'d> {
+    /// The data element's type code.
+    pub de_type: DeType,
+    /// The raw bytes of this data element's payload.
+    pub contents: &'d [u8],
+}
+
+impl ProtoDataElement<'_> {
+    pub(crate) fn parse(input: &[u8]) -> nom::IResult<&[u8], ProtoDataElement> {
+        let (remaining, header) = DeHeader::parse(input)?;
+        let len = header.contents_len;
+        let de_type = header.de_type;
+        combinator::map(bytes::complete::take(len.as_u8()), move |contents| ProtoDataElement {
+            de_type,
+            contents,
+        })(remaining)
+    }
+}
+
+/// Deserialize-specific version of a DE header that incorporates the
+/// length of the subsequent DE contents (unlike the representation
+/// in serialization, where the length is implicitly given as part
+/// of the data-to-be-serialized).
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub(crate) struct DeHeader {
+    pub(crate) de_type: DeType,
+    pub(crate) contents_len: DeLength,
 }
 
 impl DeHeader {
     pub(crate) fn parse(input: &[u8]) -> nom::IResult<&[u8], DeHeader> {
         // 1-byte header: 0b0LLLTTTT
-        let parse_single_byte_de_header =
-            combinator::map_opt::<&[u8], _, DeHeader, error::Error<&[u8]>, _, _>(
-                combinator::consumed(combinator::map_res(
-                    combinator::verify(number::complete::u8, |&b| !deserialize::hi_bit_set(b)),
-                    |b| {
-                        // L bits
-                        let len = (b >> 4) & 0x07;
-                        // T bits
-                        let de_type = ((b & 0x0F) as u32).into();
+        let parse_single_byte_de_header = combinator::map_res(
+            combinator::verify(number::complete::u8, |&b| !deserialize::hi_bit_set(b)),
+            |b| {
+                // L bits
+                let len = (b >> 4) & 0x07;
+                // T bits
+                let de_type = (b & 0x0F).into();
 
-                        len.try_into().map(|l| (l, de_type))
-                    },
-                )),
-                |(header_bytes, (len, de_type))| {
-                    ArrayView::try_from_slice(header_bytes).map(|header_bytes| DeHeader {
-                        header_bytes,
-                        contents_len: len,
-                        de_type,
-                    })
-                },
-            );
+                len.try_into().map(|contents_len| DeHeader { contents_len, de_type })
+            },
+        );
 
         // multi-byte headers: 0b1LLLLLLL (0b1TTTTTTT)* 0b0TTTTTTT
         // leading 1 in first byte = multibyte format
@@ -83,7 +533,7 @@ impl DeHeader {
 
         let parse_ext_de_header = combinator::verify(
             combinator::map_opt(
-                combinator::consumed(sequence::pair(
+                sequence::pair(
                     // length byte w/ leading 1
                     combinator::map_res(
                         combinator::verify(number::complete::u8::<&[u8], _>, |&b| {
@@ -116,8 +566,8 @@ impl DeHeader {
                             }),
                         ))),
                     )),
-                )),
-                |(header_bytes, (len, type_bytes))| {
+                ),
+                |(contents_len, type_bytes)| {
                     // snag the low 7 bits of each type byte and accumulate
                     type_bytes
                         .iter()
@@ -125,13 +575,8 @@ impl DeHeader {
                             accum.checked_shl(7).map(|n| n + ((b & 0x7F) as u64))
                         })
                         .and_then(|type_code| u32::try_from(type_code).ok())
-                        .and_then(|type_code| {
-                            ArrayView::try_from_slice(header_bytes).map(|header_bytes| DeHeader {
-                                header_bytes,
-                                contents_len: len,
-                                de_type: type_code.into(),
-                            })
-                        })
+                        .and_then(|type_code| DeType::try_from(type_code).ok())
+                        .map(|de_type| DeHeader { contents_len, de_type })
                 },
             ),
             |header| {
@@ -141,120 +586,5 @@ impl DeHeader {
         );
 
         branch::alt((parse_single_byte_de_header, parse_ext_de_header))(input)
-    }
-}
-
-impl<'adv> DataElement<'adv> {
-    /// The offset of the DE in its containing Section.
-    ///
-    /// Used with the section salt to derive per-DE salt.
-    pub fn offset(&self) -> v1_salt::DataElementOffset {
-        self.offset
-    }
-    /// The type of the DE
-    pub fn de_type(&self) -> DeType {
-        self.de_type
-    }
-    /// The contents of the DE
-    pub fn contents(&self) -> &'adv [u8] {
-        self.contents
-    }
-}
-
-/// An iterator that parses the given data elements iteratively. In environments where memory is
-/// not severely constrained, it is usually safer to collect this into `Result<Vec<DataElement>>`
-/// so the validity of the whole advertisement can be checked before proceeding with further
-/// processing.
-#[derive(Debug)]
-pub struct DataElementParsingIterator<'adv> {
-    input: &'adv [u8],
-    // The index of the data element this is currently at
-    offset: u8,
-}
-
-impl<'adv> DataElementParsingIterator<'adv> {
-    pub(crate) fn new(input: &'adv [u8]) -> Self {
-        Self { input, offset: 0 }
-    }
-}
-
-impl<'adv> Iterator for DataElementParsingIterator<'adv> {
-    type Item = Result<DataElement<'adv>, DataElementParseError>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        match ProtoDataElement::parse(self.input) {
-            Ok((rem, pde)) => {
-                self.input = rem;
-                let current_offset = self.offset;
-                self.offset = if let Some(offset) = self.offset.checked_add(1) {
-                    offset
-                } else {
-                    return Some(Err(DataElementParseError::TooManyDataElements));
-                };
-                Some(Ok(pde.into_data_element(v1_salt::DataElementOffset::from(current_offset))))
-            }
-            Err(nom::Err::Failure(e)) => Some(Err(DataElementParseError::NomError(e.code))),
-            Err(nom::Err::Incomplete(_)) => {
-                panic!("Should always complete since we are parsing using the `nom::complete` APIs")
-            }
-            Err(nom::Err::Error(_)) => {
-                // nom `Error` is recoverable, it usually means we should move on the parsing the
-                // next section. There is nothing after data elements within a section, so we just
-                // check that there is no remaining data.
-                if !self.input.is_empty() {
-                    return Some(Err(DataElementParseError::UnexpectedDataAfterEnd));
-                }
-                None
-            }
-        }
-    }
-}
-
-/// The error that may arise while parsing data elements.
-#[derive(Debug, PartialEq, Eq)]
-pub enum DataElementParseError {
-    /// Unexpected data found after the end of the data elements portion. This means either the
-    /// parser was fed with additional data (it should only be given the bytes within a section,
-    /// not the whole advertisement), or the length field in the header of the data element is
-    /// malformed.
-    UnexpectedDataAfterEnd,
-    /// There are too many data elements in the advertisement. The maximum number supported by the
-    /// current parsing logic is 255.
-    TooManyDataElements,
-    /// A parse error is returned during nom.
-    NomError(error::ErrorKind),
-}
-
-/// Deserialize-specific version of a DE header that incorporates the header length.
-/// This is needed for encrypted identities that need to construct a slice of everything in the
-/// section following the identity DE header.
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub(crate) struct DeHeader {
-    /// The original bytes of the header, at most 6 bytes long (1 byte len, 5 bytes type)
-    pub(crate) header_bytes: ArrayView<u8, 6>,
-    pub(crate) de_type: DeType,
-    pub(crate) contents_len: DeLength,
-}
-
-/// An intermediate stage in parsing a [DataElement] that lacks `offset`.
-#[derive(Debug, PartialEq, Eq)]
-pub struct ProtoDataElement<'d> {
-    header: DeHeader,
-    /// `len()` must equal `header.contents_len`
-    contents: &'d [u8],
-}
-
-impl<'d> ProtoDataElement<'d> {
-    pub(crate) fn parse(input: &[u8]) -> nom::IResult<&[u8], ProtoDataElement> {
-        let (remaining, header) = DeHeader::parse(input)?;
-        let len = header.contents_len;
-        combinator::map(bytes::complete::take(len.as_u8()), move |slice| {
-            let header_clone = header.clone();
-            ProtoDataElement { header: header_clone, contents: slice }
-        })(remaining)
-    }
-
-    fn into_data_element(self, offset: v1_salt::DataElementOffset) -> DataElement<'d> {
-        DataElement::new(offset, self.header.de_type, self.contents)
     }
 }

@@ -151,7 +151,7 @@ fn send_receive_message_seeded() {
             vec![NextProtocol::Aes256CbcHmacSha256],
         );
     let encoded =
-        init_conn_ctx.encode_message_to_peer::<RustCryptoImpl<MockRng>, &[u8]>(message, None);
+        init_conn_ctx.encode_message_to_peer::<RustCryptoImpl<MockRng>>(message, None::<&[u8]>);
     // Expected values extracted from the results of the current implementation.
     // This test makes sure that we don't accidentally change the encryption logic that
     // causes incompatibility between versions.
@@ -166,7 +166,7 @@ fn send_receive_message_seeded() {
         ]
     );
     let decoded = server_conn_ctx
-        .decode_message_from_peer::<CryptoProviderImpl, &[u8]>(&encoded, None)
+        .decode_message_from_peer::<CryptoProviderImpl>(&encoded, None::<&[u8]>)
         .unwrap();
     assert_eq!(message, &decoded[..]);
 }
@@ -175,9 +175,10 @@ fn send_receive_message_seeded() {
 fn send_receive_message() {
     let message = b"Hello World!";
     let (mut init_conn_ctx, mut server_conn_ctx) = run_cbc_handshake();
-    let encoded = init_conn_ctx.encode_message_to_peer::<CryptoProviderImpl, &[u8]>(message, None);
+    let encoded =
+        init_conn_ctx.encode_message_to_peer::<CryptoProviderImpl>(message, None::<&[u8]>);
     let decoded = server_conn_ctx
-        .decode_message_from_peer::<CryptoProviderImpl, &[u8]>(encoded.as_slice(), None);
+        .decode_message_from_peer::<CryptoProviderImpl>(encoded.as_slice(), None::<&[u8]>);
     assert_eq!(message.to_vec(), decoded.expect("Decode should be successful"));
 }
 
@@ -185,9 +186,10 @@ fn send_receive_message() {
 fn send_receive_message_gcm() {
     let message = b"Hello World!";
     let (mut init_conn_ctx, mut server_conn_ctx) = run_gcm_handshake();
-    let encoded = init_conn_ctx.encode_message_to_peer::<CryptoProviderImpl, &[u8]>(message, None);
+    let encoded =
+        init_conn_ctx.encode_message_to_peer::<CryptoProviderImpl>(message, None::<&[u8]>);
     let decoded = server_conn_ctx
-        .decode_message_from_peer::<CryptoProviderImpl, &[u8]>(encoded.as_slice(), None);
+        .decode_message_from_peer::<CryptoProviderImpl>(encoded.as_slice(), None::<&[u8]>);
     assert_eq!(message.to_vec(), decoded.expect("Decode should be successful"));
 }
 
@@ -196,18 +198,18 @@ fn send_receive_message_associated_data() {
     let message = b"Hello World!";
     let (mut init_conn_ctx, mut server_conn_ctx) = run_cbc_handshake();
     let encoded = init_conn_ctx
-        .encode_message_to_peer::<CryptoProviderImpl, _>(message, Some(b"associated data"));
-    let decoded = server_conn_ctx.decode_message_from_peer::<CryptoProviderImpl, _>(
+        .encode_message_to_peer::<CryptoProviderImpl>(message, Some(b"associated data"));
+    let decoded = server_conn_ctx.decode_message_from_peer::<CryptoProviderImpl>(
         encoded.as_slice(),
         Some(b"associated data"),
     );
     assert_eq!(message.to_vec(), decoded.expect("Decode should be successful"));
     // Make sure decode fails with missing associated data.
     let decoded = server_conn_ctx
-        .decode_message_from_peer::<CryptoProviderImpl, &[u8]>(encoded.as_slice(), None);
+        .decode_message_from_peer::<CryptoProviderImpl>(encoded.as_slice(), None::<&[u8]>);
     assert!(decoded.is_err());
     // Make sure decode fails with different associated data.
-    let decoded = server_conn_ctx.decode_message_from_peer::<CryptoProviderImpl, _>(
+    let decoded = server_conn_ctx.decode_message_from_peer::<CryptoProviderImpl>(
         encoded.as_slice(),
         Some(b"assoc1ated data"),
     );
@@ -227,9 +229,9 @@ fn test_save_restore_session() {
             .expect("failed to restore server session");
     let message = b"Hello World!";
     let encoded =
-        init_restored_ctx.encode_message_to_peer::<CryptoProviderImpl, &[u8]>(message, None);
+        init_restored_ctx.encode_message_to_peer::<CryptoProviderImpl>(message, None::<&[u8]>);
     let decoded = server_restored_ctx
-        .decode_message_from_peer::<CryptoProviderImpl, &[u8]>(encoded.as_slice(), None);
+        .decode_message_from_peer::<CryptoProviderImpl>(encoded.as_slice(), None::<&[u8]>);
     assert_eq!(message.to_vec(), decoded.expect("Decode should be successful"));
 }
 
@@ -266,15 +268,16 @@ fn test_unique_session() {
     let init_session = init_conn_ctx.get_session_unique::<CryptoProviderImpl>();
     let server_session = server_conn_ctx.get_session_unique::<CryptoProviderImpl>();
     let message = b"Hello World!";
-    let encoded = init_conn_ctx.encode_message_to_peer::<CryptoProviderImpl, &[u8]>(message, None);
+    let encoded =
+        init_conn_ctx.encode_message_to_peer::<CryptoProviderImpl>(message, None::<&[u8]>);
     let decoded = server_conn_ctx
-        .decode_message_from_peer::<CryptoProviderImpl, &[u8]>(encoded.as_slice(), None);
+        .decode_message_from_peer::<CryptoProviderImpl>(encoded.as_slice(), None::<&[u8]>);
     assert_eq!(message.to_vec(), decoded.expect("Decode should be successful"));
     let init_session_after = init_conn_ctx.get_session_unique::<CryptoProviderImpl>();
     let server_session_after = server_conn_ctx.get_session_unique::<CryptoProviderImpl>();
     let bad_server_ctx = D2DConnectionContextV1::new::<CryptoProviderImpl>(
-        server_conn_ctx.get_sequence_number_for_decoding(),
-        server_conn_ctx.get_sequence_number_for_encoding(),
+        server_conn_ctx.decode_seq_num(),
+        server_conn_ctx.encode_seq_num(),
         Aes256Key::default(),
         Aes256Key::default(),
         StdRng::from_entropy(),

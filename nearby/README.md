@@ -25,6 +25,28 @@ and [`cargo-fuzz`](https://github.com/rust-fuzz/cargo-fuzz):
 cargo install --locked cargo-deny
 cargo install cargo-fuzz
 ```
+### Protobuf
+
+On Linux, using apt or apt-get, for example:
+
+```
+apt install -y protobuf-compiler
+protoc --version  # Ensure compiler version is 3+
+```
+
+On MacOS, using Homebrew:
+
+```
+brew install protobuf
+protoc --version  # Ensure compiler version is 3+
+```
+
+On Windows, using Winget:
+
+```
+> winget install protobuf
+> protoc --version # Ensure compiler version is 3+
+```
 
 ### Setting up a Docker dev environment
 

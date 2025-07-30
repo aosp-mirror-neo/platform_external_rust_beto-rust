@@ -39,7 +39,7 @@ const DEFAULT_DIMENSIONS: HandleMapDimensions = HandleMapDimensions {
     max_active_handles: MAX_ACTIVE_HANDLES,
 };
 
-fn build_handle_map<T: Send + Sync>() -> HandleMap<T> {
+fn build_handle_map<T: Send + Sync + 'static>() -> HandleMap<T> {
     HandleMap::with_dimensions(DEFAULT_DIMENSIONS)
 }
 

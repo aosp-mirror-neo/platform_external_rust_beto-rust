@@ -25,10 +25,15 @@ pub enum CargoWorkspaceSubcommand {
 }
 
 impl CargoWorkspaceSubcommand {
-    pub fn run(&self, tag: &str, sh: &xshell::Shell) -> anyhow::Result<()> {
+    pub fn run<S: AsRef<OsStr>>(
+        &self,
+        sh: &xshell::Shell,
+        tag: &str,
+        args: impl IntoIterator<Item = S> + Copy,
+    ) -> anyhow::Result<()> {
         match self {
             CargoWorkspaceSubcommand::CheckWorkspace(cargo_options) => {
-                cargo_options.check_workspace(sh, tag)
+                cargo_options.check_workspace(sh, tag, args)
             }
             CargoWorkspaceSubcommand::CheckFormat(formatter_options) => {
                 formatter_options.check_format(sh)
@@ -40,9 +45,9 @@ impl CargoWorkspaceSubcommand {
 #[derive(clap::Args, Debug, Clone, Default)]
 pub struct CargoOptions {
     #[arg(long, help = "whether to run cargo with --locked")]
-    locked: bool,
+    pub locked: bool,
     #[arg(long, help = "gather coverage metrics")]
-    coverage: bool,
+    pub coverage: bool,
 }
 
 impl CargoOptions {
@@ -51,32 +56,40 @@ impl CargoOptions {
         &self,
         sh: &'sh xshell::Shell,
         tag: &str,
-        args: impl IntoIterator<Item = S>,
+        args: impl IntoIterator<Item = S> + Copy,
     ) -> xshell::Cmd<'sh> {
         let locked = if self.locked { "--locked" } else { "" };
         if self.coverage {
             cmd!(
                 sh,
-                "cargo llvm-cov {locked} {args...} --lcov --output-path target/{tag}.info -- --color=always"
+                "cargo llvm-cov {locked} --workspace {args...} --lcov --output-path target/{tag}.info -- --color=always"
             )
         } else {
-            cmd!(sh, "cargo test {locked} {args...} -- --color=always")
+            cmd!(
+                sh,
+                "cargo test {locked} --workspace {args...} -- --color=always"
+            )
         }
     }
 
     /// Run the default set of checks on a cargo workspace
-    pub fn check_workspace(&self, sh: &xshell::Shell, tag: &str) -> anyhow::Result<()> {
-        self.test(sh, tag, ["--workspace"]).run()?;
+    pub fn check_workspace<S: AsRef<OsStr>>(
+        &self,
+        sh: &xshell::Shell,
+        tag: &str,
+        args: impl IntoIterator<Item = S> + Copy,
+    ) -> anyhow::Result<()> {
+        self.test(sh, tag, args).run()?;
         cmd!(
             sh,
-            "cargo clippy --all-targets --workspace -- --deny warnings"
+            "cargo clippy --all-targets --workspace {args...} -- --deny warnings"
         )
         .run()?;
         cmd!(sh, "cargo deny --workspace check").run()?;
         // ensure the docs are valid (cross-references to other code, etc)
         cmd!(
             sh,
-            "cargo doc --quiet --workspace --no-deps --document-private-items
+            "cargo doc --quiet --workspace {args...} --no-deps --document-private-items
                 --target-dir target/dist_docs/{tag}"
         )
         .env("RUSTDOCFLAGS", "--deny warnings")

@@ -11,9 +11,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "77FAC801B7F4BFB45B66493109E5D2B8A1811046FE1B26FDD4911DFE83F22AE6",
       "v1_mic_short_salt_aes_key": "6A4EA007544EB1F1F4FC3A09733A7636",
       "v1_mic_short_salt_identity_token_hmac_key": "24CCCA1794C5267D0F31BFFD05933A3056DC866AE5CCC812D0BE992E741E3C70",
-      "v1_mic_short_salt_mic_hmac_key": "900CCE3E377FBF1A075F5FB96B2A670981624069DFCF8A99FF3CCB73AEDEC153",
-      "v1_signature_identity_token_hmac_key": "8C707D9DCB8C7965EF0DFB90C8781312135C0A8AD10388B939082947B0EEC5CF",
-      "v1_signature_section_aes_key": "EDB08293628753CF3BE7C28A65FF1A9D"
+      "v1_mic_short_salt_mic_hmac_key": "900CCE3E377FBF1A075F5FB96B2A670981624069DFCF8A99FF3CCB73AEDEC153"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "F0EB",
@@ -28,9 +26,9 @@
       "short_salt_nonce": "38C673E98F69BE47A67CD13D"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "DA0DEC97DD1B417639F5BABAD8F3EA65",
-      "derived_salt_nonce": "3D412EFE82132F641657B86BBB145803",
-      "derived_salt_third_de": "2F1011C59BF1CC8A1870CB124E8C2753",
+      "derived_salt_first_de": "3D412EFE82132F641657B86BBB145803",
+      "derived_salt_nonce": "79BCED3ABDE1B348E8143036BAECD494",
+      "derived_salt_third_de": "5981AFBBA8ECE17B9831722370CDD3CF",
       "section_extended_salt": "C88D4D9DF5287AE88CC991A84CDEDAA4"
     }
   },
@@ -46,9 +44,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "B97F39D53AA3497347DC3D7DDB5F6399C3EC78A97844A4B1B6CA33D62A5610CF",
       "v1_mic_short_salt_aes_key": "BD67C930144A6D49052DDD3100DEAC8C",
       "v1_mic_short_salt_identity_token_hmac_key": "83741493B76DCB32684A90514D76E06AEFA48BF6CCA7E5FD88F62A21457D6B7C",
-      "v1_mic_short_salt_mic_hmac_key": "9C2C874DBFFA6A5DB88D8FAB3BC2E6B8453452A666407A970AB09586A729F64B",
-      "v1_signature_identity_token_hmac_key": "CE915CC5776983A0FA0D9952A2DB5B9362C413351C147E7A060161B94F668AE6",
-      "v1_signature_section_aes_key": "F5E624240876543285520E1E8E74F795"
+      "v1_mic_short_salt_mic_hmac_key": "9C2C874DBFFA6A5DB88D8FAB3BC2E6B8453452A666407A970AB09586A729F64B"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "11F3",
@@ -63,9 +59,9 @@
       "short_salt_nonce": "F43CD28A64290DCCB5ED553A"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "2A5D5B1EE6E62646232D1ABECBF33804",
-      "derived_salt_nonce": "2890730B9A82A68AF81B88B2880E0CCB",
-      "derived_salt_third_de": "C493E8AB86C2BD5B5B7EA619D2E0E92F",
+      "derived_salt_first_de": "2890730B9A82A68AF81B88B2880E0CCB",
+      "derived_salt_nonce": "B1132CAB985A0D2420D0FC0CF9E0A26A",
+      "derived_salt_third_de": "30CCB15C8E744581389184F718CE662A",
       "section_extended_salt": "3BC347425EE1B8962BF6D5D340D53C9D"
     }
   },
@@ -81,9 +77,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "972931866621E2B8DD7FB76ABB8797C18B26C74974ED471F501102645DC76ECC",
       "v1_mic_short_salt_aes_key": "E240E070654F3794C276D799CB23D5CE",
       "v1_mic_short_salt_identity_token_hmac_key": "9AA904713C1F1146CEACD567C6BC4BC7B84F92660426D1FD633A42ECD3D4196D",
-      "v1_mic_short_salt_mic_hmac_key": "648A1D4915934BE8EA5C24CF747E2A17A2CEF1E655D98B0877F3B1DCF04441B9",
-      "v1_signature_identity_token_hmac_key": "2B3210B9D391E4D2CDA95368B8B66572975348748C382588AAF4664E2EFFC2D4",
-      "v1_signature_section_aes_key": "9FC3EB118E5472E3D0E1806BC8EEB6C4"
+      "v1_mic_short_salt_mic_hmac_key": "648A1D4915934BE8EA5C24CF747E2A17A2CEF1E655D98B0877F3B1DCF04441B9"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "BC01",
@@ -98,9 +92,9 @@
       "short_salt_nonce": "E6CDA2BF1E867E1C76A878A7"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "8A985AC6265F3067E13ABAA6218D6758",
-      "derived_salt_nonce": "DA89867F71A70412D2B00D8DA0454838",
-      "derived_salt_third_de": "A36B229A20A2A972401A843F84FA8D33",
+      "derived_salt_first_de": "DA89867F71A70412D2B00D8DA0454838",
+      "derived_salt_nonce": "634756DD105315C48D798851E4FE74D6",
+      "derived_salt_third_de": "6BD7FB119ECCFB0834B352B43E8F3186",
       "section_extended_salt": "967D99CE3EE6D79AE98B8037056760B9"
     }
   },
@@ -116,9 +110,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "025D81497467CE23085944DB9AD50A5B8BBEF3F5036E9750A8EE3801CEA18EB9",
       "v1_mic_short_salt_aes_key": "10F24F181454ED4663CC803642768DAF",
       "v1_mic_short_salt_identity_token_hmac_key": "6B42C12D243ABBB7F2236EAFFE0C1A8B1654E25E3CF6416677D3462DF7402062",
-      "v1_mic_short_salt_mic_hmac_key": "52EECEDEEF2758E036A9748E8BF06287F8C6E70CCDB6017C9961A97E64B26FD4",
-      "v1_signature_identity_token_hmac_key": "591CE684D72DA16E9168381A2A8167F409E83662AF6713F3F68D8B753DA3174B",
-      "v1_signature_section_aes_key": "240792A759473821A1D8CBF99AE54AA4"
+      "v1_mic_short_salt_mic_hmac_key": "52EECEDEEF2758E036A9748E8BF06287F8C6E70CCDB6017C9961A97E64B26FD4"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "480A",
@@ -133,9 +125,9 @@
       "short_salt_nonce": "20358E029A4BA3EF97796505"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "002B67A8C992EAEBCA8259FEC28289A4",
-      "derived_salt_nonce": "F202A0CB1EE7D8FCC9BABB9EB6304EF5",
-      "derived_salt_third_de": "F44C487244901DE5D96ABFD481BAC4CB",
+      "derived_salt_first_de": "F202A0CB1EE7D8FCC9BABB9EB6304EF5",
+      "derived_salt_nonce": "5A95E131E8875D799E983D388AAE8090",
+      "derived_salt_third_de": "32E4B731040FE1B8DDE2F539DCE41AB0",
       "section_extended_salt": "69167A8D033BBB5E257E729AE62ED6E7"
     }
   },
@@ -151,9 +143,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "3B571385F9A85C437D7A0FDEF9193B643FB30A82C94FF4BEF03499E8FF8DE773",
       "v1_mic_short_salt_aes_key": "7945B907207E26989E99CF22D75C5134",
       "v1_mic_short_salt_identity_token_hmac_key": "F4C50FCBF4772A730A1A962A61DBA99993BC4E1FC823B09C591889A07B0848EF",
-      "v1_mic_short_salt_mic_hmac_key": "5BB027194D3274626B9F12F33EDF3894F48C74EC8643E979171F311AE56C6196",
-      "v1_signature_identity_token_hmac_key": "4606A5AE3B1A042E620FAE09883B0E2B60F2CBA0F55243C9E82BE0BCBA64AA4C",
-      "v1_signature_section_aes_key": "62ED38EF19133F282C78AD3BE7493419"
+      "v1_mic_short_salt_mic_hmac_key": "5BB027194D3274626B9F12F33EDF3894F48C74EC8643E979171F311AE56C6196"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "D77E",
@@ -168,9 +158,9 @@
       "short_salt_nonce": "FCF5569BBB730792EAC492EB"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "FDBF480AFE38C1A3B518C9E4E37DF73B",
-      "derived_salt_nonce": "D0AB883D19A80B9A9B0F71FCB3BA9C4D",
-      "derived_salt_third_de": "559EF43087D81A97644A1564939C902D",
+      "derived_salt_first_de": "D0AB883D19A80B9A9B0F71FCB3BA9C4D",
+      "derived_salt_nonce": "444E9426123F6C3C3785003E0BC3816D",
+      "derived_salt_third_de": "A3BC62EB7E4A316917D1400B1E8BF6FC",
       "section_extended_salt": "7D6E587DCCB086EE382CDA8ECA378555"
     }
   },
@@ -186,9 +176,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "F095007E76CB193DA11718890BE7D735C9B57DD99C85E597893E9A51DD15A93E",
       "v1_mic_short_salt_aes_key": "52A881282D67F6ADE798591223985FF8",
       "v1_mic_short_salt_identity_token_hmac_key": "60CDFB8EDEB884516A7A3D8501E3357AFD42A77CD5FE6578D2F5957FDA03F5CB",
-      "v1_mic_short_salt_mic_hmac_key": "8555D441A574D3375E50F9A450022F4A982E8D580982908C7B6D81C628312968",
-      "v1_signature_identity_token_hmac_key": "E850671925AB258049D3E3A4822FD1C78A4D80F556FB92EB7D7B5DA01F5CE641",
-      "v1_signature_section_aes_key": "8A1ACA177E160A79924EB4D2C9435F98"
+      "v1_mic_short_salt_mic_hmac_key": "8555D441A574D3375E50F9A450022F4A982E8D580982908C7B6D81C628312968"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "AFB1",
@@ -203,9 +191,9 @@
       "short_salt_nonce": "9BF830CCD7DB20F7A3115702"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "668E2A14D9B304AC23D0F56CDFE0726A",
-      "derived_salt_nonce": "866E7A3B3D3F0A094F8FF58C221754BE",
-      "derived_salt_third_de": "137E0CE6D82B8DE9AFDFBE0DEB447B33",
+      "derived_salt_first_de": "866E7A3B3D3F0A094F8FF58C221754BE",
+      "derived_salt_nonce": "4BA0EDD516443776F79EEDEE45546007",
+      "derived_salt_third_de": "FD3BC9D082502D1C83969AA3EB0F147E",
       "section_extended_salt": "4AC4230A5F3B911F69A07DCE728586E4"
     }
   },
@@ -221,9 +209,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "0E5A3BCD461378A07659FBBD5E22AD8A658D3871FDA1B94111F5F468298A8D74",
       "v1_mic_short_salt_aes_key": "C3B2251C9ECEBABBF766D5185B5F18AB",
       "v1_mic_short_salt_identity_token_hmac_key": "ADF35872686CF343B3CCAC85D02789B9AE1F9D30A8DDCFF90EB87B17232F928C",
-      "v1_mic_short_salt_mic_hmac_key": "EE54C5BB9C1BFE150A389B0A87E4181694721FA52C7DFAD2012375D95356CDCF",
-      "v1_signature_identity_token_hmac_key": "D1E4984F45D313CD9FFBC84344861B3E4695CD514BED3150C16533E8D342CDE1",
-      "v1_signature_section_aes_key": "15EB95365271D866D98BD422014205B1"
+      "v1_mic_short_salt_mic_hmac_key": "EE54C5BB9C1BFE150A389B0A87E4181694721FA52C7DFAD2012375D95356CDCF"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "9BCE",
@@ -238,9 +224,9 @@
       "short_salt_nonce": "AEFEF9A66BCC84F652A6B6F8"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "62CA3E3C25D90BC9601B292D3DBAF36B",
-      "derived_salt_nonce": "DDFA02449C05C95B5D958B876CA189DE",
-      "derived_salt_third_de": "40EAA779A52CE6249681C6C2A6E33839",
+      "derived_salt_first_de": "DDFA02449C05C95B5D958B876CA189DE",
+      "derived_salt_nonce": "A91C601311456B234B8139A06C6E43A1",
+      "derived_salt_third_de": "9EBEE65479F0354487CBE0440D17E2D1",
       "section_extended_salt": "9054B345A1B790A68CFF7CFC52D75525"
     }
   },
@@ -256,9 +242,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "2D65B2CD24E315B3B60237770E5F14AEE994E718C023B32BBAE93F00A49160CE",
       "v1_mic_short_salt_aes_key": "C886A50B76F6FA70D653F47D58E32DB5",
       "v1_mic_short_salt_identity_token_hmac_key": "73D1231C70DF32D46609A2BCC11E0F1C09298F772ED3C1ED61F3473F6B0D109E",
-      "v1_mic_short_salt_mic_hmac_key": "8BA22F5A56E0C7D945A43286C432875B2A8BA4D340B71FDB32A5078BACF81D05",
-      "v1_signature_identity_token_hmac_key": "8F3E043B38AD640DDB32F836B000FEB140E293FEFFE22B048DABCC6AD0D77EB8",
-      "v1_signature_section_aes_key": "F0B1C0499D7F735D789BF19C6B27BDA0"
+      "v1_mic_short_salt_mic_hmac_key": "8BA22F5A56E0C7D945A43286C432875B2A8BA4D340B71FDB32A5078BACF81D05"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "02DD",
@@ -273,9 +257,9 @@
       "short_salt_nonce": "FC5A9CD5C30AE35F2439A989"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "C7C542850D51FC65A3748B637D4BF2B6",
-      "derived_salt_nonce": "E7BC6A195FD35BBBBD36890C84DFD6BF",
-      "derived_salt_third_de": "08B163B3C00BCF2302E50BCD54DE256C",
+      "derived_salt_first_de": "E7BC6A195FD35BBBBD36890C84DFD6BF",
+      "derived_salt_nonce": "559DD2F3D127F43E52DD15DE04199BA1",
+      "derived_salt_third_de": "D11E9E733ABB4DD44C3C85EEBC0443C8",
       "section_extended_salt": "B045F1FC3AA558F7DB3436B43FE3703D"
     }
   },
@@ -291,9 +275,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "EBA1ADD68E7A7175C6EA4BAC7C9DA02408DA8B42B079CE25883E286BE7D027F0",
       "v1_mic_short_salt_aes_key": "B4FBAAC9FB28B31447917346BF960A6A",
       "v1_mic_short_salt_identity_token_hmac_key": "8261D61215141838D5F9BE7B561917B4BE89A7CD558403E146FD5F9FDB232308",
-      "v1_mic_short_salt_mic_hmac_key": "776E5708C049603DE6CD23D46F5867BD4CFCBD68865DA033F76284C02248C5FE",
-      "v1_signature_identity_token_hmac_key": "8A10585EE8E9DE84E26A0284C4C0AADD7726DC54FCE6FB2196C6314661B8D765",
-      "v1_signature_section_aes_key": "1324A78CBC23F567A880B1975F0ED40C"
+      "v1_mic_short_salt_mic_hmac_key": "776E5708C049603DE6CD23D46F5867BD4CFCBD68865DA033F76284C02248C5FE"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "10EE",
@@ -308,9 +290,9 @@
       "short_salt_nonce": "615C3235852E9D1CD0063CE4"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "6272F7C2A41C3A15288E20DF6298EAD9",
-      "derived_salt_nonce": "E2F217DE0828333D9F49E122636431EA",
-      "derived_salt_third_de": "74DF8645F7FFB751482B84D2B291D3DA",
+      "derived_salt_first_de": "E2F217DE0828333D9F49E122636431EA",
+      "derived_salt_nonce": "6DBC0E9B86AD4A4F19A015931F1D81C6",
+      "derived_salt_third_de": "01C00EAA731684978FA89919C7EA294F",
       "section_extended_salt": "189063CFAF8E1915CCF88CB306E65B16"
     }
   },
@@ -326,9 +308,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "1F8DCC645A797A805CF72D23FD6DCF3243735737BE0E11870614BD547C56D3D7",
       "v1_mic_short_salt_aes_key": "E49F8D00B07699825E9F82D7A668F8D3",
       "v1_mic_short_salt_identity_token_hmac_key": "9AFBB83B9CE4C2A0A1F865B4386E87BB31273D46BC1F5C272D1F2F098F46C579",
-      "v1_mic_short_salt_mic_hmac_key": "A68EDA18BF3D5CE9CFB3EEC57922F0E4EE0DA69C36F353C9302976ACA66CEF6E",
-      "v1_signature_identity_token_hmac_key": "55602CC889D8C5B0C8E2F37149831B6C97DB377B2168A8A06BC667C8D017AA29",
-      "v1_signature_section_aes_key": "9EC0098FC8386B2260A44033CAF969FF"
+      "v1_mic_short_salt_mic_hmac_key": "A68EDA18BF3D5CE9CFB3EEC57922F0E4EE0DA69C36F353C9302976ACA66CEF6E"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "FAF0",
@@ -343,9 +323,9 @@
       "short_salt_nonce": "BA72171618BC1AE229E46B79"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "F3B0AFF9A87AD9F157FCB595A0400440",
-      "derived_salt_nonce": "58B7445E6B36BA40A10BA36B5C1E2EE2",
-      "derived_salt_third_de": "087236B6E0C93C6153A061CE6A145D2A",
+      "derived_salt_first_de": "58B7445E6B36BA40A10BA36B5C1E2EE2",
+      "derived_salt_nonce": "FA882BF72D6CA6ABEE770643FEBC63E3",
+      "derived_salt_third_de": "44A659EDAF49F53DB25CF9CCE878F4C8",
       "section_extended_salt": "E574B5E9485189F792010872C55A1A16"
     }
   },
@@ -361,9 +341,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "C073CA0A8FBFA53DE6D573FF2C4DC981C8567DCD41674F666A9B6F2A3E5DDBB8",
       "v1_mic_short_salt_aes_key": "3CA3A347F198B2771543DFDA16EBF066",
       "v1_mic_short_salt_identity_token_hmac_key": "526F4A2BADF226817B6CFBECAC622C76ECB29F08D94E76A19E0E5AA47E60BCC6",
-      "v1_mic_short_salt_mic_hmac_key": "B1BFA6EB1CF610F7ABAB39846A4096A201400C96FF365FA28DC17E21A10B4843",
-      "v1_signature_identity_token_hmac_key": "CDB40BBD6E8C6F09EACB8C49F6620036AF9EDADBE2C4DDDF4F1576BD16E60D97",
-      "v1_signature_section_aes_key": "89D7606A0A0A3BD01ECC6C5753B73976"
+      "v1_mic_short_salt_mic_hmac_key": "B1BFA6EB1CF610F7ABAB39846A4096A201400C96FF365FA28DC17E21A10B4843"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "9F8F",
@@ -378,9 +356,9 @@
       "short_salt_nonce": "622C675E322ED508F3D36C63"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "18DACA43407EBFAC3F779E06A67455F9",
-      "derived_salt_nonce": "F82E736F62D198165C6D347EA4E39C6E",
-      "derived_salt_third_de": "23619B13FF4E31FCACFD529756674E09",
+      "derived_salt_first_de": "F82E736F62D198165C6D347EA4E39C6E",
+      "derived_salt_nonce": "ED4E319B967B57D26983E812915BA8E1",
+      "derived_salt_third_de": "110564C6D93DDD97D5195015EFC203E0",
       "section_extended_salt": "BEE23DC5EBEB75C788B766ACEFA64377"
     }
   },
@@ -396,9 +374,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "07863900E27135BC852442C80BFCBA09FE418A460F91DCF30F88F194F2B15DE5",
       "v1_mic_short_salt_aes_key": "E0DA5AA00A18AB165C15005E75A02F7E",
       "v1_mic_short_salt_identity_token_hmac_key": "C6870BECE7AC586F61563E3FA8F460728218E93644B40E0DDDC621A01042FCC0",
-      "v1_mic_short_salt_mic_hmac_key": "CCBA93DACA9023B7633E5408DAD5EFF1FBE3A00E9F76E9AC8507DE5E651A5FD4",
-      "v1_signature_identity_token_hmac_key": "E6A09F1A28C2DE26841044AAAC67C4CEDF963992767C960796E204BBA6B61432",
-      "v1_signature_section_aes_key": "F610CCD8C43EF4D6E738CCD0C1C24C09"
+      "v1_mic_short_salt_mic_hmac_key": "CCBA93DACA9023B7633E5408DAD5EFF1FBE3A00E9F76E9AC8507DE5E651A5FD4"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "1B22",
@@ -413,9 +389,9 @@
       "short_salt_nonce": "D983D29159D24108F06DB7D3"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "67BC64977B228888CC5CD6466E3112A2",
-      "derived_salt_nonce": "44279BC1027CA9D501947166840CF2AE",
-      "derived_salt_third_de": "D656A3294C7E089F94ACF3FDFE93D463",
+      "derived_salt_first_de": "44279BC1027CA9D501947166840CF2AE",
+      "derived_salt_nonce": "C139F7EAF72F11DEC77D5120037603E1",
+      "derived_salt_third_de": "3A6C4695DAA454EE3F48667F48DC6A76",
       "section_extended_salt": "D482C2A6D420C5F6993527865FD38E45"
     }
   },
@@ -431,9 +407,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "35AC887D2973BF40F73476F789E095A220919AF1C4A308A20C4B72957A6F0847",
       "v1_mic_short_salt_aes_key": "18A8B80F7FFE5B3818837D04BAF23FC8",
       "v1_mic_short_salt_identity_token_hmac_key": "5CD8B34230B6BDED50B42E1EAF30F46136432AA2599F66A4F7AEE7442E974BA5",
-      "v1_mic_short_salt_mic_hmac_key": "91AC6D599B6D5EDDF95472D946A8C60292896C395DF3216FE6B0297BF0FBC890",
-      "v1_signature_identity_token_hmac_key": "848F82B20E686C242A2D7F1933E0CD872DBBDF1E7B436856F19424BD47078DD3",
-      "v1_signature_section_aes_key": "7A88551E0D0B4C248BD88C7214423C1F"
+      "v1_mic_short_salt_mic_hmac_key": "91AC6D599B6D5EDDF95472D946A8C60292896C395DF3216FE6B0297BF0FBC890"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "7DAA",
@@ -448,9 +422,9 @@
       "short_salt_nonce": "412810F614DD5448E7BA6171"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "F613A207D445ED2EC7CBE2A5787EFE60",
-      "derived_salt_nonce": "92A3862125E69F44E8E6087DD72828B6",
-      "derived_salt_third_de": "54C805F3DE7A3652271EBD5E097A9D95",
+      "derived_salt_first_de": "92A3862125E69F44E8E6087DD72828B6",
+      "derived_salt_nonce": "C251941EBB238F110CE9366366A63243",
+      "derived_salt_third_de": "F287734DEDB07CD0D65B20CF88D4C259",
       "section_extended_salt": "8D5F11C001A419648067D4A1966B0EED"
     }
   },
@@ -466,9 +440,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "CD6FA52AA997B94740B8645D647103C671B5795BC46F1E12B7AEFC7067641D96",
       "v1_mic_short_salt_aes_key": "6B695E1C8FB3DFDF4C1964B4B3424A03",
       "v1_mic_short_salt_identity_token_hmac_key": "900252ED6385B4E457CE563A5E5FC4BD39784EA4BC64958349E7CD427A68493C",
-      "v1_mic_short_salt_mic_hmac_key": "72DDECC2AB00222B3C70A9B343664B901614F01CD2E7033934DEC4077D6EC14B",
-      "v1_signature_identity_token_hmac_key": "05CB39213C947B9C4D82F311372A1780E4BB4AFE8480747841B0A681FF092A0D",
-      "v1_signature_section_aes_key": "E130CCBF8595EEFA23A6925AAD6E394C"
+      "v1_mic_short_salt_mic_hmac_key": "72DDECC2AB00222B3C70A9B343664B901614F01CD2E7033934DEC4077D6EC14B"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "C2FA",
@@ -483,9 +455,9 @@
       "short_salt_nonce": "9DCF2866433ED70F26A6DCE4"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "8882901B8F1F333196F1B78FC5D012C1",
-      "derived_salt_nonce": "EE7A39E6A119642C002E260A972369EC",
-      "derived_salt_third_de": "20B064790320BEDAC44CE80C37B4FCC4",
+      "derived_salt_first_de": "EE7A39E6A119642C002E260A972369EC",
+      "derived_salt_nonce": "AA6BC3FE67705C59B0A4D5DDD21EABFC",
+      "derived_salt_third_de": "CF005CCCC3EE42E500B80977BD5CD300",
       "section_extended_salt": "1E7F5C402A5D4994A8188E52A0AD2D72"
     }
   },
@@ -501,9 +473,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "A88A2984350349201CBA4531C95928DD34D2536CDC6958D6EB77A992AE1A3815",
       "v1_mic_short_salt_aes_key": "ADD9E7D962DD812FBEF7D19E09E5C6E4",
       "v1_mic_short_salt_identity_token_hmac_key": "44B9B99CF2B3A3514BF22123387F8D45F2197C71348B8FC3EE885A875AE10451",
-      "v1_mic_short_salt_mic_hmac_key": "62EAB192B0DD022F91733FB357D7DD912C94EBCB45B91F04AA5C0C9A9E7A85BE",
-      "v1_signature_identity_token_hmac_key": "A427FEC4ED745D0353E0B24CA11D69CE4FFC5117FA26F906B2ED023AE806B854",
-      "v1_signature_section_aes_key": "6A4CA8910A38C31640CD06D2045E2D0C"
+      "v1_mic_short_salt_mic_hmac_key": "62EAB192B0DD022F91733FB357D7DD912C94EBCB45B91F04AA5C0C9A9E7A85BE"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "0834",
@@ -518,9 +488,9 @@
       "short_salt_nonce": "FAE06666F8180F410474F3F9"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "F6BF0314DB3A1C1330A8E6E9A2CE5E7A",
-      "derived_salt_nonce": "7D5985FCF0EC057383CF3BAC7B113A43",
-      "derived_salt_third_de": "84F6F682DE9C87BDD9AABFFCDC14A822",
+      "derived_salt_first_de": "7D5985FCF0EC057383CF3BAC7B113A43",
+      "derived_salt_nonce": "71F566B1EC33A9019D8E46FD6A0A6303",
+      "derived_salt_third_de": "E3852E0A97BFA1ACBBF16E0E28F713B2",
       "section_extended_salt": "CEE571EA0F50EC647161523CBC93367E"
     }
   },
@@ -536,9 +506,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "BF34BAC8C099EFDD3BF41C051675CDEC259C27786E50CD326FFD409AC8ED6026",
       "v1_mic_short_salt_aes_key": "F3482440016A1E6CA2E1C79EF3B9F3B2",
       "v1_mic_short_salt_identity_token_hmac_key": "BBB7762E694FF6DC4CA9F31A537094364495BADCCB73FC69327C86D8A84FDBC7",
-      "v1_mic_short_salt_mic_hmac_key": "E35BD2293E90BD3AC97E98C2983EAA7B7F106AC55B3D88D332539F928CDB8E09",
-      "v1_signature_identity_token_hmac_key": "7F9ED591367A0EB8A4F23D145BA75249FD5842B59E8CF8C8BB9E69E942E555AF",
-      "v1_signature_section_aes_key": "955D996A026288A647EA707B0A33C9EB"
+      "v1_mic_short_salt_mic_hmac_key": "E35BD2293E90BD3AC97E98C2983EAA7B7F106AC55B3D88D332539F928CDB8E09"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "B490",
@@ -553,9 +521,9 @@
       "short_salt_nonce": "446675E4C5503E587A7ECD0E"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "CB1D2C8F670DE3E029FA9F91D0FC1494",
-      "derived_salt_nonce": "F82D6616C9669EC7708B6C085A45E8F8",
-      "derived_salt_third_de": "8ACC53A66823593B9F10479985B6D9B0",
+      "derived_salt_first_de": "F82D6616C9669EC7708B6C085A45E8F8",
+      "derived_salt_nonce": "C1067D74A38ADAF2B94D13EE90391FE3",
+      "derived_salt_third_de": "F881EB2579F5BB1220460292457F3D0E",
       "section_extended_salt": "839CE97E9C32C0C81368ED8F8057FC02"
     }
   },
@@ -571,9 +539,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "26B0F39B6880F40FBB6D006D3FDF20FA75D61FE70A21AA279295303AEEAAE57C",
       "v1_mic_short_salt_aes_key": "A0082298B9261FA98FF77171F7FC6D35",
       "v1_mic_short_salt_identity_token_hmac_key": "DA9EEED06B73B51582DBB749CAE10B30A072B4CFFA13B3055BBB0DCFAE423D7C",
-      "v1_mic_short_salt_mic_hmac_key": "28D6FDBDB521166652ABA223A3FB626DAFB5E5600D72B7EEBCE1A95E1E62CBAA",
-      "v1_signature_identity_token_hmac_key": "6A82842B2EA2C3C17C26B2867FDCFDC4733F67D4486CB92E1436B282A2E63AED",
-      "v1_signature_section_aes_key": "066127DEAD9D2611AFCC7B6216F8F180"
+      "v1_mic_short_salt_mic_hmac_key": "28D6FDBDB521166652ABA223A3FB626DAFB5E5600D72B7EEBCE1A95E1E62CBAA"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "3820",
@@ -588,9 +554,9 @@
       "short_salt_nonce": "7D16B77869830EE92A4EBFC5"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "659B8A721546530DA9795AF4F85F3172",
-      "derived_salt_nonce": "C86E1DF850ABF4050CFF5069AF064842",
-      "derived_salt_third_de": "5409D2E3012D6087942D9C6A9AD01055",
+      "derived_salt_first_de": "C86E1DF850ABF4050CFF5069AF064842",
+      "derived_salt_nonce": "7DC134EFC0F29157C468430798662C4F",
+      "derived_salt_third_de": "7B194464D9C546AD53F7A5DC60E7BE26",
       "section_extended_salt": "618434E133FE816E6B612F6CA5057231"
     }
   },
@@ -606,9 +572,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "081D31934C99EB52072EC7ED6D5DB9B238E8E9E6A1E66F612C3A53CE664895E5",
       "v1_mic_short_salt_aes_key": "87B5CFFAF5E8BF3F76F901E8A8167EE1",
       "v1_mic_short_salt_identity_token_hmac_key": "02926351AC11AB30159026DE19F8860825CDDEA95AE3B4054564EE4F42AAB436",
-      "v1_mic_short_salt_mic_hmac_key": "E7B62E504AF1F2EF99A86EB37FB14AB5642FCAA0EAD4BB0636D65A41B455A876",
-      "v1_signature_identity_token_hmac_key": "8E1E4E0D0082011E31322CF3CCF5CB6DD94F041C529255A3E96215C2EA887B86",
-      "v1_signature_section_aes_key": "113BDF8FDEB7FDDC45EB8D0CBFAA35DD"
+      "v1_mic_short_salt_mic_hmac_key": "E7B62E504AF1F2EF99A86EB37FB14AB5642FCAA0EAD4BB0636D65A41B455A876"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "34D8",
@@ -623,9 +587,9 @@
       "short_salt_nonce": "B61ACE6DA49F07333D36D94E"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "B2DB55B0EE6A19591335FD4A004AED74",
-      "derived_salt_nonce": "A18DB7BB4DEB0BAC4C300C1DFF08300B",
-      "derived_salt_third_de": "65FE8535564AE2CFB9D3D19CD5F1DF30",
+      "derived_salt_first_de": "A18DB7BB4DEB0BAC4C300C1DFF08300B",
+      "derived_salt_nonce": "EF88BBF79AF04718B399B21F7DBFEF11",
+      "derived_salt_third_de": "C78F13C9E1A96F0A543D1BF802FB098E",
       "section_extended_salt": "FC87C8E278F6CF79DFA952B70D3804CD"
     }
   },
@@ -641,9 +605,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "6787832FCFCE8782338608C8F35419AC877A130B4AA7866A3C7CB22ABD67179D",
       "v1_mic_short_salt_aes_key": "A3798AC54A640D75DE9460BFF32D5A5E",
       "v1_mic_short_salt_identity_token_hmac_key": "43DADD838D1B76E2EAE5A94FB1B839173FBD84CA47BC35CC2AA508D9D3516823",
-      "v1_mic_short_salt_mic_hmac_key": "F92977DD9EBAA721832F6E5D0CED0E29F940847AB0FB87494F323EC770EAF6F3",
-      "v1_signature_identity_token_hmac_key": "28A9E655ECBB19E0C72E389AF86D18CC1DD99B837CA39F80EFBEF46562ED30DC",
-      "v1_signature_section_aes_key": "5882688026AFC05D0A53C691D3C205AF"
+      "v1_mic_short_salt_mic_hmac_key": "F92977DD9EBAA721832F6E5D0CED0E29F940847AB0FB87494F323EC770EAF6F3"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "BB77",
@@ -658,9 +620,9 @@
       "short_salt_nonce": "C4625EB21060C7AC6EA7734A"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "2040080121468E2437D7C4AF1AB57CBF",
-      "derived_salt_nonce": "ED3C0CD523D93752269A7AE558DA70D1",
-      "derived_salt_third_de": "7EF0A5B6DB0312484B90580CC5CCDBF6",
+      "derived_salt_first_de": "ED3C0CD523D93752269A7AE558DA70D1",
+      "derived_salt_nonce": "ED6A987A8E7724110981488E35F5EB01",
+      "derived_salt_third_de": "7DDB4A0A52EFF9A5B87A14DC1ADAC67D",
       "section_extended_salt": "DD49906314C2165F3AA4887C7C2CBDE9"
     }
   },
@@ -676,9 +638,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "80025D8E9667BD088B5F9D297EEB6AE6323204DED5D6A5823E28896F58D703A4",
       "v1_mic_short_salt_aes_key": "3FB967135677C8DDDA512EE813CB7143",
       "v1_mic_short_salt_identity_token_hmac_key": "E9A7AF77D3A9368BF553BCA5721EA1F9981877501C5D999B437FCCF1E92086EA",
-      "v1_mic_short_salt_mic_hmac_key": "7A93B87E26BF91DFE19D314D0D1E50B85CCE0BCB90AA127706A328F927092721",
-      "v1_signature_identity_token_hmac_key": "39062B01DFC854FE594F8D6542FA644CD5C969E6F227511F4865D974CC6DEC2A",
-      "v1_signature_section_aes_key": "4B1167F08673796EC85DAFE62137B809"
+      "v1_mic_short_salt_mic_hmac_key": "7A93B87E26BF91DFE19D314D0D1E50B85CCE0BCB90AA127706A328F927092721"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "F252",
@@ -693,9 +653,9 @@
       "short_salt_nonce": "0956F02109DC68655CB62A5E"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "93BD8DE56900BCEDD84B9A1978AA94EE",
-      "derived_salt_nonce": "66881A93AE754517DC4D61AD12F5E742",
-      "derived_salt_third_de": "BBFD5FCD7F36BA90D88A9A092F8ECA29",
+      "derived_salt_first_de": "66881A93AE754517DC4D61AD12F5E742",
+      "derived_salt_nonce": "1FD78D5CCEF1F065A195EE71C41DDA33",
+      "derived_salt_third_de": "0D2851E10014226213319C8F7DF7C242",
       "section_extended_salt": "4D1E91C6292D4A910828E53CA3F09EE3"
     }
   },
@@ -711,9 +671,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "4B68A5067578BC2F7618F8B47F1FB64F3D304FFAE521225A895555BA5D8D9340",
       "v1_mic_short_salt_aes_key": "DE089E6F3B702F1BA314CACA9E7F2788",
       "v1_mic_short_salt_identity_token_hmac_key": "B2B5C5D2DA5C6FF0E1AF067248893051884AC530852A1EDD47CB494FAFFE06A1",
-      "v1_mic_short_salt_mic_hmac_key": "0263DBCBE0F69B101A639B2CF16346841E5ED159FAC9DCE93F92019A207D5819",
-      "v1_signature_identity_token_hmac_key": "E9F139462C5CF1CCB22E216ADB16B13C04206D39DABAFAAD83C342010BDCDD78",
-      "v1_signature_section_aes_key": "2DDFA0C2E734D9A8698821320CF1FE8D"
+      "v1_mic_short_salt_mic_hmac_key": "0263DBCBE0F69B101A639B2CF16346841E5ED159FAC9DCE93F92019A207D5819"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "3D53",
@@ -728,9 +686,9 @@
       "short_salt_nonce": "85714E38445BE9A4C2D012CF"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "A7C1B418774DF806054C029FA82533F7",
-      "derived_salt_nonce": "4919EFBFB04402814AB0C6A805820947",
-      "derived_salt_third_de": "C55544C75B968C2EAAD88699050D4362",
+      "derived_salt_first_de": "4919EFBFB04402814AB0C6A805820947",
+      "derived_salt_nonce": "DC8D12E01885843F6BEF7B0375467EB5",
+      "derived_salt_third_de": "6EF87BE1D98F36E985CB469549D3AD90",
       "section_extended_salt": "2BE31AA1F7D93AB925E36C8E96D2FCC3"
     }
   },
@@ -746,9 +704,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "59DD79D819E0C6E50E4189CC394B7FDE1D1AF17E29C9EEC63727F64430A1DE9A",
       "v1_mic_short_salt_aes_key": "AD577ED2A071A7EA5BE2DBE3D9440CAE",
       "v1_mic_short_salt_identity_token_hmac_key": "E6A27A0F3EA35DA104296F11B2D3D7104DCDD066FDD3930D2A8B4370C0497F27",
-      "v1_mic_short_salt_mic_hmac_key": "F5D81846C62C536E3D6B19F3A33F6DAB14C708EA183E6D598DABD4D567DB2C21",
-      "v1_signature_identity_token_hmac_key": "03BD502076C9F2CA53775BB46DB7D0120297DCE95C9D455EBF0D5C588A31FCA7",
-      "v1_signature_section_aes_key": "8559B5ADD92D397DE221F606DA353EB6"
+      "v1_mic_short_salt_mic_hmac_key": "F5D81846C62C536E3D6B19F3A33F6DAB14C708EA183E6D598DABD4D567DB2C21"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "5B56",
@@ -763,9 +719,9 @@
       "short_salt_nonce": "A1FC444CC695E3DA1BB17AF0"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "04AB6D4EDA19FC328F24C74CAC5C5DD8",
-      "derived_salt_nonce": "9331647748783F90E401965AC5B87106",
-      "derived_salt_third_de": "42CC023EEE82C7E84914B2E8190BF169",
+      "derived_salt_first_de": "9331647748783F90E401965AC5B87106",
+      "derived_salt_nonce": "FD2F8A5562CFCE12B632E8177EC5A661",
+      "derived_salt_third_de": "4703C2215165961932B78DB5FF7B1864",
       "section_extended_salt": "B877CD0EC34F48EF8AA9E00297D82C64"
     }
   },
@@ -781,9 +737,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "41DE5A06B3108EFDAFD5B8072E5438D0D411EC26C46C2EF62742D31E7601442D",
       "v1_mic_short_salt_aes_key": "2A3B1E230B36FCC470FD65299A7EDA9E",
       "v1_mic_short_salt_identity_token_hmac_key": "CCA9DE895F08980C2709A0FD4CF1B835E915BEB5E5BF192D5D30AC918E100C75",
-      "v1_mic_short_salt_mic_hmac_key": "80139B754D19E3896A1E1A5025DD04FC8E699B879484D8294A77EDF648E5643B",
-      "v1_signature_identity_token_hmac_key": "C6D68149007593DD02EE8790467405844C978F9352DDF2545C813022497DA7D1",
-      "v1_signature_section_aes_key": "738E9ABCFB9D5461E3F8E249C5BED287"
+      "v1_mic_short_salt_mic_hmac_key": "80139B754D19E3896A1E1A5025DD04FC8E699B879484D8294A77EDF648E5643B"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "77F7",
@@ -798,9 +752,9 @@
       "short_salt_nonce": "7B035FDE619F1DC6DDC82276"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "CF464723DEB71D8CB55827A0DF0D10F2",
-      "derived_salt_nonce": "5DB21C018408C6854005F5854F4FC0DD",
-      "derived_salt_third_de": "4F8C68AF4DFC9F31706823CEC2CFC31F",
+      "derived_salt_first_de": "5DB21C018408C6854005F5854F4FC0DD",
+      "derived_salt_nonce": "D2840BCE7DD91B8D0D251165F61773BD",
+      "derived_salt_third_de": "F4E0AC0A7B6C6DDEF9B669AA826367A0",
       "section_extended_salt": "F6F7A20A1113FA0CBADEE03D8737309C"
     }
   },
@@ -816,9 +770,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "020BF714AFCC97E16CFED3A9CEE5490B0C72B649DADCB7F0D31E1B9EFEBC048D",
       "v1_mic_short_salt_aes_key": "C82D0BB3858BCF0818755B90B87467AD",
       "v1_mic_short_salt_identity_token_hmac_key": "99700748DF89599EC8CD6A0464EC084651BD335DD8D8D82956E405D0994F2325",
-      "v1_mic_short_salt_mic_hmac_key": "FC3B070CECBABBF42ADE9193735C6D66322A12A1C3703C59194B823E5BC460E7",
-      "v1_signature_identity_token_hmac_key": "700DC0F4F8D9AC2B6A190EC7D041F0E6143C99CBB4C39C83419C5CB2382504CB",
-      "v1_signature_section_aes_key": "1D268051F9FCA0FD696862C2DD230F97"
+      "v1_mic_short_salt_mic_hmac_key": "FC3B070CECBABBF42ADE9193735C6D66322A12A1C3703C59194B823E5BC460E7"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "0739",
@@ -833,9 +785,9 @@
       "short_salt_nonce": "BADA73EFD61495DD37336600"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "22820FA9A35165D2ABF6C7C256681574",
-      "derived_salt_nonce": "67DC58AD06F080D8A671163E36A4F0F1",
-      "derived_salt_third_de": "B5DE19F288B57D8338FCB5134D7FE17D",
+      "derived_salt_first_de": "67DC58AD06F080D8A671163E36A4F0F1",
+      "derived_salt_nonce": "65D0D2211CD36B0F1BC7A21976B7FA45",
+      "derived_salt_third_de": "296FDA3D86444662B5EC6ADDA22CD804",
       "section_extended_salt": "14C2765287EFFFE0153EF93894134505"
     }
   },
@@ -851,9 +803,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "C4C4E9B64AFC367473E38D66B110403284C3C03AE00F1BBADC230C93D5D97BB7",
       "v1_mic_short_salt_aes_key": "7365641B35E3A6A5863106192EE1E1D1",
       "v1_mic_short_salt_identity_token_hmac_key": "F4DB33EC5EB13864F6B46DCDAFA9399E0B5F17C111D275C9BD906FC46D45D38B",
-      "v1_mic_short_salt_mic_hmac_key": "107A3B99DFA9D082BA9C5A52D066F0517EB0448B4CD3CE2671D6E191E2E2ED08",
-      "v1_signature_identity_token_hmac_key": "67E13E77F909D2E4A54AF23DF1319098A1CF63EC9D69ADBE1C1993CDA198AD7A",
-      "v1_signature_section_aes_key": "0CCE0847357476165E32DAB0D93660A5"
+      "v1_mic_short_salt_mic_hmac_key": "107A3B99DFA9D082BA9C5A52D066F0517EB0448B4CD3CE2671D6E191E2E2ED08"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "D429",
@@ -868,9 +818,9 @@
       "short_salt_nonce": "38893FBF7D1BEE182635466F"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "70EF8C20670E91B0201666736D87FFF0",
-      "derived_salt_nonce": "135C24DF13767FF03E133BB99D20B0F6",
-      "derived_salt_third_de": "3B537B5FF5AE9AB51B076C50F88DF467",
+      "derived_salt_first_de": "135C24DF13767FF03E133BB99D20B0F6",
+      "derived_salt_nonce": "159C343847AF15C6B5C65CB5D7A57A29",
+      "derived_salt_third_de": "647FC22F25DDB9E91FF67756949948F8",
       "section_extended_salt": "BE300446F843EC41349FC25CBE09D972"
     }
   },
@@ -886,9 +836,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "3041D70D7B869284630A49C8272CAA14F3BA2826BAD8EB8EF3FB2CCBEA2AC1F4",
       "v1_mic_short_salt_aes_key": "24B3475C2818DD82B2B861890B521CA6",
       "v1_mic_short_salt_identity_token_hmac_key": "17C3C1FEE32642EBAAF0B4D9F769346394FE12D0EF967535CA1AC7C9EDA28770",
-      "v1_mic_short_salt_mic_hmac_key": "020D702CD9F9FA8D8D4214F4C2E326DCA16E782AB23DB36CD4A846B36312605B",
-      "v1_signature_identity_token_hmac_key": "CBCD66F3A1395C1C119396056A69180BF48BFE314DC331E78E6B81C06A897168",
-      "v1_signature_section_aes_key": "7630A756E997DD3EE511628239C2EB42"
+      "v1_mic_short_salt_mic_hmac_key": "020D702CD9F9FA8D8D4214F4C2E326DCA16E782AB23DB36CD4A846B36312605B"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "BD6A",
@@ -903,9 +851,9 @@
       "short_salt_nonce": "32484DC7B135A80C39081760"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "78CE8B13F129273503E1536058A43149",
-      "derived_salt_nonce": "C7F3873BDD429C39E5560D733BD3AFCC",
-      "derived_salt_third_de": "9795B0AC7799E44E875429A7A24B1547",
+      "derived_salt_first_de": "C7F3873BDD429C39E5560D733BD3AFCC",
+      "derived_salt_nonce": "6BE2ADB388D90556F2F2772F02F73DD9",
+      "derived_salt_third_de": "E20697392F268ED4982E14B9C9E9F8CD",
       "section_extended_salt": "F86AB59158954445BC6366F8E823155F"
     }
   },
@@ -921,9 +869,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "110D45543242D23BD5896052CB4EA44B9DA4AD1B6D6E4D5D795D7F23262FBEA6",
       "v1_mic_short_salt_aes_key": "DB686DB1702E76B6A2E835D249E0143B",
       "v1_mic_short_salt_identity_token_hmac_key": "4BC8DCD602C7894832F1CEC3D1C715B9EA2DA59AAD81D50108E4CEF6404A92E5",
-      "v1_mic_short_salt_mic_hmac_key": "BA49A19BBC61BB50BEC6F2C102E4D099DF3D204E3C5CD6C7CEFF4F22B62B5804",
-      "v1_signature_identity_token_hmac_key": "685A096405A541B4BA786E24DA79E8780FCD448563352CEDF12A7746A7808D75",
-      "v1_signature_section_aes_key": "737D543B38D9BC756BA6BF8D0E345839"
+      "v1_mic_short_salt_mic_hmac_key": "BA49A19BBC61BB50BEC6F2C102E4D099DF3D204E3C5CD6C7CEFF4F22B62B5804"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "6328",
@@ -938,9 +884,9 @@
       "short_salt_nonce": "C2533EAB891577CD94E07FDA"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "DD5E5F7DB850DB95FD63F5F6097094CA",
-      "derived_salt_nonce": "40BF0CC82087F3D8EE4E1070EE4E0D91",
-      "derived_salt_third_de": "D14D7004CA8C8776275296A563487325",
+      "derived_salt_first_de": "40BF0CC82087F3D8EE4E1070EE4E0D91",
+      "derived_salt_nonce": "9AFD882EC93E0ABD587ABD787243AF91",
+      "derived_salt_third_de": "4BE064C0461D4FEBCC51976C4164258C",
       "section_extended_salt": "B774D26C0DA92679B9F85BA62EF47501"
     }
   },
@@ -956,9 +902,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "55BD72D9FE9ECD40946E57894549E0B468E0A62E2BEC97FD744FAE68C45783A7",
       "v1_mic_short_salt_aes_key": "8240C926DD7C8887AB1D99C10D994BD1",
       "v1_mic_short_salt_identity_token_hmac_key": "01F8D73775C16E0B2165023A3FBDF31F2FAB14F9269B26E0397D9F75105CB4A3",
-      "v1_mic_short_salt_mic_hmac_key": "4DE142833A00DC99C9A98AB93893AC000BE38083B7F31F3FB112E93B32B7F3E2",
-      "v1_signature_identity_token_hmac_key": "2D31AA445FED272EF8CC6C8BD869D30F1F7E2D3D013BC179AD19ECB59DBDA3D8",
-      "v1_signature_section_aes_key": "4548FC98A94CEB5037232B78069656F1"
+      "v1_mic_short_salt_mic_hmac_key": "4DE142833A00DC99C9A98AB93893AC000BE38083B7F31F3FB112E93B32B7F3E2"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "BB38",
@@ -973,9 +917,9 @@
       "short_salt_nonce": "8DC07DE237C5C0973E1F142A"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "53F10F9CA5E77717F922663B49169B24",
-      "derived_salt_nonce": "4947E98A773F91E71B31C94603FE2A27",
-      "derived_salt_third_de": "82576C8D1063FA9B9CFE825EC4BC8D44",
+      "derived_salt_first_de": "4947E98A773F91E71B31C94603FE2A27",
+      "derived_salt_nonce": "B175ED6D967DF242D51234FAA77C2A39",
+      "derived_salt_third_de": "A4C0DC3762DC34C7DC042BBB0E6E777D",
       "section_extended_salt": "71D1DA2128B0D32EDA53591B8B1E2214"
     }
   },
@@ -991,9 +935,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "2827D2973DA029745965B868ED9634EB7394D442143E79E72CD09BBC9F59F0FA",
       "v1_mic_short_salt_aes_key": "5013ADB5508464143F2D2A96C807E459",
       "v1_mic_short_salt_identity_token_hmac_key": "859EAD154B93576E407471495FD37A54193F9CFEE0078342EF48F677E2A20AEE",
-      "v1_mic_short_salt_mic_hmac_key": "2C5C56B063989DD245791D8398E146A585C4F91C8C29240814E606C0AF4CB6C3",
-      "v1_signature_identity_token_hmac_key": "A7A0CF65D8121AD48101E5A10512CC09F6B50FC64142A030188B6ACA57EE2219",
-      "v1_signature_section_aes_key": "2AD28911FAA0C9D0FD4295ACB09823F2"
+      "v1_mic_short_salt_mic_hmac_key": "2C5C56B063989DD245791D8398E146A585C4F91C8C29240814E606C0AF4CB6C3"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "C6E5",
@@ -1008,9 +950,9 @@
       "short_salt_nonce": "063DDF6B3AE8F83186DF04FA"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "64F5ECC15737A6BD0CD7148884A7389B",
-      "derived_salt_nonce": "FF7ACEE09C30922CC4367ACD2014FBE9",
-      "derived_salt_third_de": "A4B5B9D6F05A84BC5AA915AC954CA94C",
+      "derived_salt_first_de": "FF7ACEE09C30922CC4367ACD2014FBE9",
+      "derived_salt_nonce": "B91F31313F9B41169D6DF606ECF6FA56",
+      "derived_salt_third_de": "97BF390E8B861615F714976C471BF5B2",
       "section_extended_salt": "2D31BE7AB1A84EDF74D9B66B6DF3E7D4"
     }
   },
@@ -1026,9 +968,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "5F0411676B1FA1C17C08568A88BB477DA9C2016560888D6D791D342CA8C9B812",
       "v1_mic_short_salt_aes_key": "AC6C5BDDE8C655C7354206D748065E45",
       "v1_mic_short_salt_identity_token_hmac_key": "7F04F2F8BAA4D0F564D291E17E00A4EA547A33D22C144608D6CA64D048571502",
-      "v1_mic_short_salt_mic_hmac_key": "6E2F84D1A9BE9234BBD6F8138068B7520B8E056B1B0949EEA5B720972DDA5D5E",
-      "v1_signature_identity_token_hmac_key": "983863BD77F0A3A79443DE302AD320F51EDACD4E735385260CD8703414AC897A",
-      "v1_signature_section_aes_key": "E62E81BBD49561DD9C20FDD414C1BF8A"
+      "v1_mic_short_salt_mic_hmac_key": "6E2F84D1A9BE9234BBD6F8138068B7520B8E056B1B0949EEA5B720972DDA5D5E"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "C20B",
@@ -1043,9 +983,9 @@
       "short_salt_nonce": "9EC52904170660BFC9946FD0"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "D3DFF59C7AEA3C8E820B92E76B80ED03",
-      "derived_salt_nonce": "16DE3412C96734F65C24B77E6A597BAA",
-      "derived_salt_third_de": "73FC3E0306353363F7AA4F8910C1F86F",
+      "derived_salt_first_de": "16DE3412C96734F65C24B77E6A597BAA",
+      "derived_salt_nonce": "FC35C487A60DF7BDB6E513ED17A10595",
+      "derived_salt_third_de": "1E4EE37AD47D9F360495181240E867D1",
       "section_extended_salt": "F0181D6CC67C40620D61C0377D06627A"
     }
   },
@@ -1061,9 +1001,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "9EB1CD357FA7BB0AB5B17E95661DB20F30A9AF2DE76F06CDC6FF19D4B533A15F",
       "v1_mic_short_salt_aes_key": "949AE776AA4D9F7B80E23D25EC3F0CB9",
       "v1_mic_short_salt_identity_token_hmac_key": "58B69B49CF4DB03F5784823D95C94E868AFE1B1AE547131F32A0410CA8B4C205",
-      "v1_mic_short_salt_mic_hmac_key": "166A695C761FE5D1C0CA5577CDAE59BADC4D6B34ED6A02FF8C7C5B9F9D829D34",
-      "v1_signature_identity_token_hmac_key": "B8A5017381D6CA6EC9A1CB4676F00BA3F3F345BCA33C348CB7CE60AF1A9A7279",
-      "v1_signature_section_aes_key": "8BF7B8345F2B0BE8DB7CBE7E96D9E3AC"
+      "v1_mic_short_salt_mic_hmac_key": "166A695C761FE5D1C0CA5577CDAE59BADC4D6B34ED6A02FF8C7C5B9F9D829D34"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "30D1",
@@ -1078,9 +1016,9 @@
       "short_salt_nonce": "3BE65DEA17A00BF9D49A1C38"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "2B99B7DBFD1AD40DBE93E10E259A6188",
-      "derived_salt_nonce": "FA549B59FBB527C1422799C1749F0304",
-      "derived_salt_third_de": "7570E91C96332E0248AB19ED32AE2A31",
+      "derived_salt_first_de": "FA549B59FBB527C1422799C1749F0304",
+      "derived_salt_nonce": "88125C143B58DFBDDAE7A24FDF2653F8",
+      "derived_salt_third_de": "5C341199A3A3856045FB160AAA6AAE9D",
       "section_extended_salt": "0F3D3F0272988D59B1F3B1C6189E7E89"
     }
   },
@@ -1096,9 +1034,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "A0CB3B5F81BF78216E18957A46B0DC4E38570FE1C69B1D6E06D29C3E2D56C5CC",
       "v1_mic_short_salt_aes_key": "A67440D7A821523A84FCA1633161125E",
       "v1_mic_short_salt_identity_token_hmac_key": "7DB92F89448C4D4059E48D199C36ACC879F0E450B0D8EECABBEC8C387B6A160F",
-      "v1_mic_short_salt_mic_hmac_key": "5378B75FE4E4A8505FAA231CA43CB0DFC1BFB53D07FFA2FC61391214AF21D293",
-      "v1_signature_identity_token_hmac_key": "31F296D8BBC8E6C8D877190FF808746B522B781F5D98E234DE608194E60A928D",
-      "v1_signature_section_aes_key": "C1E5CF90392F864D15390E483F08562E"
+      "v1_mic_short_salt_mic_hmac_key": "5378B75FE4E4A8505FAA231CA43CB0DFC1BFB53D07FFA2FC61391214AF21D293"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "82B1",
@@ -1113,9 +1049,9 @@
       "short_salt_nonce": "408CD97C38B4878C593CA9FF"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "2CB4C2F731719080646D748288FD8A09",
-      "derived_salt_nonce": "C65251DDEEE83B1C0C7B1B6417EBFAA3",
-      "derived_salt_third_de": "E3ADDE6C9B9124A4ABDC4026178DCBAF",
+      "derived_salt_first_de": "C65251DDEEE83B1C0C7B1B6417EBFAA3",
+      "derived_salt_nonce": "EA1AA39F4E30DD10576D6EC81935B45E",
+      "derived_salt_third_de": "16A0182E4E640F81399AA1BB22CC1C59",
       "section_extended_salt": "20638EE0EBF0D34A51A53EF7563C15E3"
     }
   },
@@ -1131,9 +1067,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "B151727B25FF7630AACE3803BCB85CB942EA1638E45F1DFD70663D8B8143A6FD",
       "v1_mic_short_salt_aes_key": "266FAADB0647BF79A759C9F747F0236B",
       "v1_mic_short_salt_identity_token_hmac_key": "F4C7A6A7F8F6FE6C77AB0A95A7A716966C7828BF5E7D1A7204984823639ECB20",
-      "v1_mic_short_salt_mic_hmac_key": "3EEF8D8F921DEBFC0B38B2C969488FC7EEAD618EEF189F0D6EE427539133095F",
-      "v1_signature_identity_token_hmac_key": "0B4E8908F5113876B22700FD9505474EBC4FAF369F850F6FEAB2CFFC8C218857",
-      "v1_signature_section_aes_key": "BAD090C852284E25461B7152B1B4D5D5"
+      "v1_mic_short_salt_mic_hmac_key": "3EEF8D8F921DEBFC0B38B2C969488FC7EEAD618EEF189F0D6EE427539133095F"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "3345",
@@ -1148,9 +1082,9 @@
       "short_salt_nonce": "7F613AC000317D4C02D5D869"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "C9C285BA4E31877EB2B2E031CFEA0B30",
-      "derived_salt_nonce": "35A6A82C0B520C126652A1376AD58DF4",
-      "derived_salt_third_de": "2EEC85204A794C280C774C8F2C037204",
+      "derived_salt_first_de": "35A6A82C0B520C126652A1376AD58DF4",
+      "derived_salt_nonce": "E8E6D685CF743FAF150E5CA386287CC4",
+      "derived_salt_third_de": "C6771927D2A972D68FBB85BDA4EDCE87",
       "section_extended_salt": "EC6182A82E58AD95A9EDCACA06791FF7"
     }
   },
@@ -1166,9 +1100,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "95EE789B7EE2D188C993872CD7F7928AADCBDB063EF37B9BF4A1E42FE48BF27A",
       "v1_mic_short_salt_aes_key": "FC2D104399AED84B2E04C6EC5B1D6434",
       "v1_mic_short_salt_identity_token_hmac_key": "C378873BBA5D9686626014ADB68EA7DE71CC905C6212AF0D8659D6D6FF2D364B",
-      "v1_mic_short_salt_mic_hmac_key": "954651192C31CDDB288CB209E9644C9BF38566DAA16B828AB8BA51B40760C5DA",
-      "v1_signature_identity_token_hmac_key": "77C78656128EDC316410216D4A7ABF39E9A83F5C975B4C0672F4FBA61C855342",
-      "v1_signature_section_aes_key": "AF94A29FB78A0FE335FEC5E8B5C8DB93"
+      "v1_mic_short_salt_mic_hmac_key": "954651192C31CDDB288CB209E9644C9BF38566DAA16B828AB8BA51B40760C5DA"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "5094",
@@ -1183,9 +1115,9 @@
       "short_salt_nonce": "EF90714317133008CC791097"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "FC45A7467A362CB4A7BD1B51717012AF",
-      "derived_salt_nonce": "DBDD7802D5F950078856A9182E623962",
-      "derived_salt_third_de": "3C2970E4D337BA8D15FB3CEB02305027",
+      "derived_salt_first_de": "DBDD7802D5F950078856A9182E623962",
+      "derived_salt_nonce": "631C4843F5BC902D8D0F246183A821A7",
+      "derived_salt_third_de": "E17E27E10BF00973E96992FF5A3847C8",
       "section_extended_salt": "6C61349ED1E575BEE8632E0704C63FA0"
     }
   },
@@ -1201,9 +1133,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "54034D6726FE5EB1B3ABE64CFDA9F59B27363AE3E31134381439AD97E9D102CF",
       "v1_mic_short_salt_aes_key": "563BE2F028CCAFACB90F495AB1C6E90D",
       "v1_mic_short_salt_identity_token_hmac_key": "179DC9E04EF5284CDB8226A46355E771C618934D46052339E580CFA4A1042921",
-      "v1_mic_short_salt_mic_hmac_key": "65238FBDB477D87AA79E6BF2FEFE763D26C95FC2BE480C007318A1FE0A2B2F87",
-      "v1_signature_identity_token_hmac_key": "8548488B07F32D86F41B584DACC3FAA5D1FBE99B85CA152CA358C585D27E8C05",
-      "v1_signature_section_aes_key": "649A99512E6B524CD6AAFB9349EEC4AD"
+      "v1_mic_short_salt_mic_hmac_key": "65238FBDB477D87AA79E6BF2FEFE763D26C95FC2BE480C007318A1FE0A2B2F87"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "BD68",
@@ -1218,9 +1148,9 @@
       "short_salt_nonce": "268B4FA03588CAAD663128E5"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "3BB392471E3DC9FD55124F895C7715FB",
-      "derived_salt_nonce": "D55F2D27065CEC26BA6A3CDA4A99420C",
-      "derived_salt_third_de": "F0C487B8010500EC28E1E162C3ECDA7C",
+      "derived_salt_first_de": "D55F2D27065CEC26BA6A3CDA4A99420C",
+      "derived_salt_nonce": "F03C199D903A06732B46D3E171A58770",
+      "derived_salt_third_de": "1A3216FB4A414A967E8F0362EFAD0A09",
       "section_extended_salt": "B6B17B39F5C7EED0037906B686AD650C"
     }
   },
@@ -1236,9 +1166,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "88229AC78E07751043236D0963BC121E2A4EB6489D0C19008E3210F57277CD90",
       "v1_mic_short_salt_aes_key": "8C3C9A5E608DDD8195590F70B852C9EF",
       "v1_mic_short_salt_identity_token_hmac_key": "9D1C4285C18AA6B490C11557CAD4A909ADC0711EB5F0FE493D0A837B84DB9E1F",
-      "v1_mic_short_salt_mic_hmac_key": "95550CE1FF69EAAF1BA1E8AE6560F29F2E068D0C8C78EEA78A6BB8A898B09C83",
-      "v1_signature_identity_token_hmac_key": "3893648367F0710E2E1FD4608C7A7892DF05A40CE1DA124C99F7483016B2A9AC",
-      "v1_signature_section_aes_key": "9E4A0F1FD50A640743596D58FDAB2A8C"
+      "v1_mic_short_salt_mic_hmac_key": "95550CE1FF69EAAF1BA1E8AE6560F29F2E068D0C8C78EEA78A6BB8A898B09C83"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "A14A",
@@ -1253,9 +1181,9 @@
       "short_salt_nonce": "689506D55DA43C98229E35E8"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "6C28C3ABDE8FFDA08F9953CB6B24320F",
-      "derived_salt_nonce": "410E75A3CA41E3C125C11FBB5FEF5698",
-      "derived_salt_third_de": "7A39A6831FE1C42FD179D229AB3BA997",
+      "derived_salt_first_de": "410E75A3CA41E3C125C11FBB5FEF5698",
+      "derived_salt_nonce": "7A6B18317C363C2CBB8EC95BFFB23AB2",
+      "derived_salt_third_de": "1AC78412A9AFEF098568E496C93C9D6E",
       "section_extended_salt": "50BAC8BFC5B415D834FB0E214FD0A435"
     }
   },
@@ -1271,9 +1199,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "F62B10BBE49EDB6710E99F12D0A7A5C4F76E05158905098D3B7E7221675057A4",
       "v1_mic_short_salt_aes_key": "12A98E8CAE6329555EEB63400A56D627",
       "v1_mic_short_salt_identity_token_hmac_key": "401BF4799CB21A9277D3F643D51C5C2E5D574E53F20D5A4D6039BF8501B4B9A4",
-      "v1_mic_short_salt_mic_hmac_key": "77937075451137DA6E774BA77C5A25B51896BD85429245EB45FDF8D84D40ECD1",
-      "v1_signature_identity_token_hmac_key": "2A938DF61D8F4FC208BB76E2C1509AD85C880079F1C194287CAECE0AB03EFD25",
-      "v1_signature_section_aes_key": "305B71CD7CC16B254D7DB937EED3E384"
+      "v1_mic_short_salt_mic_hmac_key": "77937075451137DA6E774BA77C5A25B51896BD85429245EB45FDF8D84D40ECD1"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "CE71",
@@ -1288,9 +1214,9 @@
       "short_salt_nonce": "C7B4FA588C9333953524A7CA"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "DE16277E7CEC4B1FACAA17BC54474A8E",
-      "derived_salt_nonce": "D4FF5F07C589D8138D2FDB2A24BC0C89",
-      "derived_salt_third_de": "D53C34584D2EA2FCF446979A19CD7EB4",
+      "derived_salt_first_de": "D4FF5F07C589D8138D2FDB2A24BC0C89",
+      "derived_salt_nonce": "76BA4651FA3CA88C74389A9CB4D908C3",
+      "derived_salt_third_de": "2C92D0F5A9200D68AD59E72B54A8BF27",
       "section_extended_salt": "F946C81199DE69612EB07197BC151E2C"
     }
   },
@@ -1306,9 +1232,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "4E98FDB0A10DECFF15DD50201B666FD37DECD7714DC39375807CA551EA4566B2",
       "v1_mic_short_salt_aes_key": "FC0DABBB4752FEC56777FB109C1FCF70",
       "v1_mic_short_salt_identity_token_hmac_key": "26B67259B23EE7FF7732B63D29FB88C6EFF6B2963742314E7EE443D062D577FE",
-      "v1_mic_short_salt_mic_hmac_key": "494B430E241D388B8E15EAC8B79FB531D8202019A03F171A70FEF735DEA4A839",
-      "v1_signature_identity_token_hmac_key": "1BB63967B26B3A8182DB6E45CE90217C48F7C7289049669114F2F60D59A4982D",
-      "v1_signature_section_aes_key": "C12D865CE3C3B92E3D86E11D31C4B7D0"
+      "v1_mic_short_salt_mic_hmac_key": "494B430E241D388B8E15EAC8B79FB531D8202019A03F171A70FEF735DEA4A839"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "AA4B",
@@ -1323,9 +1247,9 @@
       "short_salt_nonce": "C9FDD6FB248C1AB3CFF1BEF9"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "90549FA7AC9880D8007E17CDEE74FE89",
-      "derived_salt_nonce": "55FB1B0D6681696C15F559A6A0B817BD",
-      "derived_salt_third_de": "DA0D6A896BC2718BAD6B2582B3EE79C7",
+      "derived_salt_first_de": "55FB1B0D6681696C15F559A6A0B817BD",
+      "derived_salt_nonce": "32EF206EB8539FFE20419B058B26C028",
+      "derived_salt_third_de": "7E5D3483FDDEF83EEB15B7B59DA7BB5B",
       "section_extended_salt": "1FCA0AE82AE6340C91647C5564742C84"
     }
   },
@@ -1341,9 +1265,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "46ECCA964CC3D606C16840222CB68074FE307938809FC97EA68C5E9EAC01E754",
       "v1_mic_short_salt_aes_key": "A4EB5E86AF11AB3A4F8D70BA2D37784A",
       "v1_mic_short_salt_identity_token_hmac_key": "32E95A4CFC685F4F3987F8D89C13B33C43E5F8BA1A1C76518975667B7EDD5A98",
-      "v1_mic_short_salt_mic_hmac_key": "80179BE73B86A9D0AFF72833F594BCF83905914646F4DB288EC11F875F1591BB",
-      "v1_signature_identity_token_hmac_key": "94A64B97AA4C3A474CFD819BA6FC161F2E2865B1E2B08B041CA219490F786F6A",
-      "v1_signature_section_aes_key": "8025F8AA3FC09DC5EF67F59C63D81FDB"
+      "v1_mic_short_salt_mic_hmac_key": "80179BE73B86A9D0AFF72833F594BCF83905914646F4DB288EC11F875F1591BB"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "28B7",
@@ -1358,9 +1280,9 @@
       "short_salt_nonce": "911ACEFB50B97795D2A96537"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "5BAA0ED9252F176221DE2D9E287C731A",
-      "derived_salt_nonce": "220F098C6ADCF4E24B6762E4CA4DC7A6",
-      "derived_salt_third_de": "FDB6D13DB24556E6A1E926CA5080B20E",
+      "derived_salt_first_de": "220F098C6ADCF4E24B6762E4CA4DC7A6",
+      "derived_salt_nonce": "E0F6AE009AF0E329508A916D49CAAF47",
+      "derived_salt_third_de": "336AC0B9D31CEBE2276027DC693562D7",
       "section_extended_salt": "C10AF6288A750A0C71B7FBB3057BBAA2"
     }
   },
@@ -1376,9 +1298,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "1BE4DF51E2A244F17793D9C3D1EE2DDC9FC992BFBE378C828DBD1D3121F4D9EC",
       "v1_mic_short_salt_aes_key": "FDB274DA8F75B1DA00CEAAD2BDD6BD06",
       "v1_mic_short_salt_identity_token_hmac_key": "750DFF2B2046595041B400945833A3434B39D98C23975040C6192F66959E40B7",
-      "v1_mic_short_salt_mic_hmac_key": "19F78A8FE548117BA40809FD8F602F2FB9A57F6EFE01756A93A81A6BBEA0BEF6",
-      "v1_signature_identity_token_hmac_key": "48FAF93A1F41C85646B0204CCEA6C145E7CEB69BA38F3FCF3979E4F9A34747BC",
-      "v1_signature_section_aes_key": "34324281067F3278984109B434594C84"
+      "v1_mic_short_salt_mic_hmac_key": "19F78A8FE548117BA40809FD8F602F2FB9A57F6EFE01756A93A81A6BBEA0BEF6"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "9021",
@@ -1393,9 +1313,9 @@
       "short_salt_nonce": "760FE743C18D50BC5915DEAA"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "66980E111A8AA401E3B96E7E0EA44FF5",
-      "derived_salt_nonce": "51074A20BC98469D5E302D454A661CF1",
-      "derived_salt_third_de": "0A7723EEBC848E10D5573084A5AA9326",
+      "derived_salt_first_de": "51074A20BC98469D5E302D454A661CF1",
+      "derived_salt_nonce": "DCD6CB358B33CB33402E96ABDA453544",
+      "derived_salt_third_de": "4B4630D5B804867012BD04E186020C6D",
       "section_extended_salt": "3CDABDF68AAB76BA4AD395BEB668D405"
     }
   },
@@ -1411,9 +1331,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "4EFE91D05602871EF06FEE7A9B2DB2ABF8FDA8093467E2B7E5437176D24885AF",
       "v1_mic_short_salt_aes_key": "6465CF64ACF1F01D2D5D9D1441B2E4B9",
       "v1_mic_short_salt_identity_token_hmac_key": "F5129A6C3923C228366A93A12BA8287B1C2CDA1A6CFDEC305C7FB224D92EDE7B",
-      "v1_mic_short_salt_mic_hmac_key": "30876F2D82145F3754EBD7CAF699A3BA64458F0846C9E6047485B5C209F65C1F",
-      "v1_signature_identity_token_hmac_key": "AD8B825C5A010150B5F2AF5A3FF073A3EE199654BBBB073E4D902FE4D0AC5A48",
-      "v1_signature_section_aes_key": "611B58E120CDE3E26F834932C36566DD"
+      "v1_mic_short_salt_mic_hmac_key": "30876F2D82145F3754EBD7CAF699A3BA64458F0846C9E6047485B5C209F65C1F"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "3CA1",
@@ -1428,9 +1346,9 @@
       "short_salt_nonce": "72163DAF1F557C67B89BA7B0"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "84D7B207BC3AC861E317C4427A2F3301",
-      "derived_salt_nonce": "498C9B6F78B4E5F68FCBDFA5FAD87C0B",
-      "derived_salt_third_de": "363C6DADFC2F7B20DB94885929867F1F",
+      "derived_salt_first_de": "498C9B6F78B4E5F68FCBDFA5FAD87C0B",
+      "derived_salt_nonce": "553226292566810FA5145063CC387142",
+      "derived_salt_third_de": "36470C9FD252479124C80237CB09D7B4",
       "section_extended_salt": "9435272D1BBC6EA6FB74B94D6AEB5AF9"
     }
   },
@@ -1446,9 +1364,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "D619E81CC454D9988BAEE3126A279B2E06E91555B79E736D3A148BC5562B7640",
       "v1_mic_short_salt_aes_key": "7F710EBA3B7926655AB09CBE0B907506",
       "v1_mic_short_salt_identity_token_hmac_key": "CD64A6D97487DFA1AB1893D5E00117807F598A2AE118654996BC1E3DE8F8B61A",
-      "v1_mic_short_salt_mic_hmac_key": "3C5F8ED49E7B095E21F3DFC00E92C34A6291E6E445FB181EB5612FB45389BC9B",
-      "v1_signature_identity_token_hmac_key": "FD265D72D87FBB7503D2B532DF0F03F916FB41D82758D1A6BD1E71AF1C3C99E8",
-      "v1_signature_section_aes_key": "C715D287A1C5131332DE38C844EC32D9"
+      "v1_mic_short_salt_mic_hmac_key": "3C5F8ED49E7B095E21F3DFC00E92C34A6291E6E445FB181EB5612FB45389BC9B"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "38BA",
@@ -1463,9 +1379,9 @@
       "short_salt_nonce": "F93616C2AEC28E78FF0B5D0C"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "8F505CBB29A4CC1CD037D1864D15141C",
-      "derived_salt_nonce": "03A12AB647E4834E3E507F1F6EF20F1A",
-      "derived_salt_third_de": "654F8A7CD26F23E82163007DD25029B9",
+      "derived_salt_first_de": "03A12AB647E4834E3E507F1F6EF20F1A",
+      "derived_salt_nonce": "9562F5EDAB6DEE92BAC998F980388B64",
+      "derived_salt_third_de": "A469E38314EE63E6A43F6A95FF4DFDBB",
       "section_extended_salt": "AD43FF79BFF583BED9ECAA14CDDA4B4A"
     }
   },
@@ -1481,9 +1397,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "208EA31DA316646310DAFE2A4036E5A1556E80020D8EE582DCD9CB6DC475B625",
       "v1_mic_short_salt_aes_key": "0B308555FC29F102CF5AF79AA5C5D85C",
       "v1_mic_short_salt_identity_token_hmac_key": "5F89875055E105BD96055508E440A6A6B44AC0F867D642FF95EBF249D2A28BD8",
-      "v1_mic_short_salt_mic_hmac_key": "54F0E228A0E4761F1694BC2717794E2C79BC9CCA99A0B368A370A83750468223",
-      "v1_signature_identity_token_hmac_key": "5838D84FFD60A23225B059EFE52D7FFE71CDFDB599826D8BBCF2E254FA5B72A7",
-      "v1_signature_section_aes_key": "0BA6F0BE32E0E8AF932B27A38BFF678C"
+      "v1_mic_short_salt_mic_hmac_key": "54F0E228A0E4761F1694BC2717794E2C79BC9CCA99A0B368A370A83750468223"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "1D76",
@@ -1498,9 +1412,9 @@
       "short_salt_nonce": "ACF0BFA6CF9267C79BF71814"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "588B14F40986244A6E6E11B59DBE6004",
-      "derived_salt_nonce": "8F4780C654ACC3FDC454F59459EE4806",
-      "derived_salt_third_de": "433266A654D8821576954A6122E18ED5",
+      "derived_salt_first_de": "8F4780C654ACC3FDC454F59459EE4806",
+      "derived_salt_nonce": "C2EFC744B5AB6FF278FA77B9699C0900",
+      "derived_salt_third_de": "F95FEE2D4E0BB599816ADDB834EF2DE3",
       "section_extended_salt": "5D5394D0EF11A3C4C83A1B3F4DD1340D"
     }
   },
@@ -1516,9 +1430,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "2ED15F9F067294394BA5F7EB2F554553CB932E33A8C10E6AC3434FF1A7F8DD2F",
       "v1_mic_short_salt_aes_key": "CA73989C086C73B114AC605A79A0F8F2",
       "v1_mic_short_salt_identity_token_hmac_key": "63269C17F98AA0029E06EA1B749D8DB6C28ED916906DD28F1A3A8C94E31DACF9",
-      "v1_mic_short_salt_mic_hmac_key": "AD1C3A30332FA34408CA62A9C6B9A5263932EEE57829C1195DC74127B1C88671",
-      "v1_signature_identity_token_hmac_key": "99B0BDB55C04EAEBA66E40815CA346C596D848044A16F8A8CD1E8F22E4B11F97",
-      "v1_signature_section_aes_key": "5F2B10AD3A8C1803B080A1F99239B66C"
+      "v1_mic_short_salt_mic_hmac_key": "AD1C3A30332FA34408CA62A9C6B9A5263932EEE57829C1195DC74127B1C88671"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "D451",
@@ -1533,9 +1445,9 @@
       "short_salt_nonce": "D13C30E6D309831E754A8B5D"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "22A24B673F12E4066B1058549ACB431A",
-      "derived_salt_nonce": "EEF802FFAEBD8AF451F5275934E2F8ED",
-      "derived_salt_third_de": "136F8970074C895F2195791B5636A000",
+      "derived_salt_first_de": "EEF802FFAEBD8AF451F5275934E2F8ED",
+      "derived_salt_nonce": "36D1994CAB2262D668498D1F5FD34746",
+      "derived_salt_third_de": "B02329F55BE01E807A24186410DD2511",
       "section_extended_salt": "18B6A2DB75BA6F6C2CF40473B7673D48"
     }
   },
@@ -1551,9 +1463,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "1FDF6A45C585A0F1B30CB767AD84410A2B95628635124F63C05F092918768D6E",
       "v1_mic_short_salt_aes_key": "2C30551B0B248E7AA0C567A9F1F588A2",
       "v1_mic_short_salt_identity_token_hmac_key": "CE516307270755B243FF272BB9A38EDA69BA0E04771E1675B5CFF1218637CC36",
-      "v1_mic_short_salt_mic_hmac_key": "BA808DDB430868DEF3BAA9FA53D9FF19BDA2559876360F87DEC0B4D04E6B482B",
-      "v1_signature_identity_token_hmac_key": "B90E66D1CC33DB3DEED3F867C42569514764A2E4E26D6E65A5009D3C39EF0BB0",
-      "v1_signature_section_aes_key": "5E4075E092E92885446D7D362B52D788"
+      "v1_mic_short_salt_mic_hmac_key": "BA808DDB430868DEF3BAA9FA53D9FF19BDA2559876360F87DEC0B4D04E6B482B"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "E077",
@@ -1568,9 +1478,9 @@
       "short_salt_nonce": "808310562C7E7A9F797FE241"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "D063EED8AE6DA992FACCD9BEAEFF9D60",
-      "derived_salt_nonce": "49FB1F75B6A395722D25D76BF3B5CA35",
-      "derived_salt_third_de": "86575CCD43CFD910F9103697669DFE08",
+      "derived_salt_first_de": "49FB1F75B6A395722D25D76BF3B5CA35",
+      "derived_salt_nonce": "4BEDC1594D54BB8D11B1F15F8EC243C3",
+      "derived_salt_third_de": "CA32421825B68C129580B33C6F98B332",
       "section_extended_salt": "AB63F5E51D36B4C5CC9C302876BB2C37"
     }
   },
@@ -1586,9 +1496,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "57EEBAEC158DD1DC90F3B1D8884CACB5FA32322E4E7C4EE21AA0EB175232498E",
       "v1_mic_short_salt_aes_key": "CB4C2ECD3F7058A3FF10FBA90939B090",
       "v1_mic_short_salt_identity_token_hmac_key": "A09E42551B882B1E6FDC075FB2A379332C66F91C3FD2DE496E16AC3C57FB2F88",
-      "v1_mic_short_salt_mic_hmac_key": "4746E3679A6D724E53E049DB091AF90619DAB91369DBD18204E346B2BD69FD6E",
-      "v1_signature_identity_token_hmac_key": "6944BE9FD3E6F9FE05843758B8185862A8112941E10615767A7E41A76E6B1136",
-      "v1_signature_section_aes_key": "4A4A874A9EA2E43F5A9F76E7B2C20283"
+      "v1_mic_short_salt_mic_hmac_key": "4746E3679A6D724E53E049DB091AF90619DAB91369DBD18204E346B2BD69FD6E"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "4B85",
@@ -1603,9 +1511,9 @@
       "short_salt_nonce": "224F4CDE51A4C3379B542B1E"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "4CED096908CA26C394EC58083D07668B",
-      "derived_salt_nonce": "0676D12F882BBE0106CA0BB3138F0BB9",
-      "derived_salt_third_de": "5A1A19BD6F8C55822C6B51538206B166",
+      "derived_salt_first_de": "0676D12F882BBE0106CA0BB3138F0BB9",
+      "derived_salt_nonce": "FA2E5ED3B4B6591262DEEEB52D9E5D8F",
+      "derived_salt_third_de": "04AA3C6185C2E6DD3B0AA650F75E9036",
       "section_extended_salt": "59D1E9BDA1B9BBC808157A8EFA1D6BC2"
     }
   },
@@ -1621,9 +1529,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "6C6BB48C73B078F00191FCD9E5A6F9E51540963C3B11B242DBC6B8C4EF5DC396",
       "v1_mic_short_salt_aes_key": "A75EB826BBE44DA0B11FB0E93B06F661",
       "v1_mic_short_salt_identity_token_hmac_key": "3848F69057BE12FF81A53754431C32DFAE36155AB7069ADB0C59A441F3459C68",
-      "v1_mic_short_salt_mic_hmac_key": "96EF80B80CB868F76C623029EBBC45793B78D584F43D955930C74EACF1256885",
-      "v1_signature_identity_token_hmac_key": "1FC9D1ECDBC54491BE8F60F7663EF74B551FC5734620463D55E6A561A2AF6945",
-      "v1_signature_section_aes_key": "72EEC64698FBD42D3A53F84EFB88EC3A"
+      "v1_mic_short_salt_mic_hmac_key": "96EF80B80CB868F76C623029EBBC45793B78D584F43D955930C74EACF1256885"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "B65D",
@@ -1638,9 +1544,9 @@
       "short_salt_nonce": "3701F88A64084BBC60178848"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "7A718CFDEDF904C7A72BD13FD5DFDF47",
-      "derived_salt_nonce": "53C9C943AFE5BE0EF3EEE3859B536A4B",
-      "derived_salt_third_de": "42726C30FDF62DBDA0074E6FAE969CEA",
+      "derived_salt_first_de": "53C9C943AFE5BE0EF3EEE3859B536A4B",
+      "derived_salt_nonce": "A37E9E20F8C2049F8AC6F157C94D881F",
+      "derived_salt_third_de": "73FC19D76C553F75F663CF1E39D10782",
       "section_extended_salt": "45E80FFC36670147E8D2CFBA526EFD42"
     }
   },
@@ -1656,9 +1562,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "A0C758A7EF5B92B5CB0EB64F5406F63C03CD395DF2D2806661023CDD29A92735",
       "v1_mic_short_salt_aes_key": "85F922D62800B1716710D7347534F076",
       "v1_mic_short_salt_identity_token_hmac_key": "734B82605001AA6C8380F8D020D3B66D6CC5BF6D841CB54417FF633566EE42E4",
-      "v1_mic_short_salt_mic_hmac_key": "97851B6E5D32EDF9858D3261BEC3E9B6D821475F73C248EE1C82C5482C780A1D",
-      "v1_signature_identity_token_hmac_key": "0A209406D33340C3CB0052E913F1E9790029DA31184175D8D8E18795251EA194",
-      "v1_signature_section_aes_key": "C9385776AA1D74BC77CD1A7985329E16"
+      "v1_mic_short_salt_mic_hmac_key": "97851B6E5D32EDF9858D3261BEC3E9B6D821475F73C248EE1C82C5482C780A1D"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "7A7D",
@@ -1673,9 +1577,9 @@
       "short_salt_nonce": "0C3874DC89E7793DA6562C3B"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "854BB53F1FFAA03F8E4A4F89B36FC75A",
-      "derived_salt_nonce": "2B61315A2A80409D20DD3567EC8612E6",
-      "derived_salt_third_de": "68CFF39B8B60522BB864F55909F6A07B",
+      "derived_salt_first_de": "2B61315A2A80409D20DD3567EC8612E6",
+      "derived_salt_nonce": "1B5BF6D3587FC20755E5D673E42623A6",
+      "derived_salt_third_de": "F47192FBB411577A559580D083B14CCF",
       "section_extended_salt": "BE6DFEB3BC734140F9F2E7A2C514782A"
     }
   },
@@ -1691,9 +1595,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "BAEDA9CCDD8780DA6D122D777249B462D43E267A60C8AC821B6E49E52FF6E497",
       "v1_mic_short_salt_aes_key": "B078CE6C132D1D5F03C7011CD1D1B739",
       "v1_mic_short_salt_identity_token_hmac_key": "B2A42460F29197AA8F08367283175BDB97DDCF5716EE7F011EF7D7765336425A",
-      "v1_mic_short_salt_mic_hmac_key": "C774F2182514364F7FD446D14E545C6B94DAA8292BD09286B5A06320DF0E6E31",
-      "v1_signature_identity_token_hmac_key": "C41617580CDF1D4C81AE49774535BA6A622C319F6F02466905A13F6DFC34D354",
-      "v1_signature_section_aes_key": "F438355B1434789B8BA63BFA2FDB4DF4"
+      "v1_mic_short_salt_mic_hmac_key": "C774F2182514364F7FD446D14E545C6B94DAA8292BD09286B5A06320DF0E6E31"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "F67E",
@@ -1708,9 +1610,9 @@
       "short_salt_nonce": "9A22E33E298A3D2F813E947A"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "BB326463B805B3B120DF3A3C1EA440E5",
-      "derived_salt_nonce": "6D533671722212A5B388B94F462B66B0",
-      "derived_salt_third_de": "FCCD3C04B6AD3FBB94F5196EE5E5CB39",
+      "derived_salt_first_de": "6D533671722212A5B388B94F462B66B0",
+      "derived_salt_nonce": "DAEA78C485FB32B369B24A79B8B77A94",
+      "derived_salt_third_de": "8EE70884FF5CB56AB93F45BF500F2908",
       "section_extended_salt": "E9E85B2DD811EFE01DB44C34D96245D7"
     }
   },
@@ -1726,9 +1628,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "DDF3D0BF099CD0A4AFC96E682BA82414775B21F69F7604CC4EEC3A70AD9F1909",
       "v1_mic_short_salt_aes_key": "10D98E2BA375142D53279A7C8BAA18C9",
       "v1_mic_short_salt_identity_token_hmac_key": "A3DC4E64B719FC69E60F600ECD6A6C61A1E2DBB03C936A716CDD23BA486BE5DD",
-      "v1_mic_short_salt_mic_hmac_key": "56FBCE7F9800AE9985C591692672ADDD87F9E97DAD409DC33A428C2DAE66D4B1",
-      "v1_signature_identity_token_hmac_key": "F5E639C319E632569E882D9426505E71A1E283584F4DA0CB23BE6792F4708F19",
-      "v1_signature_section_aes_key": "74554872D23253B364539E0DF37FD1B5"
+      "v1_mic_short_salt_mic_hmac_key": "56FBCE7F9800AE9985C591692672ADDD87F9E97DAD409DC33A428C2DAE66D4B1"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "2C27",
@@ -1743,9 +1643,9 @@
       "short_salt_nonce": "9967714E945DD4F451DCD5D2"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "263AC32CE6FA4D0E5F00671D461C4082",
-      "derived_salt_nonce": "D5216F638FB5E3148C23E3568B02DED0",
-      "derived_salt_third_de": "F5E3DBC571628A18F0832B3A78BB144D",
+      "derived_salt_first_de": "D5216F638FB5E3148C23E3568B02DED0",
+      "derived_salt_nonce": "161F43DFAF9D8D1B117710F6D16AFF82",
+      "derived_salt_third_de": "B2FBBB74A3DF7B2554FD1619CF9B2E0A",
       "section_extended_salt": "50AAE9055970B5F6A79554148AFF1C67"
     }
   },
@@ -1761,9 +1661,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "3D035169BBBADA723E634DCF0E203D7D0F85ABAA4DADC4C33D1DB14908C31D1B",
       "v1_mic_short_salt_aes_key": "54AF93FD026428575900009294AF21DA",
       "v1_mic_short_salt_identity_token_hmac_key": "B4F6A45A822954C251F04E5F54CCAC07FAD0826B5C323F4A9D2755E0E184893F",
-      "v1_mic_short_salt_mic_hmac_key": "6A8B6CAA0F30C013A40BE4535FA727FE47A832C4BAE0878E72ECE9DAC538807D",
-      "v1_signature_identity_token_hmac_key": "2EBBD9FA35E24808B06361017D2ED29263F9BD857595AEFC4336740485D3AA41",
-      "v1_signature_section_aes_key": "44C1F00F21E21DE548332224F191B56A"
+      "v1_mic_short_salt_mic_hmac_key": "6A8B6CAA0F30C013A40BE4535FA727FE47A832C4BAE0878E72ECE9DAC538807D"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "8C48",
@@ -1778,9 +1676,9 @@
       "short_salt_nonce": "A8A5A0D023F982987C6C2912"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "731880CCE113A561F779D98EC3BED041",
-      "derived_salt_nonce": "1C3A582B0B0E6461B150A1559F122B76",
-      "derived_salt_third_de": "374E30A969CBB37DFDDE376E217E4427",
+      "derived_salt_first_de": "1C3A582B0B0E6461B150A1559F122B76",
+      "derived_salt_nonce": "DBC444950FF0803D9E777A6251B9C6C7",
+      "derived_salt_third_de": "104EE82C677F1B2B56228E59B288A558",
       "section_extended_salt": "FD6B1023E870A6908EDA3CD8067004BC"
     }
   },
@@ -1796,9 +1694,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "3CED276A31CCFB412EF3E22B0E048907CD73A2BF39955B7C73EFB295689469A5",
       "v1_mic_short_salt_aes_key": "9DCD2E8874EE2E6A092618AFAF397D20",
       "v1_mic_short_salt_identity_token_hmac_key": "284F83827CAC37A22DC0CC2A3F10BDAC8A0E3859218C5DD5FF1F6277268FAD3D",
-      "v1_mic_short_salt_mic_hmac_key": "77FAA24269AE6A5A4B61569DCAF8AA75B155C8D483F32AA26ADDAC49C3AFB3EC",
-      "v1_signature_identity_token_hmac_key": "FF533E6454F471C4D5AE1CBE51A085082147480E06881A193CA0375D30305247",
-      "v1_signature_section_aes_key": "E0AA39A3E2D60041A8956A6B8A3FE4E4"
+      "v1_mic_short_salt_mic_hmac_key": "77FAA24269AE6A5A4B61569DCAF8AA75B155C8D483F32AA26ADDAC49C3AFB3EC"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "BB3E",
@@ -1813,9 +1709,9 @@
       "short_salt_nonce": "147C2526D096E43BFB972E05"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "0E396FA0163DD119AF3097362E838146",
-      "derived_salt_nonce": "6B87889DA7443CA9F8D9526ED9C86B14",
-      "derived_salt_third_de": "9E91F27B911BF1CF6CBE13CF1BF43338",
+      "derived_salt_first_de": "6B87889DA7443CA9F8D9526ED9C86B14",
+      "derived_salt_nonce": "276095EAC698A1BEF012C26DEFE9D5F5",
+      "derived_salt_third_de": "28D3F5B0E50D6CC557AFFB955963CA85",
       "section_extended_salt": "72B71CE5E6A3534C17A0A3BDE29FBE0B"
     }
   },
@@ -1831,9 +1727,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "A2B891CA3E764C78518ECB419C76EB9696F5B5489B7DAA59246A775C175AE8CB",
       "v1_mic_short_salt_aes_key": "F511DCF5E5239F6F001CCEA3582BC561",
       "v1_mic_short_salt_identity_token_hmac_key": "22C4B6CB1135E483F7703A06BC9F71BE65CC7901215DD30047F86ADAAFFF2216",
-      "v1_mic_short_salt_mic_hmac_key": "14D1B893A3947846911168A2AD7BF475D5B10B3AED3E16EB13B82A6AE9E3D5ED",
-      "v1_signature_identity_token_hmac_key": "2818C76B7C6BBC90069219FD3C9B3630A35582813A71627B00D6C255DE831655",
-      "v1_signature_section_aes_key": "AC76472156646E7D1F1E7DEB26409B8F"
+      "v1_mic_short_salt_mic_hmac_key": "14D1B893A3947846911168A2AD7BF475D5B10B3AED3E16EB13B82A6AE9E3D5ED"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "08A7",
@@ -1848,9 +1742,9 @@
       "short_salt_nonce": "E74FA992910E3A0F20733446"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "BE63ECA3139C3A520E562C416E4BD42A",
-      "derived_salt_nonce": "77699741250F48BC8D6C3C275C7129B9",
-      "derived_salt_third_de": "2D57D9556AF4D0076136D20FDBBBE600",
+      "derived_salt_first_de": "77699741250F48BC8D6C3C275C7129B9",
+      "derived_salt_nonce": "1EF1B5FCB6812A1F8163FA82369E8636",
+      "derived_salt_third_de": "96390EDD2F59C309ED53818426698320",
       "section_extended_salt": "CF0DCBFE60B56E6199A39F86BA47CCEE"
     }
   },
@@ -1866,9 +1760,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "8E377E6E535A84940C721E088559D3AABA4F448464DCE43227B446E8DE373E01",
       "v1_mic_short_salt_aes_key": "0CDBB34EE71BF6F99ED10A8DDB0A3D2C",
       "v1_mic_short_salt_identity_token_hmac_key": "C3A22D602232DF672FEC71BA616D49C882E9F6140379629A38DCA2DDD8BFB394",
-      "v1_mic_short_salt_mic_hmac_key": "CE5169D9EC16AF2D039574A47BD1B892A57AB874A214BDE3C9F078CC527F9EA1",
-      "v1_signature_identity_token_hmac_key": "4DF918930A3D2DC8871481B4FEB538331D57759E6F0A9407A06D15CF05809EE2",
-      "v1_signature_section_aes_key": "756B3BC24AB2B332F46A02620630465D"
+      "v1_mic_short_salt_mic_hmac_key": "CE5169D9EC16AF2D039574A47BD1B892A57AB874A214BDE3C9F078CC527F9EA1"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "8F23",
@@ -1883,9 +1775,9 @@
       "short_salt_nonce": "EC8FC7EE9EF97564C0478CFD"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "5DC4750A1046E2318D30B4B2612F4DDA",
-      "derived_salt_nonce": "AC3C59C2FB8EBABD7150FD5B35F87323",
-      "derived_salt_third_de": "12C1E5CB114FA19F099E4E49C729B365",
+      "derived_salt_first_de": "AC3C59C2FB8EBABD7150FD5B35F87323",
+      "derived_salt_nonce": "20AFB5E3E5E9DACB0B69E9B323A3DEA9",
+      "derived_salt_third_de": "66DAA46C97BB5D2E34F4819EA175B0F6",
       "section_extended_salt": "2F130A2F720D4DA91B4C0AAC8B3F2F1F"
     }
   },
@@ -1901,9 +1793,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "F4C3B085E1887428A07A2EF526B4C54AABDC6A596864674297BD7225FC2BA7AA",
       "v1_mic_short_salt_aes_key": "19FFFA58D00FE48FC03D4D5D6ABC1D4E",
       "v1_mic_short_salt_identity_token_hmac_key": "31D79DD4EDB7BE05562955557ADD32358760D9AE327656F563DF31311AD4D2DA",
-      "v1_mic_short_salt_mic_hmac_key": "38846B9D18CEF86540E5F2D2C94E791B1756EB5BB3EEB9D28EF5E60B32D33C8F",
-      "v1_signature_identity_token_hmac_key": "2C78F12CB4F9F423FD2143027E04BEFC493FBE189AC118EC4E5BF6E2E2BC6328",
-      "v1_signature_section_aes_key": "B8E3B89FE6CB6F9983469499A29084BA"
+      "v1_mic_short_salt_mic_hmac_key": "38846B9D18CEF86540E5F2D2C94E791B1756EB5BB3EEB9D28EF5E60B32D33C8F"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "7AF8",
@@ -1918,9 +1808,9 @@
       "short_salt_nonce": "D61316F899E53429A2D50DB3"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "70972284567C448B649644F5B6EAB7EB",
-      "derived_salt_nonce": "CBF23EE5038C1D5C1D3CB7B1BF408DDF",
-      "derived_salt_third_de": "D99B02CA713BA66DC867CC60D2500875",
+      "derived_salt_first_de": "CBF23EE5038C1D5C1D3CB7B1BF408DDF",
+      "derived_salt_nonce": "203DB7AAE5CFFE63A1C54DB52031433E",
+      "derived_salt_third_de": "0730FBFFB78ED743AB007DE161732E4C",
       "section_extended_salt": "4C5CD144852DF461550C19312FDE138C"
     }
   },
@@ -1936,9 +1826,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "726C6770FD205CD85F732FED55421A4DB1D7F861E028AE144E883FA88128E099",
       "v1_mic_short_salt_aes_key": "0CF33F93B242A4095821CFF75ECB9A95",
       "v1_mic_short_salt_identity_token_hmac_key": "A0E1E2FADA968696B8A421D348021783D41BF5B92A8A61CBABAA3A605706FD70",
-      "v1_mic_short_salt_mic_hmac_key": "32774F6FC589A6A0F3C57D3A3FBDEAAA8C94CE31BC1BE2E71A770C29A365E8C1",
-      "v1_signature_identity_token_hmac_key": "3FA4A5EE8D7CB441D33519D371B615733E82CD99CE5DF704B4BEFFF525B5D484",
-      "v1_signature_section_aes_key": "A69439EEE9E503DC46CDDB7220E6C1BF"
+      "v1_mic_short_salt_mic_hmac_key": "32774F6FC589A6A0F3C57D3A3FBDEAAA8C94CE31BC1BE2E71A770C29A365E8C1"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "DBA9",
@@ -1953,9 +1841,9 @@
       "short_salt_nonce": "EFDA8286D9A7A9B08A098C9E"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "932952F0056579BD3532A369D60A6F70",
-      "derived_salt_nonce": "0F8B66EE0EF87D7B6BE39BF707378448",
-      "derived_salt_third_de": "DED92B09B5BC920A8AECE3DB8C7AA0C1",
+      "derived_salt_first_de": "0F8B66EE0EF87D7B6BE39BF707378448",
+      "derived_salt_nonce": "23CB9B769A4E9A66CEA86C565BDC48C5",
+      "derived_salt_third_de": "12E4CE14AB7A0022406B96E14728148D",
       "section_extended_salt": "CDA0859A2285EADBE17556BD28F0D67F"
     }
   },
@@ -1971,9 +1859,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "2B2F8575D91F2B3964DAB5721DDED08B8C12AE5C0B984DEF3363994729661130",
       "v1_mic_short_salt_aes_key": "EDE131CD4C8D0F1251E92C3A3BFF7BE0",
       "v1_mic_short_salt_identity_token_hmac_key": "DF5823CB7AFD4442A6BC99342B13B9A94343570D487F47F99B15B41131FDC291",
-      "v1_mic_short_salt_mic_hmac_key": "729CDAF9889B1465960C519EA7C5A2D93ECDCF08A252047125284A6A4AFB8423",
-      "v1_signature_identity_token_hmac_key": "DFD3C298F8D8AA5091667EA7DA56C1749259021B5D046E18FCF11515606605EC",
-      "v1_signature_section_aes_key": "1F0821DA6799721FF225950245DC62A2"
+      "v1_mic_short_salt_mic_hmac_key": "729CDAF9889B1465960C519EA7C5A2D93ECDCF08A252047125284A6A4AFB8423"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "4BF9",
@@ -1988,9 +1874,9 @@
       "short_salt_nonce": "8D12E132EB3558CB5A2A1A0F"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "A568C7960F41860E4CD438B7E09DA45C",
-      "derived_salt_nonce": "82003458C32B5E1408B98668BAFCC9C4",
-      "derived_salt_third_de": "BC2E3F5E799FF967924D4C31E7A8A0C7",
+      "derived_salt_first_de": "82003458C32B5E1408B98668BAFCC9C4",
+      "derived_salt_nonce": "1496A29784740BF0745C252F4C74FE6D",
+      "derived_salt_third_de": "29FF39A20399C251B5B11E0F85FDE846",
       "section_extended_salt": "CCC4AE71E0147BB16F2EBCCDB9FE31A1"
     }
   },
@@ -2006,9 +1892,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "905E498FA9444EFC1C23D87B1A48DFF08CD0F71199F5D4A33B0A8D9C03B687FA",
       "v1_mic_short_salt_aes_key": "D023099AA0859DBB1547E3736DA4D22F",
       "v1_mic_short_salt_identity_token_hmac_key": "9446AD8F40DE7801AE8C05F4198221C4545836FAFADCFB6A9F6B6811C17320C8",
-      "v1_mic_short_salt_mic_hmac_key": "2F437832F6F6055F3D9FC22E1FF89071C579F9261B200B1289E40BD1987FCE62",
-      "v1_signature_identity_token_hmac_key": "08DEBDA02FDB8250E3B6DD38CB14E6423F414733847634154DA243A0A48709CF",
-      "v1_signature_section_aes_key": "5AE2258B089A53E623FDE10A849660B9"
+      "v1_mic_short_salt_mic_hmac_key": "2F437832F6F6055F3D9FC22E1FF89071C579F9261B200B1289E40BD1987FCE62"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "45BD",
@@ -2023,9 +1907,9 @@
       "short_salt_nonce": "DBC275D67654EFB6ECE3CB2A"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "F1C91B43A17919A92B1A663CD5214050",
-      "derived_salt_nonce": "07D78BAAB0539B291E17C946F94AD5A3",
-      "derived_salt_third_de": "9E1D2E450EAA994518580BE3F95163D4",
+      "derived_salt_first_de": "07D78BAAB0539B291E17C946F94AD5A3",
+      "derived_salt_nonce": "968C04996C0AC99DECE33D502BFAA875",
+      "derived_salt_third_de": "528271566943652BD8197619D3D66FD7",
       "section_extended_salt": "98646141DF3AFB3FFBD4DA56C170AC50"
     }
   },
@@ -2041,9 +1925,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "87FA6DA8F450D40085241D55E17EE0F1FAB9B4C51841663CF13DF7D84A03684A",
       "v1_mic_short_salt_aes_key": "603CDFF82688718D13120372589636A4",
       "v1_mic_short_salt_identity_token_hmac_key": "743FE98375D1C4D41B02AA9A636A92837AB4C5A588664CECF00E216ABDA17DBE",
-      "v1_mic_short_salt_mic_hmac_key": "1C67FC0FE2E06FE973DD46D4DB0D72A651376F61C8CEF15002F2FB511C05C303",
-      "v1_signature_identity_token_hmac_key": "58B127F990B55B164990917F1C23B485F3EC847DA2E27E0D541FC6F7AD437BBC",
-      "v1_signature_section_aes_key": "33F90FC36D254B78F3D0A1CCE47CDF2F"
+      "v1_mic_short_salt_mic_hmac_key": "1C67FC0FE2E06FE973DD46D4DB0D72A651376F61C8CEF15002F2FB511C05C303"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "CEF6",
@@ -2058,9 +1940,9 @@
       "short_salt_nonce": "5DE9BC53D47908F83224673A"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "4AEE99434AD2D226A375264CBAE0497D",
-      "derived_salt_nonce": "0F201B1E244712F3AE2B7C5DE056DE63",
-      "derived_salt_third_de": "282638440E3212C29F5E8654C6B8B9FA",
+      "derived_salt_first_de": "0F201B1E244712F3AE2B7C5DE056DE63",
+      "derived_salt_nonce": "9696070803617A9D9339822F010F9676",
+      "derived_salt_third_de": "BD012869E2F6018A824AC87D854262AB",
       "section_extended_salt": "1A80A34BAC43864CB5BCFF4547F1B88A"
     }
   },
@@ -2076,9 +1958,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "20C74AAE9D32359A0C9353267458581B4AFE60606060B16060591CB96AC68F97",
       "v1_mic_short_salt_aes_key": "11381F1734226C3C2911C7D1280E55C9",
       "v1_mic_short_salt_identity_token_hmac_key": "A4E6D4F2475E98ACB5E95D518DEA87E90B1EB7D9D2F5AA1456C609CD5B5351AF",
-      "v1_mic_short_salt_mic_hmac_key": "AF6150F86F8AC3AE7BA32219E7B92B158E866EF8CEB36BCEDF6DB456CBBC94BD",
-      "v1_signature_identity_token_hmac_key": "6D27EB4BE29E556CE5A41BB89648D91314A73D60FE884CAE79BDC811115CF08B",
-      "v1_signature_section_aes_key": "E5C1080FA68F5EBDD6F3D063BBE0EFD7"
+      "v1_mic_short_salt_mic_hmac_key": "AF6150F86F8AC3AE7BA32219E7B92B158E866EF8CEB36BCEDF6DB456CBBC94BD"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "DAD4",
@@ -2093,9 +1973,9 @@
       "short_salt_nonce": "D7A09F5405418C63649804EA"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "C94F9B608026089CA2BF81CE363295F7",
-      "derived_salt_nonce": "302455E6682F71E2A813211487A3026B",
-      "derived_salt_third_de": "C289C64BE651B24E7365D79679EFCC46",
+      "derived_salt_first_de": "302455E6682F71E2A813211487A3026B",
+      "derived_salt_nonce": "6A708D03515B95F6CA2F30303C8E7658",
+      "derived_salt_third_de": "2D595576E1140EF70F1CB63449D0A3C8",
       "section_extended_salt": "BFB748C26DD77BA9F8C82E7572B14608"
     }
   },
@@ -2111,9 +1991,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "EF9D7AC607E5B37BB21B16409556162C6EBD3DD89144F19365698FB34E06A2B1",
       "v1_mic_short_salt_aes_key": "1DFE937349A0968CEA77801B8B51E743",
       "v1_mic_short_salt_identity_token_hmac_key": "9D1C138B75F9D255E62CC8806D36727DF5877CD831CF6CBFA9AA1D631D032F32",
-      "v1_mic_short_salt_mic_hmac_key": "9D1EFDC00D17243D29DF77EAD25DD34EE1E10E420B047D7C147769A1EC149AF7",
-      "v1_signature_identity_token_hmac_key": "E07194FE1E11686C87A325E511C7DB7DABA3B631878CBBC2018B70F5D75B843F",
-      "v1_signature_section_aes_key": "34EF3FADD1EA265EA5DB45B3335862B5"
+      "v1_mic_short_salt_mic_hmac_key": "9D1EFDC00D17243D29DF77EAD25DD34EE1E10E420B047D7C147769A1EC149AF7"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "D65B",
@@ -2128,9 +2006,9 @@
       "short_salt_nonce": "14E6E257738D5C3F8EA61A99"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "37DF3ED46159C7B50B7648454A8E3F6E",
-      "derived_salt_nonce": "B19C63BCBC2C5466B7CDD1DD160BC813",
-      "derived_salt_third_de": "7A52A770AC31BA84A31ABFA410398E39",
+      "derived_salt_first_de": "B19C63BCBC2C5466B7CDD1DD160BC813",
+      "derived_salt_nonce": "B82C3753A40FF9F21F999A282CEE97D8",
+      "derived_salt_third_de": "5FBC4E19495E6D960BB304DD393D4FF2",
       "section_extended_salt": "02017844CC8940E3F95FE27ABF392FDA"
     }
   },
@@ -2146,9 +2024,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "23736395522DF94359771CA21DE0EAD1E27AE0833A8C02ED4407DA7BC71BB971",
       "v1_mic_short_salt_aes_key": "917D6DC510048504D748A1251EAC8BBC",
       "v1_mic_short_salt_identity_token_hmac_key": "D247C289A7F7C16473E7A8E5F737B2F60F1F281359A2E0E5976CA13E33D0BE48",
-      "v1_mic_short_salt_mic_hmac_key": "D917D8FE9CE653BC8AB3109DB07377B95CD9A0E02028432ECF3B71F933AFB548",
-      "v1_signature_identity_token_hmac_key": "A9E65F92433276507487CCFB1318EA841496C7C1DED9B963D843F56035BF2889",
-      "v1_signature_section_aes_key": "714014241942077D480CBEBA5C7FDA16"
+      "v1_mic_short_salt_mic_hmac_key": "D917D8FE9CE653BC8AB3109DB07377B95CD9A0E02028432ECF3B71F933AFB548"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "41D7",
@@ -2163,9 +2039,9 @@
       "short_salt_nonce": "2B7D6083221050162AD11C2B"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "1479B6AE3A8F99CC6A421B7654E82B65",
-      "derived_salt_nonce": "DE3F081731C6B7E3B2155922FCFBA033",
-      "derived_salt_third_de": "B0BF305855ED8EE892A1574BBC35F1CE",
+      "derived_salt_first_de": "DE3F081731C6B7E3B2155922FCFBA033",
+      "derived_salt_nonce": "7667DF339633605205DC92C021EB9597",
+      "derived_salt_third_de": "A1E165AB32A06FED47D9DF97A6214E7B",
       "section_extended_salt": "4949EB4D92049664AA78BA61AD0A159F"
     }
   },
@@ -2181,9 +2057,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "8A46B4B1543041B78B3EB07A68F4228B439E5AB139DAD332660482C7FE902FB4",
       "v1_mic_short_salt_aes_key": "C5613A5B5FE8DC12550878B35E58E2DA",
       "v1_mic_short_salt_identity_token_hmac_key": "A6C66389A16F81596893F988F31B3C3EDC871378DF687B6F92C069FEC3763C56",
-      "v1_mic_short_salt_mic_hmac_key": "A309E0EBD1838289BE98D58062298A7BF81743511FFE526162CD57C1A5DA7CD4",
-      "v1_signature_identity_token_hmac_key": "2727662B707BBB86574B63B085950181C10A66E95E365BD5E4BE2BD42CFFCD23",
-      "v1_signature_section_aes_key": "61539D6CB1E73FC4C5234E1F505EFE83"
+      "v1_mic_short_salt_mic_hmac_key": "A309E0EBD1838289BE98D58062298A7BF81743511FFE526162CD57C1A5DA7CD4"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "C590",
@@ -2198,9 +2072,9 @@
       "short_salt_nonce": "A58A3AB41FB65068E3B2BE23"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "982466B94926A293CAFAD0D8DDB5E2A0",
-      "derived_salt_nonce": "9C14D11F87D3E49D71426882A36B793E",
-      "derived_salt_third_de": "53024AF2F7BEFA7D22D9F057CB75B285",
+      "derived_salt_first_de": "9C14D11F87D3E49D71426882A36B793E",
+      "derived_salt_nonce": "9708FA61DA61F274D8CDAA5A68335648",
+      "derived_salt_third_de": "5D70B901D2C8FF4EB44DE1ADEED0858B",
       "section_extended_salt": "DCA57C5D334B5501EFA2C6C6CA66AC4E"
     }
   },
@@ -2216,9 +2090,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "7B8ACCDD365A02C8E2DC4D3DA7CCE6D9B7F5C4EBD65A6513DC9992B9CBD1BEAA",
       "v1_mic_short_salt_aes_key": "531F84D2E14CC3266E44ECBD6D6DFD96",
       "v1_mic_short_salt_identity_token_hmac_key": "03B61A2222358A41D08AFD8F242C1905994D315F544DBE92DE9243EA46F0CDEC",
-      "v1_mic_short_salt_mic_hmac_key": "362E7C04F2606012DE5DC59BB8DD1F3B5F5EFE66F6C9427FABD1E5C8F4D2F76A",
-      "v1_signature_identity_token_hmac_key": "C8F25EC50826357C319A9AE60C043945C9A8013FAC0E2F2C623E22977E9B76C3",
-      "v1_signature_section_aes_key": "E2BDA03CF3781A80500F8ECA73C1A84E"
+      "v1_mic_short_salt_mic_hmac_key": "362E7C04F2606012DE5DC59BB8DD1F3B5F5EFE66F6C9427FABD1E5C8F4D2F76A"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "A7B3",
@@ -2233,9 +2105,9 @@
       "short_salt_nonce": "C5FBF8210A55A6176527E35A"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "4F8C73FA3C662FC6516B4E7D3333B663",
-      "derived_salt_nonce": "01D90834B89356931A7C575478271A43",
-      "derived_salt_third_de": "DF71CC3039A2C9EBE8792C639573245B",
+      "derived_salt_first_de": "01D90834B89356931A7C575478271A43",
+      "derived_salt_nonce": "C2C085EB4E265E6E90ED1804AB9B97B1",
+      "derived_salt_third_de": "C6DA37C91D6EA47EE92196A512E44BC7",
       "section_extended_salt": "E667569C7C35342D78598CE967DDD6EF"
     }
   },
@@ -2251,9 +2123,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "D980A878C750F1AE2C25A21C6045C8EECD81A0B45F400F10EEFB4222DCAE79BC",
       "v1_mic_short_salt_aes_key": "EC807E84AF935FDCF6210EAFC261FC8F",
       "v1_mic_short_salt_identity_token_hmac_key": "3683F211CF4FF6728E509372C732404FFD7A49EB6E2A9E011D8A2730A2766488",
-      "v1_mic_short_salt_mic_hmac_key": "ED63CB5202AEA05D6A666A9CF66AA76A0D10E6803A7F0A13C6303FC5D149B326",
-      "v1_signature_identity_token_hmac_key": "B1CB9EEB37699A13A225BDF36102A6E80610AA9A97B8A6B320E772FFDC6B5972",
-      "v1_signature_section_aes_key": "58C40319B83E496188B699111FB9A659"
+      "v1_mic_short_salt_mic_hmac_key": "ED63CB5202AEA05D6A666A9CF66AA76A0D10E6803A7F0A13C6303FC5D149B326"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "B8C1",
@@ -2268,9 +2138,9 @@
       "short_salt_nonce": "1BEE1C6648B348133DCF4E1F"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "E4EC66F0E365A49CAC1266A28F307798",
-      "derived_salt_nonce": "7478C715C11452249E821EA57A9832A4",
-      "derived_salt_third_de": "1A1F76CB9C0358FB86E217487B860855",
+      "derived_salt_first_de": "7478C715C11452249E821EA57A9832A4",
+      "derived_salt_nonce": "56901C8F3E071F2A1180BCF6D1393B8D",
+      "derived_salt_third_de": "D9A9C43086C327883391ACAD1ADD2492",
       "section_extended_salt": "3E351E1A8DEEF7C30011566EF72CCF33"
     }
   },
@@ -2286,9 +2156,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "378010DBE79B40985A0AEA35F7BDF9791E87ECEE34DB04D82084DEFA57ADB601",
       "v1_mic_short_salt_aes_key": "15EAD484945F798DA57C65107009E5CA",
       "v1_mic_short_salt_identity_token_hmac_key": "8B9F442893494B0D663B669AEEB2DB66D489B58FACDCFAE8D583019C16E72BEC",
-      "v1_mic_short_salt_mic_hmac_key": "B4EE0EBCBE390C849D864EFB7FBAEAC67932631186C729F76F3CA91BBC7680E9",
-      "v1_signature_identity_token_hmac_key": "A1673B9103B2253E455B8AAA8C2AE84DDD02BFEA7D69E68FE5D120E0B5E57B80",
-      "v1_signature_section_aes_key": "F7CABAA4EBF642DB0BCFA3C0C3EEA99B"
+      "v1_mic_short_salt_mic_hmac_key": "B4EE0EBCBE390C849D864EFB7FBAEAC67932631186C729F76F3CA91BBC7680E9"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "B20E",
@@ -2303,9 +2171,9 @@
       "short_salt_nonce": "9DFE98ABABD5693077D90FFF"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "013B34285047C393204A70E0056B0308",
-      "derived_salt_nonce": "BF792D32CBA8F57028F7EB5BF225CB6F",
-      "derived_salt_third_de": "208228C6462B7671161768D2DE2FF375",
+      "derived_salt_first_de": "BF792D32CBA8F57028F7EB5BF225CB6F",
+      "derived_salt_nonce": "4DE0C8E48054D3B27403BDCBD03E7FA2",
+      "derived_salt_third_de": "8BFE26FE23A1D48A36AB5FE162D3EE98",
       "section_extended_salt": "973ACE22CDA6F8F49B74ED9878CF3437"
     }
   },
@@ -2321,9 +2189,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "43950758403417002A184DDBC4991FFC5F0B2BC9CC8D2302784D6B59163546BF",
       "v1_mic_short_salt_aes_key": "DC18AEDB7EF362A00A8A050D44860877",
       "v1_mic_short_salt_identity_token_hmac_key": "CFB49BD705D54AC75EC449E1BC2D84B405FA970C728BCB004884DB70AB4E9C0D",
-      "v1_mic_short_salt_mic_hmac_key": "2D9C3E637E1E387EDDD22E586AC029A5FE0FE380502E1F9B1070869806EDA0F9",
-      "v1_signature_identity_token_hmac_key": "D8AC46D57D8F97D333705D9E37582923CC64EB9269692E044CB6F42B6EC7A1D3",
-      "v1_signature_section_aes_key": "3408666AFBFBA0F7C6B1956FF696A7BE"
+      "v1_mic_short_salt_mic_hmac_key": "2D9C3E637E1E387EDDD22E586AC029A5FE0FE380502E1F9B1070869806EDA0F9"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "697D",
@@ -2338,9 +2204,9 @@
       "short_salt_nonce": "A07118DCA162260AE3431760"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "E64BA2437291F00276F06A9686145AA7",
-      "derived_salt_nonce": "0CAC865313B2A15A5080ADFB9217E5C8",
-      "derived_salt_third_de": "6FD2414155FFA0177A9F6417B607C3FD",
+      "derived_salt_first_de": "0CAC865313B2A15A5080ADFB9217E5C8",
+      "derived_salt_nonce": "87AE85CDA77F0ECC8F0A061ECABF8573",
+      "derived_salt_third_de": "18FF91D4C47DF2FC5F8EDCCDBDA603BA",
       "section_extended_salt": "AC9AD659EA00A4265C647D5B46D4EB70"
     }
   },
@@ -2356,9 +2222,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "9B25D3914B0CDDBDF5B73F2F95BEDBCFAAE65289D6649696D91C0BCC8926B619",
       "v1_mic_short_salt_aes_key": "39C321D60F6E9871C6F0E5F08021894B",
       "v1_mic_short_salt_identity_token_hmac_key": "67F7D65051D4339DCFD118B55233214FDF6A4D22104C123490267C0A68029A37",
-      "v1_mic_short_salt_mic_hmac_key": "97B7E56E79C9F0E05ADE70F6E85B0104B08150A1BB253451FEE37A02AB2F607E",
-      "v1_signature_identity_token_hmac_key": "019A2FF53B587F6B45139C744973D4BE7F6BAD418625181AC3F0404CE042F125",
-      "v1_signature_section_aes_key": "FBAF3E389EB39C82A87E36BF26459FEE"
+      "v1_mic_short_salt_mic_hmac_key": "97B7E56E79C9F0E05ADE70F6E85B0104B08150A1BB253451FEE37A02AB2F607E"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "C489",
@@ -2373,9 +2237,9 @@
       "short_salt_nonce": "5E4D5C6D9A148F2E2695D39F"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "EC8C3C7B3A563015AD914D065F065C42",
-      "derived_salt_nonce": "40842C94F4F5046882D39A1F353F5174",
-      "derived_salt_third_de": "CF99D9895D39ED5AEB35E4596C63B4FE",
+      "derived_salt_first_de": "40842C94F4F5046882D39A1F353F5174",
+      "derived_salt_nonce": "B8954D19C2705F64153E821B5A639BAD",
+      "derived_salt_third_de": "F1BEC1B77E2C704AC9A08DE96FE359F1",
       "section_extended_salt": "FC4A1004C457DF7D85788332C3ABF9FE"
     }
   },
@@ -2391,9 +2255,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "73766408361E3A670635EEB7C9FF70A72116819F94576737C06FE78910063502",
       "v1_mic_short_salt_aes_key": "0C8A3C2D081449F4F263E11730F59385",
       "v1_mic_short_salt_identity_token_hmac_key": "E46EEBE36262EF589672F67E20DBBE24DC18B863DDF4CF9D8330DCFA3CFAA3B2",
-      "v1_mic_short_salt_mic_hmac_key": "5CE78E09F37386D4554DFC39B22E4AAF28F812D335BD372583B7C3F1A1552B9C",
-      "v1_signature_identity_token_hmac_key": "B947D986D221E4C06CF27FD3352674D5DE51FF5B14885E36074D363B286B28F1",
-      "v1_signature_section_aes_key": "49A0920DE44EA33D0E2FDD6217492837"
+      "v1_mic_short_salt_mic_hmac_key": "5CE78E09F37386D4554DFC39B22E4AAF28F812D335BD372583B7C3F1A1552B9C"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "28F7",
@@ -2408,9 +2270,9 @@
       "short_salt_nonce": "17F243E45941156F9CB40E66"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "A2D63A55BABCFB0F636B0D3621C4CF0E",
-      "derived_salt_nonce": "7DA7DEB96787A854B3B02CD1D3D90BBC",
-      "derived_salt_third_de": "4A653154FF6C376DD0EB5CE64FEA70A1",
+      "derived_salt_first_de": "7DA7DEB96787A854B3B02CD1D3D90BBC",
+      "derived_salt_nonce": "E036FE89BCB8E637BB3A4260AA2F8F64",
+      "derived_salt_third_de": "FC2D91839C6FFDAF38099BD1C930B71E",
       "section_extended_salt": "8B2303C4EE99348E3B5B34EAF99E29E6"
     }
   },
@@ -2426,9 +2288,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "CAB44B647CEF4A189CF3B89428DFCF4D8D7EF74AA05252D4E2D1473472B17E29",
       "v1_mic_short_salt_aes_key": "480B8E97EC00901A06850E0746BADF25",
       "v1_mic_short_salt_identity_token_hmac_key": "6CDF2DF6C49DDB32051C172679F731F040549742B92758445712E5380DB052EE",
-      "v1_mic_short_salt_mic_hmac_key": "751622D2D36222D292DB1FA835FAC4676610C27FE961AC28B6F19EDE4FE6D233",
-      "v1_signature_identity_token_hmac_key": "DB49365A1148EFA93B856ADE848B15DC81143FFED26E29811ED4B400D3C3D880",
-      "v1_signature_section_aes_key": "8376773D764F42C0C02209207DE4AE80"
+      "v1_mic_short_salt_mic_hmac_key": "751622D2D36222D292DB1FA835FAC4676610C27FE961AC28B6F19EDE4FE6D233"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "FF69",
@@ -2443,9 +2303,9 @@
       "short_salt_nonce": "78A4DF6F4645BF6868D3B8C0"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "557438A8D86570CB0179CC69F8B1653F",
-      "derived_salt_nonce": "4BB982A676DCF6715DBA55A5DA00D25A",
-      "derived_salt_third_de": "F250FD05CF2307636F60750CE5E9B323",
+      "derived_salt_first_de": "4BB982A676DCF6715DBA55A5DA00D25A",
+      "derived_salt_nonce": "0C2C17B473741919BA9627952E5B3023",
+      "derived_salt_third_de": "5DBF07E34FDE980AEE2404C5FEC38B1E",
       "section_extended_salt": "941E0C341EB666240EDAAD47239DABD6"
     }
   },
@@ -2461,9 +2321,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "C8C2EBA26F834A9E3C96C2B7E4F697D1A180FC8F854A6169710120DB29BF0C0F",
       "v1_mic_short_salt_aes_key": "CA6577851C9BC850A88F485732FB4C52",
       "v1_mic_short_salt_identity_token_hmac_key": "EB2B6628523226BE853EC1A2A23C8B8F210B1C4B40EDA72435F65BFEE3AA066D",
-      "v1_mic_short_salt_mic_hmac_key": "D17C34BC36306CB1AEC52A7125B0E7D6C9A50F4B9DAC6015BBB9D6E933E7A2DF",
-      "v1_signature_identity_token_hmac_key": "1527905BF57561A93D2EE2509172BFB08BEB8D1456D17B0227C3EC621766B850",
-      "v1_signature_section_aes_key": "4EACAFCBAEC4739EC7726C78BC27BEA1"
+      "v1_mic_short_salt_mic_hmac_key": "D17C34BC36306CB1AEC52A7125B0E7D6C9A50F4B9DAC6015BBB9D6E933E7A2DF"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "581F",
@@ -2478,9 +2336,9 @@
       "short_salt_nonce": "BDAD50E1174C4F1A4011335B"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "C92C5055A19F1B8A0FD1F07705B454DA",
-      "derived_salt_nonce": "C2603BFA63695C6D3CF9F8C294217640",
-      "derived_salt_third_de": "C3509C601D0F373B0875B6B1F7FC7D9D",
+      "derived_salt_first_de": "C2603BFA63695C6D3CF9F8C294217640",
+      "derived_salt_nonce": "46E50973E5C3BF4CED53A4A349C92B6A",
+      "derived_salt_third_de": "0B15F3860198E6B92E4BCEC7D80A5369",
       "section_extended_salt": "782DBF528A022F527A00408A045CEDE2"
     }
   },
@@ -2496,9 +2354,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "15F1121625072AE546BE7E9A17CAF4C7D85F084CB0BEA894495F1CC37E97E60F",
       "v1_mic_short_salt_aes_key": "6452C325F1DF8A9E0D4B6D4D9EA59A7C",
       "v1_mic_short_salt_identity_token_hmac_key": "4397BF6738AC22CFF3C4272C046F488139107476E2566FE66C789E240A624803",
-      "v1_mic_short_salt_mic_hmac_key": "A7FD1087175D5FD000D3FB744CA35120E232C54DC167B776F42B9EB5A8453079",
-      "v1_signature_identity_token_hmac_key": "368BFF1160B108CE21133C215812D25D36FF6669B72C4B88BACA2D31A597C8A7",
-      "v1_signature_section_aes_key": "351F043D8B6435E5E73684B10F79471B"
+      "v1_mic_short_salt_mic_hmac_key": "A7FD1087175D5FD000D3FB744CA35120E232C54DC167B776F42B9EB5A8453079"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "DE49",
@@ -2513,9 +2369,9 @@
       "short_salt_nonce": "68CB8DB099FC125FE4E2AAC3"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "9DDDB28462DBFCA74F63FC476FFE3D46",
-      "derived_salt_nonce": "85989FA93A8C9A85A7DA598529479045",
-      "derived_salt_third_de": "FF1A21F20BCB2A86AFF9A29CB42A3C46",
+      "derived_salt_first_de": "85989FA93A8C9A85A7DA598529479045",
+      "derived_salt_nonce": "3ADE9A22162411699F073FD6E348C6DE",
+      "derived_salt_third_de": "EEB1CBD759C6621657D4B4ED808446A7",
       "section_extended_salt": "FA9DB8C9A1376BA0265420D4B0588C21"
     }
   },
@@ -2531,9 +2387,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "3A3BDEEC0AC9D04A2EC9E03D8B32BB48BF7EFACEBC4D946D8FF6B814D5661234",
       "v1_mic_short_salt_aes_key": "6914FF089524DD20681F6A250A3C2BC0",
       "v1_mic_short_salt_identity_token_hmac_key": "0B75CD46D539DECA8A7D14F4F7ECF2F1A2618FE449722CECC2816B5D674EACB2",
-      "v1_mic_short_salt_mic_hmac_key": "19D33DE899A50CE211E3BA3727669A6470EE3F52B17AC200E5FCD6FDFD000D5B",
-      "v1_signature_identity_token_hmac_key": "324954DBD6C28C2DB4C1918C3C1964FADFCD0DC2CD5F3E1F8EF870DE57059F5A",
-      "v1_signature_section_aes_key": "78F98654143E5EA976DC7EF3080C4E99"
+      "v1_mic_short_salt_mic_hmac_key": "19D33DE899A50CE211E3BA3727669A6470EE3F52B17AC200E5FCD6FDFD000D5B"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "42AC",
@@ -2548,9 +2402,9 @@
       "short_salt_nonce": "6C06CC0653B5BFD0AF6DEEC2"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "F7684DEFAC951359A02D3C3478964CA4",
-      "derived_salt_nonce": "89DD24B2821B57501E07BF8913BA5B23",
-      "derived_salt_third_de": "381D3B6413BE8703AFFB0D17B38D372B",
+      "derived_salt_first_de": "89DD24B2821B57501E07BF8913BA5B23",
+      "derived_salt_nonce": "365E29DA7DFDDC15863A3883A41A58BA",
+      "derived_salt_third_de": "E881B3BD70143E81F989E809B8BB8F2E",
       "section_extended_salt": "58A07B28332F5BEE07B5B2B6501DE060"
     }
   },
@@ -2566,9 +2420,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "FAD94CC0F43729C896A4B38B6FC314A30A6235336FB9144857F74DBA62446C43",
       "v1_mic_short_salt_aes_key": "DA65AAFCBBF298770D7E4C20E8ED4015",
       "v1_mic_short_salt_identity_token_hmac_key": "A67A0798A0395495824110A9ADE3520DC3E80110046C46C31AE59B133A31D8AD",
-      "v1_mic_short_salt_mic_hmac_key": "A2BDDA2BF237949C6F6C25D8A5138966D2E2778FDA5692C61CC8DD0B5CE06CCF",
-      "v1_signature_identity_token_hmac_key": "E046453AB6F68FEDB7A960170A2827B28037DDC8DA1E7F73D3CC8C83A15EE813",
-      "v1_signature_section_aes_key": "445F1E3B3AA663DDEFE1E5C0F2AB972C"
+      "v1_mic_short_salt_mic_hmac_key": "A2BDDA2BF237949C6F6C25D8A5138966D2E2778FDA5692C61CC8DD0B5CE06CCF"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "9EA1",
@@ -2583,9 +2435,9 @@
       "short_salt_nonce": "BAB0729453AC44CB60695F7A"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "FF510969FFE54C346C277BCD12314A23",
-      "derived_salt_nonce": "C858D33D065BE6BE321F09A182E4E0B5",
-      "derived_salt_third_de": "8C972C1345CF4B88552917A6C0AA0132",
+      "derived_salt_first_de": "C858D33D065BE6BE321F09A182E4E0B5",
+      "derived_salt_nonce": "7F812A69ECB4F45986F733BF51367734",
+      "derived_salt_third_de": "51C3547A95EE0B8C954EFFC7FCEB1030",
       "section_extended_salt": "947F9A9E1AAC92228E70B97E686092B2"
     }
   },
@@ -2601,9 +2453,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "BF3E481EEB971717B448D4EDB765F2C9291C3165A8C021742E3B33D84474772C",
       "v1_mic_short_salt_aes_key": "C30DBBFFD2A16E98895BD9EC2D7E724C",
       "v1_mic_short_salt_identity_token_hmac_key": "B0B97E8EF4DCD33E40356CB2D6D7359517FCE3FFC7B8DBD4D73FAE87CE0D0CB5",
-      "v1_mic_short_salt_mic_hmac_key": "7AA526E8ACBE888A47E7F042DA3751FBF8988294D8286208122C55C2322D5F25",
-      "v1_signature_identity_token_hmac_key": "5EA50122D84E384D7C4B2105A182BEEC7A4D8CBE266B54C51D70F2186CC821C4",
-      "v1_signature_section_aes_key": "E9E31EFF10C7F9F2634BDB89CBB407CF"
+      "v1_mic_short_salt_mic_hmac_key": "7AA526E8ACBE888A47E7F042DA3751FBF8988294D8286208122C55C2322D5F25"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "C543",
@@ -2618,9 +2468,9 @@
       "short_salt_nonce": "FC8A1484820906156C195098"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "E4CC4A82D88EA39A5187A28FBDD40F3D",
-      "derived_salt_nonce": "B5807E2B08DE99DC9EA01E9478282DDF",
-      "derived_salt_third_de": "E3CC102DB32458B2EAFEEBB6113DCEC2",
+      "derived_salt_first_de": "B5807E2B08DE99DC9EA01E9478282DDF",
+      "derived_salt_nonce": "5D45AF328595815E8F0D6E4C7B47103F",
+      "derived_salt_third_de": "1D8D9A5D1006B350F479BC3EA39F7E1A",
       "section_extended_salt": "2E250B90A61C0F513340D930EA6571E4"
     }
   },
@@ -2636,9 +2486,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "D115FE4B3ED3D6FF3C457411F89EEC573FB6B4FF074844250F10D923416A951F",
       "v1_mic_short_salt_aes_key": "10F209765DD1E2848DC419C4268771A6",
       "v1_mic_short_salt_identity_token_hmac_key": "9FD5A74F6EC544AB29AF7CDF130FEAB9D22B37A4178E7A4C7703DCCE6AEAF4C7",
-      "v1_mic_short_salt_mic_hmac_key": "DB1E2E8F93CB7D9891CBC951DDF02E89B0E77F646EDB9BB4A33F936F7A04F693",
-      "v1_signature_identity_token_hmac_key": "419EA078DEA8DE15D57ED34A497920F671D83425B204F2C364CA506B2A4FFAE9",
-      "v1_signature_section_aes_key": "519EA77C6FFACDF488BC05BD1E45C56D"
+      "v1_mic_short_salt_mic_hmac_key": "DB1E2E8F93CB7D9891CBC951DDF02E89B0E77F646EDB9BB4A33F936F7A04F693"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "C2F8",
@@ -2653,9 +2501,9 @@
       "short_salt_nonce": "AE407828507152FA369D8AF9"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "93A5A6F16A869EFF9F4147B3BFEE2779",
-      "derived_salt_nonce": "51BA87FE075BF338688B780493445A1F",
-      "derived_salt_third_de": "534680E817F3E8366D19AA564ECC2ECC",
+      "derived_salt_first_de": "51BA87FE075BF338688B780493445A1F",
+      "derived_salt_nonce": "A23AAC937BA9081501AEC3E3A9A80D8E",
+      "derived_salt_third_de": "B12CA463311ED6E710B1063B8B06CBE4",
       "section_extended_salt": "58FE62A2B35E250EC7A5F7885357E659"
     }
   },
@@ -2671,9 +2519,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "4EA92D6148AA2F61D283E1DB8AE6EE1066893C4A898BA503145CE493F2AD5400",
       "v1_mic_short_salt_aes_key": "83F56E946E80C574D9A6C89975DEF2DB",
       "v1_mic_short_salt_identity_token_hmac_key": "5CA60D709F88F9D07556B4A6E6A4CDE9DF1DBD280BABA39BE47A13FE90E5E27D",
-      "v1_mic_short_salt_mic_hmac_key": "33E1065D5BA0349E161E41D873B194379EEF0D2DEE466805D72BBE01F6349F2E",
-      "v1_signature_identity_token_hmac_key": "58A6E794B4593108761562A3C74CA4EDD345EFAA08F35E661B97FF113C24B6A6",
-      "v1_signature_section_aes_key": "1DCC7FBD666A58BD52FB5EB65A63251D"
+      "v1_mic_short_salt_mic_hmac_key": "33E1065D5BA0349E161E41D873B194379EEF0D2DEE466805D72BBE01F6349F2E"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "94D8",
@@ -2688,9 +2534,9 @@
       "short_salt_nonce": "E006CD94A4539C0185D8A480"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "28AFE5F7B2249029B8C64188C46E8EA6",
-      "derived_salt_nonce": "72B2C14A669C5CA1684D7E4751793E2F",
-      "derived_salt_third_de": "93DA04162B18AEE23A3056DD6B53B447",
+      "derived_salt_first_de": "72B2C14A669C5CA1684D7E4751793E2F",
+      "derived_salt_nonce": "5194B6439F2AD168A7811D694F741C30",
+      "derived_salt_third_de": "62C545C7FC6E223FA188C356A58A2A41",
       "section_extended_salt": "E3D5BA66BFF1542BB9E864F1718972EE"
     }
   },
@@ -2706,9 +2552,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "5D68D65D0C1926E664FB9DABDEC88B84A1151479045FF66BD520E496DA11BDE1",
       "v1_mic_short_salt_aes_key": "4201A2259722BA7647492CD28EEC1AEF",
       "v1_mic_short_salt_identity_token_hmac_key": "B827390AAFDFFE4121E501DD5AB0F63FE99812B0AA19EE5D3CCE8371BA8D8565",
-      "v1_mic_short_salt_mic_hmac_key": "14E7069440F3314D316424A4C05B14781FB8057BF555056B4DCC1CCC01CEA5F6",
-      "v1_signature_identity_token_hmac_key": "CEF4CC2BC66B6DA8CDE0BDC33CDB0544A482E693D0AE8E4776D2C50EB3141EDA",
-      "v1_signature_section_aes_key": "26D03E938464532CBED815DE327C0E53"
+      "v1_mic_short_salt_mic_hmac_key": "14E7069440F3314D316424A4C05B14781FB8057BF555056B4DCC1CCC01CEA5F6"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "5883",
@@ -2723,9 +2567,9 @@
       "short_salt_nonce": "725F8B5D5A48F5BF15805851"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "ECE9232AEB13F080BBA9110F115C1C06",
-      "derived_salt_nonce": "B067DB848C67AB62F7D9647AEF6350DD",
-      "derived_salt_third_de": "0E171CFAF26BE107633093C5FBE09795",
+      "derived_salt_first_de": "B067DB848C67AB62F7D9647AEF6350DD",
+      "derived_salt_nonce": "02B20DE9FC2A60AA489FF762F0ED849E",
+      "derived_salt_third_de": "95E342A2240A9AE4F172A3748149A03D",
       "section_extended_salt": "98564150CD7F85177E2FBCD32D1991AB"
     }
   },
@@ -2741,9 +2585,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "7175D3D814EC85A2D0425C56E3AE38B7380FFF95C51104BAA187095753BA574C",
       "v1_mic_short_salt_aes_key": "50628611E98D88D30CF256444B776072",
       "v1_mic_short_salt_identity_token_hmac_key": "D8347CF2051CCCE1900812130C256F539172A7937BB9F024C101C61BD11C0767",
-      "v1_mic_short_salt_mic_hmac_key": "46D08AF025C2B6D0B27D54ACC927D0FB0CE944D38A5611BB15DC7FB71864D468",
-      "v1_signature_identity_token_hmac_key": "8B4C710326841E386DB89A9E34140A3129F740253121E150E59F86AC03B7BE9A",
-      "v1_signature_section_aes_key": "F72965CB64E9365256119F29F5355A04"
+      "v1_mic_short_salt_mic_hmac_key": "46D08AF025C2B6D0B27D54ACC927D0FB0CE944D38A5611BB15DC7FB71864D468"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "D584",
@@ -2758,9 +2600,9 @@
       "short_salt_nonce": "011AB27EBDDCF76BECAC83E1"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "9E43D77377463D53AC57DFA860AC64F2",
-      "derived_salt_nonce": "CDABCA09C3FE20F0BFD2F0855C16709B",
-      "derived_salt_third_de": "2A7BB2161625A9FA4C944A03780FE0F7",
+      "derived_salt_first_de": "CDABCA09C3FE20F0BFD2F0855C16709B",
+      "derived_salt_nonce": "36FB8E21A9EBECCA5F945D7F32B557A9",
+      "derived_salt_third_de": "8CADB29B7451DF58F0C78099492C8DD9",
       "section_extended_salt": "C3AD1D6CF13D0ED5D4B52933E4BE9923"
     }
   },
@@ -2776,9 +2618,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "279FD3C9459F9752565AC221A02805DCB2860DEE54FC5FB6787F3ED26C327463",
       "v1_mic_short_salt_aes_key": "9A62AE0DDB8B45D2E6B1A5C34576D29B",
       "v1_mic_short_salt_identity_token_hmac_key": "D0FBCE82CFCE356C430CB45A87CAB367C0F43F2D512F996854A1E0CF1AA230F8",
-      "v1_mic_short_salt_mic_hmac_key": "35DD70B190738EE311AD7A9169E9831C6DE663A038BC30F744B73686264D868E",
-      "v1_signature_identity_token_hmac_key": "57683A7ECCAF59E1233B5972B29A681EFB5C5CCC7841A59F200562F43B604955",
-      "v1_signature_section_aes_key": "3992116A5B3CB5E2909EBA148CA3D0C0"
+      "v1_mic_short_salt_mic_hmac_key": "35DD70B190738EE311AD7A9169E9831C6DE663A038BC30F744B73686264D868E"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "3484",
@@ -2793,9 +2633,9 @@
       "short_salt_nonce": "D060E783D2A0CE06655119EC"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "2B2E1D1168C638E5F96A01EFE95E9198",
-      "derived_salt_nonce": "42F31D89F5FF91B8CC141B2555261E94",
-      "derived_salt_third_de": "9ECC9D55DFF824E87A7C10427EDB7D26",
+      "derived_salt_first_de": "42F31D89F5FF91B8CC141B2555261E94",
+      "derived_salt_nonce": "C6E20790947281DDA6F1CB22F9363B88",
+      "derived_salt_third_de": "B8C8FC283ED8D8989730939790F1FBA1",
       "section_extended_salt": "9CF4B88393E26CA09669F2A24F0893F2"
     }
   },
@@ -2811,9 +2651,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "1FFDBECE1FB5B98AC89B7AC112608F8E7705C1C98F2434DEE5529232CFA16BC7",
       "v1_mic_short_salt_aes_key": "3A7608329B686BEEA3B22FE3358B1310",
       "v1_mic_short_salt_identity_token_hmac_key": "4B4C530D8FD05FB35D04618172CC0CB522F1DB01D91665941DD62B9179642D3D",
-      "v1_mic_short_salt_mic_hmac_key": "386F86CA17343F3A66426BD8B626682D9F4AFDF77AB93AB964FAA3708E9100F2",
-      "v1_signature_identity_token_hmac_key": "9D9FBDEAEFA4D07C54302BDC107B47530E461D428A4DCBA4C20B4339053FFBF1",
-      "v1_signature_section_aes_key": "D8BB6D91F80D467B55F348501483688A"
+      "v1_mic_short_salt_mic_hmac_key": "386F86CA17343F3A66426BD8B626682D9F4AFDF77AB93AB964FAA3708E9100F2"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "1CE3",
@@ -2828,9 +2666,9 @@
       "short_salt_nonce": "F4BD7CB2CE01511C1F18A53E"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "541E5A0A4D7EBD30C3366C4628971F0A",
-      "derived_salt_nonce": "6D0DE80696F619D2B4CBA1D9DD0B7DE2",
-      "derived_salt_third_de": "DC761244E373DB2F195ADA9CCB849BF0",
+      "derived_salt_first_de": "6D0DE80696F619D2B4CBA1D9DD0B7DE2",
+      "derived_salt_nonce": "E848D19F51B760FCECCFD112E0FAB74D",
+      "derived_salt_third_de": "BCF6CFAC7DFB98581E7842166B0682A2",
       "section_extended_salt": "829E9AC22DC10ACB10F1FE7EFE014CDF"
     }
   },
@@ -2846,9 +2684,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "EBB43E51498E6753A1877E2C996330A2DF880E41887DDDED4FE7FF6D144CF4DA",
       "v1_mic_short_salt_aes_key": "40119DA2ADBBF3E491019863938942E3",
       "v1_mic_short_salt_identity_token_hmac_key": "9E82B5C1E723F1B578FE9A8519819B4A5B0D0F6DDAD0147E78BF48F778A38CA0",
-      "v1_mic_short_salt_mic_hmac_key": "2EA118DF0241382FDA2AA66599346986048260DACC8B1CA8EB6AF745224DB3FE",
-      "v1_signature_identity_token_hmac_key": "F31EB8FBF7E0170E352059413B935E7ADC5C8262D97DE0D81CEBF1176D270352",
-      "v1_signature_section_aes_key": "E780DDAB066C5FC692736EBE821C6FF8"
+      "v1_mic_short_salt_mic_hmac_key": "2EA118DF0241382FDA2AA66599346986048260DACC8B1CA8EB6AF745224DB3FE"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "8118",
@@ -2863,9 +2699,9 @@
       "short_salt_nonce": "E9582F01D2CBE7A7F61C39E8"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "47A9E3DDC054A4E93C11018129263A61",
-      "derived_salt_nonce": "04023B2ED6EDFD2654E91BB8604CFCB9",
-      "derived_salt_third_de": "FE7BEE522D169D527312F2EA7DCDCC1A",
+      "derived_salt_first_de": "04023B2ED6EDFD2654E91BB8604CFCB9",
+      "derived_salt_nonce": "1FE8E9E2B611876F8EED29E7F098B4F9",
+      "derived_salt_third_de": "27BDB48E9F78B0D247FCDCF8FC2B01C0",
       "section_extended_salt": "F9696D41F224F85BF8A5CDB62C171144"
     }
   },
@@ -2881,9 +2717,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "B87017DB360AD3F66B74E6F8779C485573CECE93A9B058E9197E08DE19DC233E",
       "v1_mic_short_salt_aes_key": "C1802BB67FA9966A675459E93BB18E7C",
       "v1_mic_short_salt_identity_token_hmac_key": "B9BF21CAEA29FDC085FBDD4D26DF28FE548C1B945952FCA25799D13999C1CD30",
-      "v1_mic_short_salt_mic_hmac_key": "9CBC02F56E1DE42FA95DABD085E014E5B1FAC3282A37B23D497F49DA81EF42A2",
-      "v1_signature_identity_token_hmac_key": "F556B76B0E1EE952A87246820380A53ADFC7928AE9A497F3CDEDCC72CB15F2F3",
-      "v1_signature_section_aes_key": "419C27C2E8899D21456C8586BB234079"
+      "v1_mic_short_salt_mic_hmac_key": "9CBC02F56E1DE42FA95DABD085E014E5B1FAC3282A37B23D497F49DA81EF42A2"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "218D",
@@ -2898,9 +2732,9 @@
       "short_salt_nonce": "B726D470FB3C62E5AEE6F3AB"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "AFBAA77C37E2F2E4C4BEBD7A7A40E8E8",
-      "derived_salt_nonce": "666C9A35AA6DA090BEE448E331D2201D",
-      "derived_salt_third_de": "89EBB1D894E43156911A709CE348F664",
+      "derived_salt_first_de": "666C9A35AA6DA090BEE448E331D2201D",
+      "derived_salt_nonce": "C2F4985C33BE2A1255E4DA3C037DB5B2",
+      "derived_salt_third_de": "127F3ABDE1874E6D38B50253ABDCFBDC",
       "section_extended_salt": "606E4773F79F85943AD21CE692D8F5BC"
     }
   },
@@ -2916,9 +2750,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "1EF4654DD267EF8ABF0C7B6401F0A108AB7FF39D11593C1CB836C1345312F92B",
       "v1_mic_short_salt_aes_key": "F7906C1B9382A8AA9E30D58ED937126F",
       "v1_mic_short_salt_identity_token_hmac_key": "F26237F030DABB04BCCDAB8B927C86C6C5853C2608C39FC574283140E7CD3D65",
-      "v1_mic_short_salt_mic_hmac_key": "387BAD7E4C92B13271493360484B2AD24C8C1DE146CB4AAFD8CB2F9046E57058",
-      "v1_signature_identity_token_hmac_key": "E31153728A02DCA8CA2D2F697F0772E77A92C4483B7CB99E61542B79FCDDA123",
-      "v1_signature_section_aes_key": "AA93AC9530BC4E822430C4A79A898D03"
+      "v1_mic_short_salt_mic_hmac_key": "387BAD7E4C92B13271493360484B2AD24C8C1DE146CB4AAFD8CB2F9046E57058"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "2914",
@@ -2933,9 +2765,9 @@
       "short_salt_nonce": "9B0F55835CCBB056C630C3D6"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "5B7A957680DBE5A18F6D47490EBF2839",
-      "derived_salt_nonce": "FA772F27245390D3125821597FB8D0F9",
-      "derived_salt_third_de": "62B187FEFED14F6E4B292E06BC94A19B",
+      "derived_salt_first_de": "FA772F27245390D3125821597FB8D0F9",
+      "derived_salt_nonce": "C862E33821C3EB820E829C6041880AED",
+      "derived_salt_third_de": "0A1265D0ECDD10D6B761C7D4B69C012E",
       "section_extended_salt": "157D4AD5BC9A70486F2E15EFFBA52500"
     }
   },
@@ -2951,9 +2783,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "5CE6F847C64DEAA632CBDA32769F18763E757E80B1746AAB191F638E0833C32E",
       "v1_mic_short_salt_aes_key": "0544AFBF786E3F4C01EC50AB2AD04DA2",
       "v1_mic_short_salt_identity_token_hmac_key": "A1DB27DB83EE9FD2C756C67CC8FB993286CDAA5895E7C3012E540F32D46EC046",
-      "v1_mic_short_salt_mic_hmac_key": "000B1436329CFB45BFAEF8BD5A0DB872D2951E54FF56BEAEFE4063407BB02F5C",
-      "v1_signature_identity_token_hmac_key": "A768835197F34ED548D340389920D4128507BE77BC0E13556EF41E95C34CEC3F",
-      "v1_signature_section_aes_key": "D23318460ABBDFF8B79B7B7977564BCB"
+      "v1_mic_short_salt_mic_hmac_key": "000B1436329CFB45BFAEF8BD5A0DB872D2951E54FF56BEAEFE4063407BB02F5C"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "5EC8",
@@ -2968,9 +2798,9 @@
       "short_salt_nonce": "0D5A7220B52241C711F8A7B7"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "7A4EC90B70FA9ACC4A37F691C8A62363",
-      "derived_salt_nonce": "90646E267796BB4D06D9DA6332CFC0B8",
-      "derived_salt_third_de": "C76CC4B946155D059264B51412240813",
+      "derived_salt_first_de": "90646E267796BB4D06D9DA6332CFC0B8",
+      "derived_salt_nonce": "78CE9A09DDF1400019CDD9A18FF92A99",
+      "derived_salt_third_de": "39CC942CBB6BE7814698ACE3BDBAE76E",
       "section_extended_salt": "8B7B2570D21C35A39687CB7725B1D8DC"
     }
   },
@@ -2986,9 +2816,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "D6BF2E0C532A2297799A495F52F5830C47E8D121B07A7600A12ED6DBB6CD1167",
       "v1_mic_short_salt_aes_key": "8C05F37E25BBE33BFAD40E3BFFB4EFC1",
       "v1_mic_short_salt_identity_token_hmac_key": "5E3DC31AF514DBE21286E86009435844BD96CC31F501B48E0CDCFCE0032D42AA",
-      "v1_mic_short_salt_mic_hmac_key": "41C70F6FE4E862553196A69B4B66E32B15384159A6865464EB50824E1AC399DB",
-      "v1_signature_identity_token_hmac_key": "7885A9B7E84FB130334AD9AB8BFF1643B3D33D68DE2CD208977656EB5CADA2EE",
-      "v1_signature_section_aes_key": "D559EC95E7D9D905C43582B528204FE6"
+      "v1_mic_short_salt_mic_hmac_key": "41C70F6FE4E862553196A69B4B66E32B15384159A6865464EB50824E1AC399DB"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "D1C8",
@@ -3003,9 +2831,9 @@
       "short_salt_nonce": "FC424C642B26FDAE820AF1AB"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "F352BAC3D04AAB1663A78964ACD27F3D",
-      "derived_salt_nonce": "BEB93BCF36574D428781A04841770194",
-      "derived_salt_third_de": "21E4F9FB37F092DD846235297297FBED",
+      "derived_salt_first_de": "BEB93BCF36574D428781A04841770194",
+      "derived_salt_nonce": "19C8AF0C686239DB7D13C3D04BF5107E",
+      "derived_salt_third_de": "347FD7A132A3C83FDB13CC6F50BCCC8E",
       "section_extended_salt": "A20F1A436E3CD07AF356935EA412F986"
     }
   },
@@ -3021,9 +2849,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "DD85470E8F3EDAF23FE25157B8FBD1A7C241E7B1C31EC2A198F345D750D57A32",
       "v1_mic_short_salt_aes_key": "88A8BC6F73692B9E4BA3D932F34A1C12",
       "v1_mic_short_salt_identity_token_hmac_key": "06E05118607B678C75BE26876B469D29C7E039EA5BF642B2339CA4D30EFF432F",
-      "v1_mic_short_salt_mic_hmac_key": "B24E520B572C5A64C652D5F7E95A58FD937569779213CD79DD435503B05F8678",
-      "v1_signature_identity_token_hmac_key": "F75DDF545736C151BD76F0AF6D952DF525D7F53F0393F42346B6DE51D410F6F8",
-      "v1_signature_section_aes_key": "972451D672CCDB9E7CA5D68C7CA291CD"
+      "v1_mic_short_salt_mic_hmac_key": "B24E520B572C5A64C652D5F7E95A58FD937569779213CD79DD435503B05F8678"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "AA55",
@@ -3038,9 +2864,9 @@
       "short_salt_nonce": "41FC0F8BC4B6ADD56E767CA0"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "8CA3B5B9AD5A244C7C81A4CECDFBA881",
-      "derived_salt_nonce": "B19D427E9CB92F7F2D1F433BBFC1C484",
-      "derived_salt_third_de": "5EE54CE1EE6359617F847ACF515237C4",
+      "derived_salt_first_de": "B19D427E9CB92F7F2D1F433BBFC1C484",
+      "derived_salt_nonce": "0180B3FEFF5DF0A0EAC789F07A4FC4DA",
+      "derived_salt_third_de": "6C82C46B961ED9B08C5F1C5416B04F06",
       "section_extended_salt": "05FE726BE045EDBE53C924C94DCC01FF"
     }
   },
@@ -3056,9 +2882,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "F7F9A514455AE831234376BDFBC64A3639D7E2C4274851EBCB7EFB14D3392FD7",
       "v1_mic_short_salt_aes_key": "2385AEC92C92345F560C4D292D3C4C98",
       "v1_mic_short_salt_identity_token_hmac_key": "45B7159DC874A72B0F232DB37EEABFC00B801453BBE78B57A5C08B2FB8AE626A",
-      "v1_mic_short_salt_mic_hmac_key": "0352B8CEE18F5D2A75B5D055806611BEF436A2F2172447236E6C929B41C00FF5",
-      "v1_signature_identity_token_hmac_key": "789B7C2BBEA40F1E9D8C35CA4F6A80734F4A0EC11973F49EEA988DAC0EF10877",
-      "v1_signature_section_aes_key": "9AE1BC3E1532FC968486276BE96AEB6C"
+      "v1_mic_short_salt_mic_hmac_key": "0352B8CEE18F5D2A75B5D055806611BEF436A2F2172447236E6C929B41C00FF5"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "0733",
@@ -3073,9 +2897,9 @@
       "short_salt_nonce": "4B223F4BE10514D1B8407002"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "4BF6F87B0CD12A0AE66AB6C80C976E33",
-      "derived_salt_nonce": "3AFAF9158C6986EC11F22D14ECD21D29",
-      "derived_salt_third_de": "EF28C13335BB6321FAB46EF2A859DD58",
+      "derived_salt_first_de": "3AFAF9158C6986EC11F22D14ECD21D29",
+      "derived_salt_nonce": "15F95BD4DC60A06BC8FAD859149922D3",
+      "derived_salt_third_de": "0FE0D08D88F3F1BD96D6F14751E456AB",
       "section_extended_salt": "0DB9FC8CF99C093927DFE9CC092C008D"
     }
   },
@@ -3091,9 +2915,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "8CB11E1B229A46BF2620483B959201465A44A31F6FB9E675539B7F27439C8B0E",
       "v1_mic_short_salt_aes_key": "2C9851D5CD39BB2E1FEC593F79F23085",
       "v1_mic_short_salt_identity_token_hmac_key": "70315F0D044A3F478184A76892BB4204A5CC1E4542CDA99595196323C0770B31",
-      "v1_mic_short_salt_mic_hmac_key": "FCAD5AB2AF31EC2C2649B9DEFFCCA9865B74E332E81474E8FBD7356D33F88DE6",
-      "v1_signature_identity_token_hmac_key": "80F9B9285D8DBF0666839F92E2D2752EF249FCB127503BFF41A629DFFAA1CB45",
-      "v1_signature_section_aes_key": "B519FDA43EE7B072ACB8A855A0820016"
+      "v1_mic_short_salt_mic_hmac_key": "FCAD5AB2AF31EC2C2649B9DEFFCCA9865B74E332E81474E8FBD7356D33F88DE6"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "0F09",
@@ -3108,9 +2930,9 @@
       "short_salt_nonce": "C2DA1EC8766C69498CB6EB47"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "E732FDC269D45C4213635D2D35B4A8C1",
-      "derived_salt_nonce": "FF25222D3D493186CBEA2C203733BA86",
-      "derived_salt_third_de": "02BD9E3B04444BF78D059BB4336D1D14",
+      "derived_salt_first_de": "FF25222D3D493186CBEA2C203733BA86",
+      "derived_salt_nonce": "2B399736365DB535FF13F1B8C8FB8064",
+      "derived_salt_third_de": "2B76F7B38F137E5C3005E0F83EFA40A8",
       "section_extended_salt": "BF79E23A91CD05105EDB13CCE3CB6B16"
     }
   },
@@ -3126,9 +2948,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "73494C1A3BF1D355985E61D009736941FFB39A3251D915D7EB3E555E887117BA",
       "v1_mic_short_salt_aes_key": "622187A9DC8AF81E033888DDFE504F77",
       "v1_mic_short_salt_identity_token_hmac_key": "0BD43C55C16C95BDA2A6DFF39A9FCAE21CDF87DE842C35694698B2B53D1FDFAE",
-      "v1_mic_short_salt_mic_hmac_key": "9900746A6567048FAC292563E40333B948F5D3EDA89BB8D8E5B159441D5EECE6",
-      "v1_signature_identity_token_hmac_key": "9A2793927FD494FB1AFB2EB7F7B91319A231EC88B1A22B3E42293FC1EE81E388",
-      "v1_signature_section_aes_key": "0F5A12959E5210EC994C97724D3E2A96"
+      "v1_mic_short_salt_mic_hmac_key": "9900746A6567048FAC292563E40333B948F5D3EDA89BB8D8E5B159441D5EECE6"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "2B8A",
@@ -3143,9 +2963,9 @@
       "short_salt_nonce": "2183C1252F128A480A53CCDF"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "1033FF7BE57DFD280D3F1AAF407831C0",
-      "derived_salt_nonce": "E6D9C880D2182F448A6615F7FE10BE69",
-      "derived_salt_third_de": "63A9C49B9F470EA354637612725729A0",
+      "derived_salt_first_de": "E6D9C880D2182F448A6615F7FE10BE69",
+      "derived_salt_nonce": "14158D5D5894E474C6891EBD74668B7B",
+      "derived_salt_third_de": "1BFEF72C28BFE52B7348DFD91086DE4A",
       "section_extended_salt": "9AFB8618127F357D0060618E781CA599"
     }
   },
@@ -3161,9 +2981,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "5D193196A34E4437DB7034795266C7C62DA3605D9F5818C2D433292E610A3762",
       "v1_mic_short_salt_aes_key": "B29FFF8F001C4726749A2FE7047A82D1",
       "v1_mic_short_salt_identity_token_hmac_key": "F1A90E829ED67B49C445D7DEBDAFC88E3BCF1974F0ED1EB9643730BF6EB3B90D",
-      "v1_mic_short_salt_mic_hmac_key": "BAB6DA7601191FDEB4344FAA163E818C9BF9B1D5B0AB1EE8D9F4A1C1D30A86E7",
-      "v1_signature_identity_token_hmac_key": "8C6832DB6955803AB934B98378B7F81F3710C65947A8B2C6132525B163F62CD6",
-      "v1_signature_section_aes_key": "8916CE7332C1F924DCC17E68D999EE7D"
+      "v1_mic_short_salt_mic_hmac_key": "BAB6DA7601191FDEB4344FAA163E818C9BF9B1D5B0AB1EE8D9F4A1C1D30A86E7"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "C270",
@@ -3178,9 +2996,9 @@
       "short_salt_nonce": "7803F0E069FF172CCF47AA05"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "6D93C32275239B6A82508FEFDFEC112A",
-      "derived_salt_nonce": "D2C45BD5079FE6B2D69E4F5EA192CE07",
-      "derived_salt_third_de": "2CF3FE0C1E6689361B50D2B558FCA09B",
+      "derived_salt_first_de": "D2C45BD5079FE6B2D69E4F5EA192CE07",
+      "derived_salt_nonce": "27627442B7C08B0654B9691430A555EF",
+      "derived_salt_third_de": "FF65B3D3F44314D9DA6A113FD547AAF3",
       "section_extended_salt": "23FF70E4526E9961792744D2C7534BFE"
     }
   },
@@ -3196,9 +3014,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "693EB813C40F33650699205BD038EC0D09989F8BA0A6B50741EC8FE1211DFDFE",
       "v1_mic_short_salt_aes_key": "ADCB2F8D667D5DBABAACD28F72C2E11D",
       "v1_mic_short_salt_identity_token_hmac_key": "0501458FF851D1C3C83C1BB65F55495E75C24778AA9B8FF0488FFB7F119B574E",
-      "v1_mic_short_salt_mic_hmac_key": "2ABF2E7A68FC09E88AC1122710BC7DD9F57FB8E150F699D5DC0DA5A560C76044",
-      "v1_signature_identity_token_hmac_key": "A267DB5025D3F87D12966C3853FB9449AE1FC4B654428CFAD44AB3AF6020D572",
-      "v1_signature_section_aes_key": "9E6F27E4E0118B8507146871CCF84E2B"
+      "v1_mic_short_salt_mic_hmac_key": "2ABF2E7A68FC09E88AC1122710BC7DD9F57FB8E150F699D5DC0DA5A560C76044"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "81AB",
@@ -3213,9 +3029,9 @@
       "short_salt_nonce": "8F039D3FA934BC8560918D45"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "FC34E69B7FA34B4341D2D33D5D591D46",
-      "derived_salt_nonce": "9BF73251EFD5E11020390188ADFF72C6",
-      "derived_salt_third_de": "C80634B6E96C0D7EA25C5C47F7389B01",
+      "derived_salt_first_de": "9BF73251EFD5E11020390188ADFF72C6",
+      "derived_salt_nonce": "5FDDE9E2452C27E07187F78EEB0C8789",
+      "derived_salt_third_de": "2B2E00F9A6CB1B6EAD4FC460A9CE3E7D",
       "section_extended_salt": "DF9DAD95D8384321FED7873DFC750B66"
     }
   },
@@ -3231,9 +3047,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "DD1077C4A05C4701B7EE34561CCC9D4D46C80E522414CC1053A2A3C3F918E24E",
       "v1_mic_short_salt_aes_key": "EBDF2DEB57C82EC7633A337346495321",
       "v1_mic_short_salt_identity_token_hmac_key": "B5A4831B58E71C5EDF3206D25CD378D2E569EC32E8E10E173C82527AF7DE59E5",
-      "v1_mic_short_salt_mic_hmac_key": "FD94C8A62DD00C251DAD6ED9DC459E1C06C2E625C24D3EA902122BE1B1EAFC13",
-      "v1_signature_identity_token_hmac_key": "40BACB42A697D9B7322FFC8196CCE5ADCA84758196F9211572C51D1E96683536",
-      "v1_signature_section_aes_key": "ECC4297E2036A147E17C48550B32C9C6"
+      "v1_mic_short_salt_mic_hmac_key": "FD94C8A62DD00C251DAD6ED9DC459E1C06C2E625C24D3EA902122BE1B1EAFC13"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "D77E",
@@ -3248,9 +3062,9 @@
       "short_salt_nonce": "DFDD3C550621ED62C9452D36"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "CF6F2269AE6601323D59347A6B698B6E",
-      "derived_salt_nonce": "8E899705639BD06B26439FA131EE2A2C",
-      "derived_salt_third_de": "B00A28308187B862E7F971387CA44CC4",
+      "derived_salt_first_de": "8E899705639BD06B26439FA131EE2A2C",
+      "derived_salt_nonce": "871958BBD6565508CD570B6EB075EE88",
+      "derived_salt_third_de": "B285A1EA4996C46C35EA5B5F8396C37B",
       "section_extended_salt": "B543154433E370E6D7A97B46A73F5652"
     }
   },
@@ -3266,9 +3080,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "893E8AFB307BF4C011CDA36140152CF892F2356DCB8B87AB8D3B0CEFAE7D23CB",
       "v1_mic_short_salt_aes_key": "33EB408FAD37D1FF76A27B2CF7D421F8",
       "v1_mic_short_salt_identity_token_hmac_key": "9EEE04B64C468770682AF45F96D7DCA1D6EF53D4C592A2AE7A172A0DEBF10E21",
-      "v1_mic_short_salt_mic_hmac_key": "74655FA0D30D1E2DF0DA9747A3966C9111693B8E00704DC61D2156009D9F26BD",
-      "v1_signature_identity_token_hmac_key": "801294C7CA501C3BF20F57BA2B0E2FA09F13722B3655F625AE8E17C8A79B1154",
-      "v1_signature_section_aes_key": "44D3F5A168DD048901D7FDA07952634C"
+      "v1_mic_short_salt_mic_hmac_key": "74655FA0D30D1E2DF0DA9747A3966C9111693B8E00704DC61D2156009D9F26BD"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "ADEB",
@@ -3283,9 +3095,9 @@
       "short_salt_nonce": "A4E6F88E3225FACE356BFDA4"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "3885509BA1045121AE5CED396AA039EA",
-      "derived_salt_nonce": "679DF301EEF3F51C43FFC1701A184685",
-      "derived_salt_third_de": "441CDFC937345A037284C3E35698448A",
+      "derived_salt_first_de": "679DF301EEF3F51C43FFC1701A184685",
+      "derived_salt_nonce": "8B4063B4DDC226BF01A547B773260452",
+      "derived_salt_third_de": "758E6DE8B331CF70607DA50056C2D02C",
       "section_extended_salt": "B43C581ACFC8A74540852A7DC924867C"
     }
   },
@@ -3301,9 +3113,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "DB771C4FBA0936936876181EDB642A4C3C018561845F35B3D0DC07D7EE4840F6",
       "v1_mic_short_salt_aes_key": "AF688DBBE5AE004BAD0D5E49B6F7D234",
       "v1_mic_short_salt_identity_token_hmac_key": "F09E67D34142371B649BC5A06BF027125CAC81971B962F469FB2BAAF1F077B1C",
-      "v1_mic_short_salt_mic_hmac_key": "DCE2001156BB5C30969FA012D8FE16DB5C599574CC46B61FBA232AE2B184C1F9",
-      "v1_signature_identity_token_hmac_key": "9E7CA4743B0670FB181CDA233640CBADE4A81E38D4EB4F4BE6188B5548EDC765",
-      "v1_signature_section_aes_key": "2523471EBF1ED605399CD39AF0B624B0"
+      "v1_mic_short_salt_mic_hmac_key": "DCE2001156BB5C30969FA012D8FE16DB5C599574CC46B61FBA232AE2B184C1F9"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "16D1",
@@ -3318,9 +3128,9 @@
       "short_salt_nonce": "483CBFACEC1D1468DBCD4FDA"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "03E5070187884CD433FBD176EA5E4A63",
-      "derived_salt_nonce": "D116BF3B37136C23AB77038C81C6FD87",
-      "derived_salt_third_de": "2ADBC8DF751DBB23172BBC87F1E6E77E",
+      "derived_salt_first_de": "D116BF3B37136C23AB77038C81C6FD87",
+      "derived_salt_nonce": "E2955A1A94D3C8F4902EAD1F71A142FB",
+      "derived_salt_third_de": "3D15FF1B1BD78D4FCB4FB66BA048B652",
       "section_extended_salt": "87CA5497D5CE54D75C0B0DBD6CF07B39"
     }
   },
@@ -3336,9 +3146,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "4FDE5BCD4A8CD9B8B0212BCA23A7A9EA49D7C039EBC90AABFECD864F594C5203",
       "v1_mic_short_salt_aes_key": "8D5372501B32F7A568349C722CB0F695",
       "v1_mic_short_salt_identity_token_hmac_key": "596A1BE90D3806E242B88A5CCE32BC8A2C4FAE2E17BF48B06AEAAD2C5E122032",
-      "v1_mic_short_salt_mic_hmac_key": "B00D35A3F49F08FBDAFDABB7ECA0A04297850A433A6D11C9FF8F6819F8C39C2B",
-      "v1_signature_identity_token_hmac_key": "7509D7C29027BC944390DD51AD6F3804D429C3EFBBFE24AD1AFF25FF40C6A8DE",
-      "v1_signature_section_aes_key": "EC1FA7F03A5E90DBABFFF5EC2495AB5E"
+      "v1_mic_short_salt_mic_hmac_key": "B00D35A3F49F08FBDAFDABB7ECA0A04297850A433A6D11C9FF8F6819F8C39C2B"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "9F21",
@@ -3353,9 +3161,9 @@
       "short_salt_nonce": "02C4AC240A3874E831DF38DB"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "FB3EA084403FA66ECB1C15F9D0AC8396",
-      "derived_salt_nonce": "4443A4454CF2F491410423CD5F2AE9D0",
-      "derived_salt_third_de": "90A8D37E587090B7E6D636C6F8D27114",
+      "derived_salt_first_de": "4443A4454CF2F491410423CD5F2AE9D0",
+      "derived_salt_nonce": "08C1CFB262121A7A634BC18894C4AC77",
+      "derived_salt_third_de": "6FE14A26FC7FBC443A0ABC2EC983BC59",
       "section_extended_salt": "38DA154EAF77D994EBBF3CD6FFDE825C"
     }
   },
@@ -3371,9 +3179,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "5F5436261C25D3E5FA446D513B409D5A0C4C27297CBE9F4EE741749154019E21",
       "v1_mic_short_salt_aes_key": "B03494A82C3848A67453FB367532112C",
       "v1_mic_short_salt_identity_token_hmac_key": "59D6749A1D6AFA4DB973AEAF088FCC0E7BE7D859A2814D641799BB1590496924",
-      "v1_mic_short_salt_mic_hmac_key": "D3B73C61E28AB288C60D7240B501A074C29A5E328D9BBD8716566B83AB1217A3",
-      "v1_signature_identity_token_hmac_key": "F85D6CA0DA816F073831FDDF3A0E0FCA9C888FB820762CCD6477DAFB90547E8F",
-      "v1_signature_section_aes_key": "807F93D9C345DC3AB3D98D43D6FBEAB9"
+      "v1_mic_short_salt_mic_hmac_key": "D3B73C61E28AB288C60D7240B501A074C29A5E328D9BBD8716566B83AB1217A3"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "765B",
@@ -3388,9 +3194,9 @@
       "short_salt_nonce": "8B511172378BCB1BF0CB674C"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "1E962EC586FE218A8F3A736BA5677B7E",
-      "derived_salt_nonce": "7399E4535A366989EF412F3EA0F8CE45",
-      "derived_salt_third_de": "46F2B7D99127C01B68C8B7C8A45CD479",
+      "derived_salt_first_de": "7399E4535A366989EF412F3EA0F8CE45",
+      "derived_salt_nonce": "712C1711BF548DB26A68142097B04A44",
+      "derived_salt_third_de": "EA668CEAEA9ED252C092DAF0B181AA1E",
       "section_extended_salt": "6BC0DFA6EBFA267952CB7305F05AD8F2"
     }
   },
@@ -3406,9 +3212,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "CDD5D25349B3AB7D4885AD124A050704116A5911CE5F379BE998CC7E92DE01AB",
       "v1_mic_short_salt_aes_key": "405DCC958551CDD1EC90C4A91D1B87AE",
       "v1_mic_short_salt_identity_token_hmac_key": "D06923425C4A028710861654BBFACA9F2FB6B3488B70E9C3C1898152A8DAFA6E",
-      "v1_mic_short_salt_mic_hmac_key": "421A413608C4344BF7A0E250324337C9ED374636D38D2B35969B6EF434D0D30F",
-      "v1_signature_identity_token_hmac_key": "D4FADAACB47CC260DEEDB1BBD56131D4FAB54270ACBBFAE975D77079A8554E53",
-      "v1_signature_section_aes_key": "1F5F9803F64C4A6DCF4BFB0C4FDC800A"
+      "v1_mic_short_salt_mic_hmac_key": "421A413608C4344BF7A0E250324337C9ED374636D38D2B35969B6EF434D0D30F"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "CDFF",
@@ -3423,9 +3227,9 @@
       "short_salt_nonce": "1B68E2C018314F5C61591D06"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "443DBEF6EA8FBB7E1AED17C651902D8F",
-      "derived_salt_nonce": "C832DD69A51C4466CC7E4C8FF2C8D830",
-      "derived_salt_third_de": "996A7355DADC94B04ED4DD5BFF713D10",
+      "derived_salt_first_de": "C832DD69A51C4466CC7E4C8FF2C8D830",
+      "derived_salt_nonce": "EBF773536DC522FD77A821E569A352D4",
+      "derived_salt_third_de": "96E770AFE17ADA57F24DE0E3BB499E23",
       "section_extended_salt": "86042432C5C8BFA2ADFEF07E52F76CE1"
     }
   },
@@ -3441,9 +3245,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "2F7EFAC31BC19C6414DBFE1E151CA5A9BB2D7FF23816E50DB8D3DBCEF0F651D6",
       "v1_mic_short_salt_aes_key": "72EED4197BDD9429F3B227EEEF8D9003",
       "v1_mic_short_salt_identity_token_hmac_key": "060C6B4E277154EF8E2AACD29FA7FD561D89EE1B55FE75804AC900B2A14FC6AC",
-      "v1_mic_short_salt_mic_hmac_key": "9E5E30433992ECC1D0E897740DE7380195AD9D393B172626A04EB4EC1540441D",
-      "v1_signature_identity_token_hmac_key": "6F8D65A2FDF4A76C612A1CE055862D4E1F3BC758FA9DEA8171281F387C89E89F",
-      "v1_signature_section_aes_key": "9E1A2442E091482C1AD358CB46EBB449"
+      "v1_mic_short_salt_mic_hmac_key": "9E5E30433992ECC1D0E897740DE7380195AD9D393B172626A04EB4EC1540441D"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "6BC4",
@@ -3458,9 +3260,9 @@
       "short_salt_nonce": "B1B266BC940E1CB4C0DDB7C6"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "EC10AA256E69F3BFC61E03E02DAC5572",
-      "derived_salt_nonce": "C5CD7C8AF453AA0A2E0CFB92B4DEC297",
-      "derived_salt_third_de": "E72061FB97353A6B46800EAEA02E86A2",
+      "derived_salt_first_de": "C5CD7C8AF453AA0A2E0CFB92B4DEC297",
+      "derived_salt_nonce": "09E5F0FF9F513E11E212E7396FAC1961",
+      "derived_salt_third_de": "F8B0319CCB323A6AF277F811D9E32695",
       "section_extended_salt": "DC5E1856188626F6FCAF7DEBCD91F83B"
     }
   },
@@ -3476,9 +3278,7 @@
       "v1_mic_extended_salt_mic_hmac_key": "2F8F91E46219709D1389613489A418FA8D806A1FB9D9519D0C5D677D55883E5F",
       "v1_mic_short_salt_aes_key": "B8A40538DB14E9CCE0157DF49441CDAC",
       "v1_mic_short_salt_identity_token_hmac_key": "08569465F0C66A011A7D4FFF67B0FC97690ECE6868E62DF94767E7E9436467D1",
-      "v1_mic_short_salt_mic_hmac_key": "19D0469CCCA27EE200930615C3D35C27ABE9AAB808752DA5D205E4003A617543",
-      "v1_signature_identity_token_hmac_key": "FCBBD61A230D9BE84D5E57E4DE4C641F3F9733867290614BE54F33E381EAF517",
-      "v1_signature_section_aes_key": "39C03BE4FCCB838D975F0B10F2F27FA6"
+      "v1_mic_short_salt_mic_hmac_key": "19D0469CCCA27EE200930615C3D35C27ABE9AAB808752DA5D205E4003A617543"
     },
     "v0_adv_salt_hkdf": {
       "adv_salt": "DF27",
@@ -3493,9 +3293,9 @@
       "short_salt_nonce": "7DB3F25CD050360CEB4DC7D0"
     },
     "v1_section_extended_salt_hkdf": {
-      "derived_salt_first_de": "ADACCCB5226C9A33368DCA3CDB62BBA1",
-      "derived_salt_nonce": "00AA84F4608746BEC8A17749584F7229",
-      "derived_salt_third_de": "C925E34CF796B07300BFDA0B91172D86",
+      "derived_salt_first_de": "00AA84F4608746BEC8A17749584F7229",
+      "derived_salt_nonce": "734E24882CE091951BB2324C24D2DA76",
+      "derived_salt_third_de": "8F3957367B7BFEFB520A1A0CCAF96875",
       "section_extended_salt": "65D6AA69B72031C537A1EBD7D1F16B7F"
     }
   }

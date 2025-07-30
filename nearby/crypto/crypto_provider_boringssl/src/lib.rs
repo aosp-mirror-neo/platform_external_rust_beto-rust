@@ -50,6 +50,9 @@ mod x25519;
 /// Implementations of crypto_provider::sha2 traits backed by BoringSSL
 mod sha2;
 
+/// Implementation of P256-ecdsa.
+mod ecdsa;
+
 /// The BoringSSL backed struct which implements CryptoProvider
 #[derive(Default, Clone, Debug, PartialEq, Eq)]
 pub struct Boringssl;
@@ -73,6 +76,7 @@ impl CryptoProvider for Boringssl {
     type Aes256GcmSiv = aead::aes_gcm_siv::AesGcmSiv256;
     type Aes128Gcm = aead::aes_gcm::AesGcm128;
     type Aes256Gcm = aead::aes_gcm::AesGcm256;
+    type EcdsaP256 = ecdsa::P256Ecdsa;
     type CryptoRng = BoringSslRng;
 
     fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {

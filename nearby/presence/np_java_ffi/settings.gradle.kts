@@ -15,3 +15,6 @@
  */
 
 rootProject.name = "np-java-ffi"
+
+include("cooperative_cleaner")
+project(":cooperative_cleaner").projectDir = File("../../../common/cooperative_cleaner/lib")

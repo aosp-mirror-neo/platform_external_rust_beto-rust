@@ -42,7 +42,7 @@ fn decrypt_with_wrong_key_seed_error() {
 
     let (adv_content, correct_cipher) =
         build_ciphertext_adv_contents(salt, &metadata_key, correct_key_seed);
-    let eac = parse_ciphertext_adv_contents(&correct_cipher, &adv_content.as_slice()[1..]);
+    let mut eac = parse_ciphertext_adv_contents(&correct_cipher, &adv_content.as_slice()[1..]);
 
     // wrong key seed doesn't work (derives wrong ldt key, wrong hmac key)
     let wrong_key_seed_cipher = {
@@ -68,7 +68,8 @@ fn decrypt_with_wrong_hmac_key_error() {
 
     let (adv_content, correct_cipher_config) =
         build_ciphertext_adv_contents(salt, &metadata_key, correct_key_seed);
-    let eac = parse_ciphertext_adv_contents(&correct_cipher_config, &adv_content.as_slice()[1..]);
+    let mut eac =
+        parse_ciphertext_adv_contents(&correct_cipher_config, &adv_content.as_slice()[1..]);
 
     let wrong_hmac_key_cipher = {
         let hkdf = np_hkdf::NpKeySeedHkdf::<CryptoProviderImpl>::new(&[0x10_u8; 32]);
@@ -92,7 +93,8 @@ fn decrypt_with_wrong_hmac_error() {
 
     let (adv_content, correct_cipher_config) =
         build_ciphertext_adv_contents(salt, &metadata_key, correct_key_seed);
-    let eac = parse_ciphertext_adv_contents(&correct_cipher_config, &adv_content.as_slice()[1..]);
+    let mut eac =
+        parse_ciphertext_adv_contents(&correct_cipher_config, &adv_content.as_slice()[1..]);
 
     let wrong_hmac_key_cipher = {
         let hkdf = np_hkdf::NpKeySeedHkdf::<CryptoProviderImpl>::new(&correct_key_seed);
@@ -133,11 +135,7 @@ fn parse_ciphertext_adv_contents<'b>(
     cipher: &ldt_np_adv::AuthenticatedNpLdtDecryptCipher<CryptoProviderImpl>,
     adv_content: &'b [u8],
 ) -> LdtAdvContents<'b> {
-    let eac = match IntermediateAdvContents::deserialize::<CryptoProviderImpl>(
-        V0Encoding::Ldt,
-        adv_content,
-    )
-    .unwrap()
+    let mut eac = match IntermediateAdvContents::deserialize(V0Encoding::Ldt, adv_content).unwrap()
     {
         IntermediateAdvContents::Unencrypted(_) => panic!(),
         // quick confirmation that we did get something

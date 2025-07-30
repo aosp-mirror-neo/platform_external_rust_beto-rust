@@ -80,10 +80,10 @@ fn cbc_criterion_benchmark(c: &mut Criterion) {
             |b| {
                 b.iter(|| {
                     let msg = initiator_ctx
-                        .encode_message_to_peer::<CryptoProviderImpl, &[u8]>(&plaintext, None);
+                        .encode_message_to_peer::<CryptoProviderImpl>(&plaintext, None::<&[u8]>);
                     black_box(
                         server_ctx
-                            .decode_message_from_peer::<CryptoProviderImpl, &[u8]>(&msg, None),
+                            .decode_message_from_peer::<CryptoProviderImpl>(&msg, None::<&[u8]>),
                     )
                 })
             },
@@ -108,10 +108,10 @@ fn gcm_criterion_benchmark(c: &mut Criterion) {
             |b| {
                 b.iter(|| {
                     let msg = initiator_ctx
-                        .encode_message_to_peer::<CryptoProviderImpl, &[u8]>(&plaintext, None);
+                        .encode_message_to_peer::<CryptoProviderImpl>(&plaintext, None::<&[u8]>);
                     black_box(
                         server_ctx
-                            .decode_message_from_peer::<CryptoProviderImpl, &[u8]>(&msg, None),
+                            .decode_message_from_peer::<CryptoProviderImpl>(&msg, None::<&[u8]>),
                     )
                 })
             },

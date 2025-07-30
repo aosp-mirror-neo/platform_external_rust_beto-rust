@@ -140,7 +140,7 @@ impl<'lock> CachedClass<'lock> {
 }
 
 // Implement AsRef so that we can use this type as `Desc::Output` in [`ClassDesc`].
-impl<'lock> AsRef<JClass<'static>> for CachedClass<'lock> {
+impl AsRef<JClass<'static>> for CachedClass<'_> {
     fn as_ref(&self) -> &JClass<'static> {
         // `unwrap` is valid since we checked for `Some` in the constructor.
         #[allow(clippy::expect_used)]
@@ -236,7 +236,7 @@ impl<'cls, Id: MemberId> MemberDesc<'cls, Id> {
 ///
 /// This returns the correct id. It is the same id obtained from the JNI. This id can be a pointer
 /// in some JVM implementations. See trait [`MemberId`].
-unsafe impl<'cls, 'local, Id: MemberId> Desc<'local, Id> for &MemberDesc<'cls, Id> {
+unsafe impl<'local, Id: MemberId> Desc<'local, Id> for &MemberDesc<'_, Id> {
     type Output = Id;
 
     fn lookup(self, env: &mut JNIEnv<'local>) -> jni::errors::Result<Self::Output> {

@@ -1,0 +1,40 @@
+[package]
+name = "submerge-fuzz"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+crdt = { workspace = true, features = ["checker"] }
+distributed_time.workspace = true
+submerge.workspace = true
+
+arbitrary.workspace = true
+arrayvec.workspace = true
+derive_fuzztest.workspace = true
+env_logger.workspace = true
+itertools.workspace = true
+log.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+
+[target.'cfg(fuzzing)'.dependencies]
+libfuzzer-sys.workspace = true
+
+[features]
+nolog = ["log/release_max_level_off"]
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(fuzzing)'] }
+
+[[bin]]
+name = "submerge_checker"
+doc = false
+
+[[bin]]
+name = "delta_round_trip"
+doc = false

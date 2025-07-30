@@ -117,8 +117,6 @@ impl<C: CryptoProvider> NpKeySeedHkdf<C> {
     }
 
     /// AES-GCM nonce used when decrypting metadata.
-    ///
-    /// Shared between signed and unsigned since they use the same credential.
     #[allow(clippy::expect_used)]
     pub fn v1_metadata_nonce(&self) -> <C::Aes128Gcm as Aead>::Nonce {
         self.hkdf.derive_array(b"V1 Metadata nonce").expect("Nonce is a valid length")
@@ -133,11 +131,6 @@ impl<C: CryptoProvider> NpKeySeedHkdf<C> {
     pub fn v1_mic_extended_salt_keys(&self) -> MicExtendedSaltSectionKeys<'_, C> {
         MicExtendedSaltSectionKeys { hkdf: &self.hkdf }
     }
-
-    /// Derived keys for MIC signature sections
-    pub fn v1_signature_keys(&self) -> SignatureSectionKeys<'_, C> {
-        SignatureSectionKeys { hkdf: &self.hkdf }
-    }
 }
 
 /// Derived keys for MIC short salt sections
@@ -145,14 +138,14 @@ pub struct MicShortSaltSectionKeys<'a, C: CryptoProvider> {
     hkdf: &'a NpHkdf<C>,
 }
 
-impl<'a, C: CryptoProvider> MicShortSaltSectionKeys<'a, C> {
+impl<C: CryptoProvider> MicShortSaltSectionKeys<'_, C> {
     /// HMAC-SHA256 key used when verifying a section's ciphertext
     pub fn mic_hmac_key(&self) -> NpHmacSha256Key {
         self.hkdf.derive_hmac_sha256_key(b"MIC Section short salt HMAC key")
     }
 }
 
-impl<'a, C: CryptoProvider> DerivedSectionKeys<C> for MicShortSaltSectionKeys<'a, C> {
+impl<C: CryptoProvider> DerivedSectionKeys<C> for MicShortSaltSectionKeys<'_, C> {
     fn aes_key(&self) -> Aes128Key {
         self.hkdf.derive_aes128_key(b"MIC Section short salt AES key")
     }
@@ -167,35 +160,20 @@ pub struct MicExtendedSaltSectionKeys<'a, C: CryptoProvider> {
     hkdf: &'a NpHkdf<C>,
 }
 
-impl<'a, C: CryptoProvider> MicExtendedSaltSectionKeys<'a, C> {
+impl<C: CryptoProvider> MicExtendedSaltSectionKeys<'_, C> {
     /// HMAC-SHA256 key used when verifying a section's ciphertext
     pub fn mic_hmac_key(&self) -> NpHmacSha256Key {
         self.hkdf.derive_hmac_sha256_key(b"MIC Section extended salt HMAC key")
     }
 }
 
-impl<'a, C: CryptoProvider> DerivedSectionKeys<C> for MicExtendedSaltSectionKeys<'a, C> {
+impl<C: CryptoProvider> DerivedSectionKeys<C> for MicExtendedSaltSectionKeys<'_, C> {
     fn aes_key(&self) -> Aes128Key {
         self.hkdf.derive_aes128_key(b"MIC Section extended salt AES key")
     }
 
     fn identity_token_hmac_key(&self) -> NpHmacSha256Key {
         self.hkdf.derive_hmac_sha256_key(b"MIC Section extended salt identity token HMAC key")
-    }
-}
-
-/// Derived keys for Signature sections
-pub struct SignatureSectionKeys<'a, C: CryptoProvider> {
-    hkdf: &'a NpHkdf<C>,
-}
-
-impl<'a, C: CryptoProvider> DerivedSectionKeys<C> for SignatureSectionKeys<'a, C> {
-    fn aes_key(&self) -> Aes128Key {
-        self.hkdf.derive_aes128_key(b"Signature Section AES key")
-    }
-
-    fn identity_token_hmac_key(&self) -> NpHmacSha256Key {
-        self.hkdf.derive_hmac_sha256_key(b"Signature Section identity token HMAC key")
     }
 }
 

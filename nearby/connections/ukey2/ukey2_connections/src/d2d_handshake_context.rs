@@ -22,18 +22,22 @@ use ukey2_rs::{
     Ukey2ClientStage1, Ukey2Server, Ukey2ServerStage1, Ukey2ServerStage2,
 };
 
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum HandshakeError {
+    #[error("Handshake not complete")]
     HandshakeNotComplete,
 }
 
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum HandleMessageError {
     /// The supplied message was not applicable for the current state
+    #[error("Invalid state")]
     InvalidState,
     /// Handling the message produced an error that should be sent to the other party
+    #[error("Error message for other party")]
     ErrorMessage(Vec<u8>),
     /// Bad message
+    #[error("Bad message")]
     BadMessage,
 }
 
@@ -68,7 +72,7 @@ where
     /// if [`is_handshake_complete`][Self::is_handshake_complete] returns true. Before trusting the
     /// connection, callers should check that `to_completed_handshake().auth_string()` matches on
     /// the client and server sides first. See the documentation for
-    /// [`to_completed_handshake`][Self::to_completed_handshake].
+    /// [`completed_handshake`][Self::completed_handshake].
     fn to_connection_context(&mut self) -> Result<D2DConnectionContextV1<R>, HandshakeError>;
 
     /// Returns the [`CompletedHandshake`] using the results from this handshake context. May only
@@ -78,7 +82,11 @@ where
     /// trying to create a connection context. This authentication string verification needs to be
     /// done out-of-band, either by displaying the string to the user, or verified by some other
     /// secure means.
-    fn to_completed_handshake(&self) -> Result<&CompletedHandshake, HandshakeError>;
+    fn completed_handshake(&self) -> Result<&CompletedHandshake, HandshakeError>;
+
+    /// Like [Self::completed_handshake], but consumes `self` so it can return the handshake
+    /// rather than a reference to it.
+    fn into_completed_handshake(self) -> Result<CompletedHandshake, HandshakeError>;
 }
 
 enum InitiatorState<C: CryptoProvider> {
@@ -161,16 +169,25 @@ where
         // Since self.rng is expected to be a seeded PRNG, not an OsRng directly, from_rng
         // should never fail. https://rust-random.github.io/book/guide-err.html
         let rng = R::from_rng(&mut self.rng).unwrap();
-        self.to_completed_handshake()
+        self.completed_handshake()
             .map(|h| D2DConnectionContextV1::from_initiator_handshake::<C>(h, rng))
     }
 
-    fn to_completed_handshake(&self) -> Result<&CompletedHandshake, HandshakeError> {
+    fn completed_handshake(&self) -> Result<&CompletedHandshake, HandshakeError> {
         match &self.state {
             InitiatorState::Stage1(_) | InitiatorState::Invalid => {
                 Err(HandshakeError::HandshakeNotComplete)
             }
             InitiatorState::Complete(c) => Ok(c.completed_handshake()),
+        }
+    }
+
+    fn into_completed_handshake(self) -> Result<CompletedHandshake, HandshakeError> {
+        match self.state {
+            InitiatorState::Stage1(_) | InitiatorState::Invalid => {
+                Err(HandshakeError::HandshakeNotComplete)
+            }
+            InitiatorState::Complete(c) => Ok(c.into_completed_handshake()),
         }
     }
 }
@@ -233,13 +250,10 @@ where
     }
 
     fn get_next_handshake_message(&self) -> Option<Vec<u8>> {
-        let next_msg = match &self.state {
-            ServerState::Stage1(_) => None,
+        match &self.state {
             ServerState::Stage2(s) => Some(s.server_init_msg().to_vec()),
-            ServerState::Complete(_) => None,
-            ServerState::Invalid => None,
-        }?;
-        Some(next_msg)
+            ServerState::Stage1(_) | ServerState::Complete(_) | ServerState::Invalid => None,
+        }
     }
 
     fn handle_handshake_message(&mut self, message: &[u8]) -> Result<(), HandleMessageError> {
@@ -264,7 +278,15 @@ where
         }
     }
 
-    fn to_completed_handshake(&self) -> Result<&CompletedHandshake, HandshakeError> {
+    fn to_connection_context(&mut self) -> Result<D2DConnectionContextV1<R>, HandshakeError> {
+        // Since self.rng is expected to be a seeded PRNG, not an OsRng directly, from_rng
+        // should never fail. https://rust-random.github.io/book/guide-err.html
+        let rng = R::from_rng(&mut self.rng).unwrap();
+        self.completed_handshake()
+            .map(|h| D2DConnectionContextV1::from_responder_handshake::<C>(h, rng))
+    }
+
+    fn completed_handshake(&self) -> Result<&CompletedHandshake, HandshakeError> {
         match &self.state {
             ServerState::Stage1(_) | ServerState::Stage2(_) | ServerState::Invalid => {
                 Err(HandshakeError::HandshakeNotComplete)
@@ -273,11 +295,12 @@ where
         }
     }
 
-    fn to_connection_context(&mut self) -> Result<D2DConnectionContextV1<R>, HandshakeError> {
-        // Since self.rng is expected to be a seeded PRNG, not an OsRng directly, from_rng
-        // should never fail. https://rust-random.github.io/book/guide-err.html
-        let rng = R::from_rng(&mut self.rng).unwrap();
-        self.to_completed_handshake()
-            .map(|h| D2DConnectionContextV1::from_responder_handshake::<C>(h, rng))
+    fn into_completed_handshake(self) -> Result<CompletedHandshake, HandshakeError> {
+        match self.state {
+            ServerState::Stage1(_) | ServerState::Stage2(_) | ServerState::Invalid => {
+                Err(HandshakeError::HandshakeNotComplete)
+            }
+            ServerState::Complete(s) => Ok(s.into_completed_handshake()),
+        }
     }
 }

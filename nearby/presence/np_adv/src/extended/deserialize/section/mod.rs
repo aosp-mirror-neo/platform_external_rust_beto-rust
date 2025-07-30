@@ -13,4 +13,4 @@
 // limitations under the License.
 
 pub(crate) mod header;
-pub(crate) mod intermediate;
+pub mod intermediate;

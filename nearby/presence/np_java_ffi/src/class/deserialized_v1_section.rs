@@ -16,7 +16,7 @@ use jni::{objects::JObject, sys::jint, JNIEnv};
 use np_ffi_core::deserialize::v1::DeserializedV1IdentityKind;
 use pourover::desc::ClassDesc;
 
-use crate::class::{IdentityKind, LegibleV1Sections};
+use crate::class::{CredentialBook, IdentityKind, LegibleV1Sections};
 
 static DESERIALIZED_V1_SECTION_CLASS: ClassDesc =
     ClassDesc::new("com/google/android/nearby/presence/rust/DeserializedV1Section");
@@ -27,23 +27,25 @@ pub struct DeserializedV1Section<Obj>(pub Obj);
 
 impl<'local> DeserializedV1Section<JObject<'local>> {
     /// Create a new deserialized section
-    pub fn construct<'a>(
+    pub fn construct<'handle, 'book>(
         env: &mut JNIEnv<'local>,
-        legible_sections_handle: LegibleV1Sections<impl AsRef<JObject<'a>>>,
+        legible_sections_handle: LegibleV1Sections<impl AsRef<JObject<'handle>>>,
         legible_section_index: u8,
         num_des: u8,
         identity_kind: DeserializedV1IdentityKind,
+        credential_book: CredentialBook<impl AsRef<JObject<'book>>>,
     ) -> jni::errors::Result<Self> {
-        let identity = IdentityKind::value_for_v1(env, identity_kind)?;
+        let identity = IdentityKind::from(identity_kind).to_java(env)?;
 
         pourover::call_constructor!(
             env,
             &DESERIALIZED_V1_SECTION_CLASS,
-            "(Lcom/google/android/nearby/presence/rust/LegibleV1Sections;III)V",
+            "(Lcom/google/android/nearby/presence/rust/LegibleV1Sections;IIILcom/google/android/nearby/presence/rust/credential/CredentialBook;)V",
             legible_sections_handle.as_obj(),
             jint::from(legible_section_index),
             jint::from(num_des),
-            identity
+            identity,
+            credential_book.as_obj()
         )
         .map(Self)
     }

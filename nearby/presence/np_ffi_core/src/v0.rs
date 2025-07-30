@@ -15,8 +15,8 @@
 //! Common externally-acessible V0 constructs for both of the
 //! serialization+deserialization flows.
 
-use crate::common::InvalidStackDataStructure;
-use crate::serialize::AdvertisementBuilderKind;
+use crate::common::{InvalidStackDataStructure, TxPower};
+use crate::serialize::v0::AdvertisementBuilderKind;
 use crate::utils::FfiEnum;
 use np_adv::{
     legacy::data_elements::actions::ActionsDataElement,
@@ -83,75 +83,9 @@ impl V0DataElement {
     declare_enum_cast! {into_actions, Actions, V0Actions}
 }
 
-/// Discriminant for `BuildTxPowerResult`.
-#[repr(u8)]
-#[derive(Clone, Copy)]
-pub enum BuildTxPowerResultKind {
-    /// The transmission power was outside the
-    /// allowed -100dBm to 20dBm range.
-    OutOfRange = 0,
-    /// The transmission power was in range,
-    /// and so a `TxPower` struct was constructed.
-    Success = 1,
-}
-
-/// Result type for attempting to construct a
-/// Tx Power from a signed byte.
-#[repr(C)]
-#[allow(missing_docs)]
-pub enum BuildTxPowerResult {
-    OutOfRange,
-    Success(TxPower),
-}
-
-impl FfiEnum for BuildTxPowerResult {
-    type Kind = BuildTxPowerResultKind;
-    fn kind(&self) -> Self::Kind {
-        match self {
-            Self::OutOfRange => BuildTxPowerResultKind::OutOfRange,
-            Self::Success(_) => BuildTxPowerResultKind::Success,
-        }
-    }
-}
-
-impl BuildTxPowerResult {
-    declare_enum_cast! {into_success, Success, TxPower}
-}
-
-/// Representation of a transmission power,
-/// as used for the Tx Power DE in V0 and V1.
-#[derive(Clone)]
-#[repr(C)]
-pub struct TxPower {
-    tx_power: i8,
-}
-
-impl TxPower {
-    /// Attempts to construct a new TxPower from the given signed-byte value.
-    pub fn build_from_signed_byte(tx_power: i8) -> BuildTxPowerResult {
-        match np_adv::shared_data::TxPower::try_from(tx_power) {
-            Ok(_) => BuildTxPowerResult::Success(Self { tx_power }),
-            Err(_) => BuildTxPowerResult::OutOfRange,
-        }
-    }
-    /// Yields this Tx Power value as an i8.
-    pub fn as_i8(&self) -> i8 {
-        self.tx_power
-    }
-}
-
 impl From<np_adv_de::tx_power::TxPowerDataElement> for TxPower {
     fn from(de: np_adv_de::tx_power::TxPowerDataElement) -> Self {
         Self { tx_power: de.tx_power_value() }
-    }
-}
-
-impl TryFrom<TxPower> for np_adv_dynamic::legacy::ToBoxedSerializeDataElement {
-    type Error = InvalidStackDataStructure;
-    fn try_from(value: TxPower) -> Result<Self, InvalidStackDataStructure> {
-        np_adv::shared_data::TxPower::try_from(value.as_i8())
-            .map_err(|_| InvalidStackDataStructure)
-            .map(|x| x.into())
     }
 }
 

@@ -1,0 +1,192 @@
+// Copyright 2024 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+package ambient.mdp.submerge;
+
+// A Submerge Document.
+//
+// This is the serialized version of `submerge::Document` in Rust, primarily
+// used as the format for persistent storage.
+//
+// Next ID: 4
+message Document {
+  // The ID of nodes in this document. Because the node IDs tend to be repeated
+  // many times in a document, for example in vector clocks, and they may be
+  // long like 36 character UUIDs, they are extracted out to the top level. The
+  // rest of this document then refers to the nodes by their index in this
+  // node_ids list.
+  repeated string node_ids = 1;
+  // The version of the document. This is used to compare against incoming
+  // DeltaDocuments (a.k.a. update messages) to determine whether the update is
+  // ready to be applied.
+  VectorClock version = 2;
+  // The root of the data tree.
+  SubmergeContainer root = 3;
+}
+
+// A Submerge Delta Document.
+//
+// This is also known as an update message. Corresponds to the
+// `submerge::DeltaDocument` struct in Rust, and is primarily used as the format
+// for network updates.
+//
+// Next ID: 5
+message DeltaDocument {
+  // The ID of nodes in this document. Because the node IDs tend to be repeated
+  // many times in a document, for example in vector clocks, and they may be
+  // long like 36 character UUIDs, they are extracted out to the top level. The
+  // rest of this document then refers to the nodes by their index in this
+  // node_ids list.
+  repeated string node_ids = 1;
+  // The version a document will be at after applying this delta.
+  VectorClock version = 2;
+  // The base_version of this delta document. Information that hasn't changed
+  // since this base_version won't be part of this delta, so Submerge documents
+  // will verify that it is as least as new as the base before applying this
+  // delta.
+  VectorClock base_version = 3;
+  // The root of the data tree, only containing delta information that has
+  // changed since base_version.
+  SubmergeContainer root = 4;
+}
+
+// A container in Submerge that contains one of Submerge's CRDT types.
+//
+// When thinking of a Submerge document as a tree of CRDTs, each container can
+// be thought of as a "node" (although the term "node" is generally not used in
+// Submerge to describe this, and is instead reserved to describe the clients or
+// actors making changes to a document).
+//
+// Corresponds to the `LwwCrdtContainer` type in Rust.
+//
+// Next ID: 8
+message SubmergeContainer {
+  // The node that made the last update to the type of this container.
+  //
+  // The value is the index of the node in `node_ids` of Document or
+  // DeltaDocument.
+  optional uint32 updater = 1;
+  // The timestamp tracking when the container type was last updated (excluding
+  // any changes to the children).
+  HybridLogicalTimestamp timestamp = 2;
+  // The version vector tracking when this subtree (this node or any of its
+  // descendants) were last updated.
+  VectorClock subtree_version = 3;
+
+  // The CRDT value contained in this container.
+  //
+  // Note: This value is optional; zero or one of the following fields can be
+  // set in valid constructions of this message.
+  oneof value {
+    SubmergeMap map = 4;
+    SubmergeSet set = 5;
+    SubmergeRegister register = 6;
+    SubmergeVectorData vector_data = 7;
+  }
+}
+
+// A map of Submerge containers.
+//
+// Corresponds to the `LwwMap` type in Rust.
+//
+// Next ID: 2
+message SubmergeMap {
+  map<string, SubmergeContainer> elements = 1;
+}
+
+// A set of values.
+//
+// Corresponds to the `Set` type in Rust.
+//
+// Next ID: 2
+message SubmergeSet {
+  // Next ID: 4
+  message SetElement {
+    bytes value = 1;
+    uint32 generation = 2;
+    bool removed = 3;
+  }
+
+  repeated SetElement elements = 1;
+}
+
+// A register containing a "single" atomically updated value.
+//
+// "Single" is in quotes here because the value type can be a compound type or a
+// collection, but the register's merging logic will treat it as one unit, and
+// apply any updates atomically without merging.
+//
+// Corresponds to the `Register` type in Rust.
+//
+// Next ID: 2
+message SubmergeRegister {
+  // Next ID: 4
+  message RegisterElement {
+    optional bytes value = 1;
+    VectorClock vector_clock = 2;
+    HybridLogicalTimestamp hlc = 3;
+  }
+
+  repeated RegisterElement elements = 1;
+}
+
+// A vector data type.
+//
+// This type contains an area for each node to write to, and is therefore
+// guaranteed to merge without conflicts.
+//
+// Corresponds to the `VectorData` type in Rust.
+//
+// Next ID: 2
+message SubmergeVectorData {
+  // Next ID: 4
+  message VecElement {
+    uint32 node = 1;
+    optional bytes value = 2;
+    uint32 version = 3;
+  }
+
+  repeated VecElement elements = 1;
+}
+
+// Timestamp types
+
+// A vector clock or version vector.
+//
+// Despite the name, this message can be used as both vector clocks and version
+// vectors, depending on the usage.
+//
+// Corresponds to the `VectorClock` type in Rust.
+//
+// Next ID: 3
+message VectorClock {
+  repeated uint32 nodes = 1 [packed = true];
+  repeated uint32 values = 2 [packed = true];
+}
+
+// A hybrid logical timestamp.
+//
+// This timestamp tracks both wall-clock time and causality. Sorting entries by
+// this timestamp will result in an order consistent with causality with a bias
+// towards tie-breaking with wall-clock time.
+//
+// Corresponds to the `UnnamedHybridLogicalTimestamp` type in Rust.
+//
+// Next ID: 3
+message HybridLogicalTimestamp {
+  uint64 logical_time = 1;
+  uint32 causality = 2;
+}

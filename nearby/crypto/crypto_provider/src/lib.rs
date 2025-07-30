@@ -47,6 +47,9 @@ pub mod aead;
 /// mod containing traits for ed25519 key generation, signing, and verification
 pub mod ed25519;
 
+/// mod containing ecdsa trait.
+pub mod ecdsa;
+
 pub use tinyvec;
 
 /// Uber crypto trait which defines the traits for all crypto primitives as associated types
@@ -88,6 +91,8 @@ pub trait CryptoProvider: Clone + Debug + PartialEq + Eq + Send {
     type Aes128Gcm: aead::AesGcm + aead::AeadInit<Aes128Key>;
     /// The trait defining AES-256-GCM, an AEAD with a key size of 32 bytes.
     type Aes256Gcm: aead::AesGcm + aead::AeadInit<Aes256Key>;
+    /// The trait defining ECDSA-P256.
+    type EcdsaP256: ecdsa::P256EcdsaProvider;
     /// The cryptographically secure random number generator
     type CryptoRng: CryptoRng;
 

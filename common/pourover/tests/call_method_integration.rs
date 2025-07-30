@@ -12,10 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#![allow(missing_docs)]
+
 use jni::{objects::JObject, JavaVM};
 use std::error::Error;
 
 mod common;
+
 use common::foo_class::*;
 
 #[test]

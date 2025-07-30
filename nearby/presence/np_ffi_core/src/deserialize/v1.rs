@@ -19,11 +19,11 @@ use crate::{
     credentials::{CredentialBook, MatchedCredential},
     deserialize::{allocate_decrypted_metadata_handle, DecryptMetadataResult},
     utils::*,
-    v1::V1VerificationMode,
+    v1::*,
+    CryptoProviderImpl,
 };
 use array_view::ArrayView;
 use crypto_provider::CryptoProvider;
-use crypto_provider_default::CryptoProviderImpl;
 use handle_map::{declare_handle_map, HandleLike};
 use np_adv::{
     credential::matched::WithMatchedCredential,
@@ -164,10 +164,9 @@ pub struct LegibleV1Sections {
 }
 
 declare_handle_map!(
-    legible_v1_sections,
     crate::common::default_handle_map_dimensions(),
-    super::LegibleV1Sections,
-    super::LegibleV1SectionsInternals
+    LegibleV1Sections,
+    LegibleV1SectionsInternals
 );
 
 impl LocksLongerThan<LegibleV1Sections> for CredentialBook {}
@@ -197,7 +196,7 @@ impl LegibleV1Sections {
         }
     }
 
-    /// Get a data element by section index and de index. Similar to `get_section().get_de()` but
+    /// Get a data element by section index and de index. Similar to `get_section().get_generic_de()` but
     /// will only lock the HandleMap once. This function uses this handle but does not take
     /// ownership of it.
     pub fn get_section_de(&self, legible_section_index: u8, de_index: u8) -> GetV1DEResult {
@@ -207,7 +206,37 @@ impl LegibleV1Sections {
         let Some(section) = sections.get_section_internals(legible_section_index) else {
             return GetV1DEResult::Error;
         };
-        section.get_de(de_index)
+        section.get_generic_de(de_index)
+    }
+
+    /// Gets identity details for the legible section at the given index. Similar to
+    /// `get_section().get_identity_details()` but will only lock the HandleMap once. This function
+    /// uses this handle but does not take ownership of it.
+    pub fn get_section_identity_details(
+        &self,
+        legible_section_index: u8,
+    ) -> GetV1IdentityDetailsResult {
+        let Ok(sections) = self.get() else {
+            return GetV1IdentityDetailsResult::Error;
+        };
+        let Some(section) = sections.get_section_internals(legible_section_index) else {
+            return GetV1IdentityDetailsResult::Error;
+        };
+        section.get_identity_details()
+    }
+
+    /// Decrypts metadata for the legible section at the given index. Similar to
+    /// `get_section().decrypt_metadata()` but will only lock the HandleMap once. This function
+    /// uses this handle but does not take ownership of it. The caller is given owenership of the
+    /// handle in the result if present.
+    pub fn decrypt_section_metadata(&self, legible_section_index: u8) -> DecryptMetadataResult {
+        let Ok(sections) = self.get() else {
+            return DecryptMetadataResult::Error;
+        };
+        let Some(section) = sections.get_section_internals(legible_section_index) else {
+            return DecryptMetadataResult::Error;
+        };
+        section.decrypt_metadata()
     }
 }
 
@@ -255,12 +284,12 @@ impl GetV1SectionResult {
 #[repr(u8)]
 pub enum GetV1DE16ByteSaltResultKind {
     /// The attempt to get the derived salt failed, possibly
-    /// because the passed DE offset was invalid (==255),
+    /// because the passed DE type code was forbidden (0xFFFFFFFF),
     /// or because there was no salt included for the
     /// referenced advertisement section (i.e: it was
     /// a public advertisement section, or it was deallocated.)
     Error = 0,
-    /// A 16-byte salt for the given DE offset was successfully
+    /// A 16-byte salt for the given DE type-code was successfully
     /// derived.
     Success = 1,
 }
@@ -290,7 +319,7 @@ impl FfiEnum for GetV1DE16ByteSaltResult {
 
 /// The internal FFI-friendly representation of a deserialized v1 section
 pub struct DeserializedV1SectionInternals {
-    des: Vec<V1DataElement>,
+    des: Vec<GenericV1DataElement>,
     identity: Option<DeserializedV1IdentityInternals>,
 }
 
@@ -310,7 +339,7 @@ impl DeserializedV1SectionInternals {
     }
 
     /// Attempts to get the DE with the given index in this section.
-    fn get_de(&self, index: u8) -> GetV1DEResult {
+    fn get_generic_de(&self, index: u8) -> GetV1DEResult {
         match self.des.get(index as usize) {
             Some(de) => GetV1DEResult::Success(de.clone()),
             None => GetV1DEResult::Error,
@@ -340,17 +369,17 @@ impl DeserializedV1SectionInternals {
     }
 
     /// Attempts to derive a 16-byte DE salt for a DE in this section
-    /// with the given DE offset. This operation may fail if the
-    /// passed offset is 255 (causes overflow) or if the section
+    /// with the given DE type-code. This operation may fail if the
+    /// passed type-code is the forbidden code 0xFFFFFFFF or if the section
     /// is leveraging a public identity, and hence, doesn't have
     /// an associated salt.
-    pub(crate) fn derive_16_byte_salt_for_offset<C: CryptoProvider>(
+    pub(crate) fn derive_16_byte_salt_for_de_type<C: CryptoProvider>(
         &self,
-        de_offset: u8,
+        de_type: V1DEType,
     ) -> GetV1DE16ByteSaltResult {
         self.identity
             .as_ref()
-            .and_then(|x| x.derive_16_byte_salt_for_offset::<C>(de_offset))
+            .and_then(|x| x.derive_16_byte_salt_for_de_type::<C>(de_type))
             .map_or(GetV1DE16ByteSaltResult::Error, GetV1DE16ByteSaltResult::Success)
     }
 }
@@ -375,7 +404,7 @@ impl<'adv>
             V1DeserializedSection::Plaintext(section) => {
                 let des = section
                     .iter_data_elements()
-                    .map(|r| r.map(|de| V1DataElement::from(&de)))
+                    .map(|r| r.map(GenericV1DataElement::from))
                     .collect::<Result<Vec<_>, _>>()?;
                 let identity = None;
                 Ok(Self { des, identity })
@@ -384,7 +413,7 @@ impl<'adv>
                 let section = with_matched.contents();
                 let des = section
                     .iter_data_elements()
-                    .map(|r| r.map(|de| V1DataElement::from(&de)))
+                    .map(|r| r.map(GenericV1DataElement::from))
                     .collect::<Result<Vec<_>, _>>()?;
 
                 let verification_mode = section.verification_mode();
@@ -433,8 +462,13 @@ impl DeserializedV1IdentityInternals {
     ) -> Self {
         let cred_id = match_data.matched_credential().id();
         let identity_token = match_data.contents();
-        let details =
-            DeserializedV1IdentityDetails::new(cred_id, verification_mode, *identity_token);
+        let key_seed = match_data.matched_credential().key_seed();
+        let details = DeserializedV1IdentityDetails::new(
+            cred_id,
+            verification_mode,
+            *identity_token,
+            key_seed,
+        );
         Self { details, match_data, salt }
     }
     /// Gets the directly-transmissible details about
@@ -448,18 +482,18 @@ impl DeserializedV1IdentityInternals {
     pub(crate) fn decrypt_metadata(&self) -> Option<Vec<u8>> {
         self.match_data.decrypt_metadata::<CryptoProviderImpl>().ok()
     }
-    /// For a given data-element offset, derives a 16-byte DE salt
+    /// For a given DE type-code, derives a 16-byte DE salt
     /// for a DE in that position within this section.
-    pub(crate) fn derive_16_byte_salt_for_offset<C: CryptoProvider>(
+    pub(crate) fn derive_16_byte_salt_for_de_type<C: CryptoProvider>(
         &self,
-        de_offset: u8,
+        de_type: V1DEType,
     ) -> Option<FixedSizeArray<16>> {
-        let de_offset = np_hkdf::v1_salt::DataElementOffset::from(de_offset);
+        let de_type = np_hkdf::v1_salt::DeType::try_from(de_type).ok()?;
 
         match self.salt {
             MultiSalt::Short(_) => None,
             MultiSalt::Extended(s) => {
-                s.derive::<16, C>(Some(de_offset)).map(FixedSizeArray::from_array)
+                s.derive::<16, C>(Some(de_type).into()).map(FixedSizeArray::from)
             }
         }
     }
@@ -515,22 +549,25 @@ pub struct DeserializedV1IdentityDetails {
     verification_mode: V1VerificationMode,
     /// The ID of the credential which
     /// matched the deserialized section.
-    cred_id: u32,
+    cred_id: i64,
     /// The 16-byte metadata key.
     identity_token: [u8; 16],
+    /// The 32-byte key seed.
+    key_seed: [u8; 32],
 }
 
 impl DeserializedV1IdentityDetails {
     pub(crate) fn new(
-        cred_id: u32,
+        cred_id: i64,
         verification_mode: np_adv::extended::deserialize::VerificationMode,
         identity_token: np_adv::extended::V1IdentityToken,
+        key_seed: [u8; 32],
     ) -> Self {
         let verification_mode = verification_mode.into();
-        Self { cred_id, verification_mode, identity_token: identity_token.into_bytes() }
+        Self { cred_id, verification_mode, identity_token: identity_token.into_bytes(), key_seed }
     }
     /// Returns the ID of the credential which matched the deserialized section.
-    pub fn cred_id(&self) -> u32 {
+    pub fn cred_id(&self) -> i64 {
         self.cred_id
     }
     /// Returns the verification mode (MIC/Signature) employed for the decrypted section.
@@ -540,6 +577,11 @@ impl DeserializedV1IdentityDetails {
     /// Returns the 16-byte section identity token.
     pub fn identity_token(&self) -> [u8; 16] {
         self.identity_token
+    }
+
+    /// Returns the 32-byte key seed used to decrypt the advertisement section.
+    pub fn key_seed(&self) -> [u8; 32] {
+        self.key_seed
     }
 }
 
@@ -554,7 +596,7 @@ pub struct DeserializedV1Section {
 
 impl DeserializedV1Section {
     /// Gets the number of data elements contained in this section.
-    /// Suitable as an iteration bound on `Self::get_de`.
+    /// Suitable as an iteration bound on `Self::get_generic_de`.
     pub fn num_des(&self) -> u8 {
         self.num_des
     }
@@ -565,9 +607,9 @@ impl DeserializedV1Section {
     }
 
     /// Gets the DE with the given index in this section.
-    pub fn get_de(&self, de_index: u8) -> GetV1DEResult {
+    pub fn get_generic_de(&self, de_index: u8) -> GetV1DEResult {
         self.apply_to_section_internals(
-            move |section_ref| section_ref.get_de(de_index),
+            move |section_ref| section_ref.get_generic_de(de_index),
             GetV1DEResult::Error,
         )
     }
@@ -588,13 +630,13 @@ impl DeserializedV1Section {
             DecryptMetadataResult::Error,
         )
     }
-    /// Attempts to derive a 16-byte DE salt for a DE in this section with the given DE offset.
-    /// This operation may fail if the passed offset is 255 (causes overflow) or if the section is
+    /// Attempts to derive a 16-byte DE salt for a DE in this section with the given DE type-code.
+    /// This operation may fail if the passed type-code is forbidden (0xFFFFFFFF) or if the section is
     /// leveraging a public identity, and hence, doesn't have an associated salt.
-    pub fn derive_16_byte_salt_for_offset(&self, de_offset: u8) -> GetV1DE16ByteSaltResult {
+    pub fn derive_16_byte_salt_for_de_type(&self, de_type: V1DEType) -> GetV1DE16ByteSaltResult {
         self.apply_to_section_internals(
             move |section_ref| {
-                section_ref.derive_16_byte_salt_for_offset::<CryptoProviderImpl>(de_offset)
+                section_ref.derive_16_byte_salt_for_de_type::<CryptoProviderImpl>(de_type)
             },
             GetV1DE16ByteSaltResult::Error,
         )
@@ -632,12 +674,12 @@ pub enum GetV1DEResultKind {
     Success = 1,
 }
 
-/// Represents the result of the `DeserializedV1Section#get_de` operation.
+/// Represents the result of the `DeserializedV1Section#get_generic_de` operation.
 #[repr(C)]
 #[allow(missing_docs)]
 pub enum GetV1DEResult {
     Error,
-    Success(V1DataElement),
+    Success(GenericV1DataElement),
 }
 
 impl FfiEnum for GetV1DEResult {
@@ -651,92 +693,295 @@ impl FfiEnum for GetV1DEResult {
 }
 
 impl GetV1DEResult {
-    declare_enum_cast! {into_success, Success, V1DataElement}
+    declare_enum_cast! {into_success, Success, GenericV1DataElement}
 }
 
-/// FFI-transmissible representation of a V1 data-element
-#[derive(Clone)]
-#[repr(C)]
-pub enum V1DataElement {
-    /// A "generic" V1 data-element, for which we have no
-    /// particular information about its schema (just
-    /// a DE type code and a byte payload.)
-    Generic(GenericV1DataElement),
-}
-
-impl V1DataElement {
-    // Note: not using declare_enum_cast! for this one, because if V1DataElement
-    // gets more variants, this will have a different internal implementation
-    /// Converts a `V1DataElement` to a `GenericV1DataElement` which
-    /// only maintains information about the DE's type-code and payload.
-    pub fn to_generic(self) -> GenericV1DataElement {
-        match self {
-            V1DataElement::Generic(x) => x,
-        }
-    }
-}
-
-impl<'a> From<&'a np_adv::extended::deserialize::data_element::DataElement<'a>> for V1DataElement {
-    fn from(de: &'a np_adv::extended::deserialize::data_element::DataElement<'a>) -> Self {
-        let offset = de.offset().as_u8();
+impl<'a> From<np_adv::extended::deserialize::data_element::DataElement<'a>>
+    for GenericV1DataElement
+{
+    fn from(de: np_adv::extended::deserialize::data_element::DataElement<'a>) -> Self {
         let de_type = V1DEType::from(de.de_type());
         let contents_as_slice = de.contents();
         //Guaranteed not to panic due DE size limit.
         #[allow(clippy::unwrap_used)]
         let array_view: ArrayView<u8, 127> = ArrayView::try_from_slice(contents_as_slice).unwrap();
         let payload = ByteBuffer::from_array_view(array_view);
-        Self::Generic(GenericV1DataElement { de_type, offset, payload })
+        Self { de_type, payload }
     }
 }
 
-/// FFI-transmissible representation of a generic V1 data-element.
-/// This representation is stable, and so you may directly
-/// reference this struct's fields if you wish.
+/// Discriminant for [`V1DataElementDeserializationResult`].
+#[derive(Clone, Copy)]
+#[repr(u8)]
+pub enum V1DataElementDeserializationResultKind {
+    /// Deserialization was successful, in that the data element
+    /// was either recognized as a well-established DE, or that
+    /// the type code of the data element wasn't recognized, and
+    /// so the data element was passed along as a "generic" DE.
+    Success = 0,
+    /// There was a Cast ID DE, but its contents
+    /// were the wrong length for such an ID.
+    CastIdWrongLength = 1,
+    /// There was an Actions DE, but its contents
+    /// could not be interpreted.
+    ActionsMalformed = 2,
+    /// There was a context sync sequence number DE,
+    /// but the payload wasn't exactly 1 byte.
+    ContextSyncSeqNumWrongLength = 3,
+    /// There was a context sync sequence number DE,
+    /// but the sequence number was not in 0-15.
+    ContextSyncSeqNumOutOfBounds = 4,
+    /// There was a deduplication hint DE, but
+    /// the payload was not exactly 8 bytes.
+    DedupHintWrongLength = 5,
+    /// There was a device type DE, but
+    /// the payload was not exactly 1 byte.
+    DeviceTypeWrongLength = 6,
+    /// There was a Tx Power DE, but
+    /// the value was not in the
+    /// accepted range of -20dBm-100dBm.
+    TxPowerOutOfBounds = 7,
+    /// There was a Tx Power DE, but the
+    /// payload did not occupy exactly 1 byte.
+    TxPowerWrongLength = 8,
+    /// There was a Connectivity Info DE, but
+    /// the ordering, uniqueness, or non-emptiness
+    /// of the components was violated.
+    ConnectivityInfoMalformed = 9,
+    /// There was a Connectivity Info DE, but
+    /// one of the components was malformed.
+    ConnectivityInfoMalformedComponent = 10,
+}
+
+/// Representation of the result of attempting to deserialize
+/// a V1 data element from a generic DE to a more structured
+/// deserialized representation.
+///
+/// Only the general class of error is appropriately
+/// represented by this enum. If you want more descriptive
+/// errors, consider doing your own custom DE deserialization
+/// using the plugin architecture and/or resort to more directly
+/// leveraging the Rust crate `np_adv`.
 #[derive(Clone)]
+#[cfg_attr(any(test, feature = "testing"), derive(Debug, PartialEq, Eq, arbitrary::Arbitrary))]
 #[repr(C)]
-pub struct GenericV1DataElement {
-    /// The offset of this generic data-element.
-    pub offset: u8,
-    /// The DE type code of this generic data-element.
-    pub de_type: V1DEType,
-    /// The raw data-element byte payload, up to
-    /// 127 bytes in length.
-    pub payload: ByteBuffer<127>,
+#[allow(missing_docs, clippy::large_enum_variant)]
+pub enum V1DataElementDeserializationResult {
+    Success(V1DataElement),
+    CastIdWrongLength,
+    ActionsMalformed,
+    ContextSyncSeqNumWrongLength,
+    ContextSyncSeqNumOutOfBounds,
+    DedupHintWrongLength,
+    DeviceTypeWrongLength,
+    TxPowerOutOfBounds,
+    TxPowerWrongLength,
+    ConnectivityInfoMalformed,
+    /// There was a Connectivity Info DE, but the component
+    /// of the specified index within the DE was malformed.
+    ConnectivityInfoMalformedComponent(u8),
+}
+
+impl FfiEnum for V1DataElementDeserializationResult {
+    type Kind = V1DataElementDeserializationResultKind;
+    fn kind(&self) -> Self::Kind {
+        match self {
+            Self::Success(_) => V1DataElementDeserializationResultKind::Success,
+            Self::CastIdWrongLength => V1DataElementDeserializationResultKind::CastIdWrongLength,
+            Self::ActionsMalformed => V1DataElementDeserializationResultKind::ActionsMalformed,
+            Self::ContextSyncSeqNumWrongLength => {
+                V1DataElementDeserializationResultKind::ContextSyncSeqNumWrongLength
+            }
+            Self::ContextSyncSeqNumOutOfBounds => {
+                V1DataElementDeserializationResultKind::ContextSyncSeqNumOutOfBounds
+            }
+            Self::DedupHintWrongLength => {
+                V1DataElementDeserializationResultKind::DedupHintWrongLength
+            }
+            Self::DeviceTypeWrongLength => {
+                V1DataElementDeserializationResultKind::DeviceTypeWrongLength
+            }
+            Self::TxPowerOutOfBounds => V1DataElementDeserializationResultKind::TxPowerOutOfBounds,
+            Self::TxPowerWrongLength => V1DataElementDeserializationResultKind::TxPowerWrongLength,
+            Self::ConnectivityInfoMalformed => {
+                V1DataElementDeserializationResultKind::ConnectivityInfoMalformed
+            }
+            Self::ConnectivityInfoMalformedComponent(_) => {
+                V1DataElementDeserializationResultKind::ConnectivityInfoMalformedComponent
+            }
+        }
+    }
+}
+
+impl V1DataElementDeserializationResult {
+    declare_enum_cast! {into_success, Success, V1DataElement}
+    declare_enum_cast! {into_malformed_component_index, ConnectivityInfoMalformedComponent, u8}
+}
+
+impl<'a> TryFrom<&'a GenericV1DataElement>
+    for np_adv::extended::deserialize::data_element::ProtoDataElement<'a>
+{
+    type Error = InvalidStackDataStructure;
+    fn try_from(de: &'a GenericV1DataElement) -> Result<Self, Self::Error> {
+        let contents = de.payload.as_slice()?;
+        let de_type = de.de_type.try_into().map_err(|_| InvalidStackDataStructure)?;
+        Ok(Self { contents, de_type })
+    }
 }
 
 impl GenericV1DataElement {
-    /// Gets the offset for this generic V1 data element.
-    pub fn offset(&self) -> u8 {
-        self.offset
-    }
-    /// Gets the DE-type of this generic V1 data element.
-    pub fn de_type(&self) -> V1DEType {
-        self.de_type
-    }
-    /// Destructures this `GenericV1DataElement` into just the DE payload byte-buffer.
-    pub fn into_payload(self) -> ByteBuffer<127> {
-        self.payload
+    /// Attempts to deserialize the contents of this generic V1 data element
+    /// to one of the predefined DE definitions of [`V1DataElement`], returning
+    /// an error if the format of the DE payload didn't match what was expected
+    /// for the type, and passing along the DE as a generic DE if the type-code
+    /// did not match one of the predefined DEs.
+    pub fn try_deserialize(
+        self,
+    ) -> Result<V1DataElementDeserializationResult, InvalidStackDataStructure> {
+        use np_adv::extended::data_elements::DeserializedGoogleDE;
+        use np_adv::extended::deserialize::data_element::DataElementDeserializationResult;
+
+        let proto_de = (&self).try_into()?;
+        // NOTE: Keeping the salt as [`None`] only works because our predefined
+        // data elements all have no dependence on derived DE salts for deserialization.
+        let de =
+            np_adv::extended::deserialize::data_element::DataElement::from_proto_de(proto_de, None);
+        Ok(match DeserializedGoogleDE::try_deserialize(de) {
+            Ok(DeserializedGoogleDE::CastId(Ok(cast_id))) => {
+                V1DataElementDeserializationResult::Success(V1DataElement::CastId(cast_id.into()))
+            }
+            Ok(DeserializedGoogleDE::CastId(Err(
+                np_adv::extended::data_elements::CastIdDeserializationError::WrongLength,
+            ))) => V1DataElementDeserializationResult::CastIdWrongLength,
+            Ok(DeserializedGoogleDE::Actions(Ok(actions))) => match actions.action_ids_bitmap() {
+                Ok(bitmap) => V1DataElementDeserializationResult::Success(V1DataElement::Actions(
+                    V1ActionsBitmap { bitmap },
+                )),
+                Err(_) => V1DataElementDeserializationResult::ActionsMalformed,
+            },
+            Ok(DeserializedGoogleDE::Actions(Err(_))) => {
+                V1DataElementDeserializationResult::ActionsMalformed
+            }
+            Ok(DeserializedGoogleDE::TxPower(Ok(tx_power))) => {
+                V1DataElementDeserializationResult::Success(V1DataElement::TxPower(tx_power.into()))
+            }
+            Ok(DeserializedGoogleDE::TxPower(Err(
+                np_adv::extended::data_elements::TxPowerMalformed::OutOfBounds,
+            ))) => V1DataElementDeserializationResult::TxPowerOutOfBounds,
+            Ok(DeserializedGoogleDE::TxPower(Err(
+                np_adv::extended::data_elements::TxPowerMalformed::WrongLength,
+            ))) => V1DataElementDeserializationResult::TxPowerWrongLength,
+            Ok(DeserializedGoogleDE::ContextSyncSeqNum(Ok(context_sync_seq_num))) => {
+                V1DataElementDeserializationResult::Success(V1DataElement::ContextSyncSeqNum(
+                    context_sync_seq_num.into(),
+                ))
+            }
+            Ok(DeserializedGoogleDE::ContextSyncSeqNum(Err(
+                np_adv::extended::data_elements::ContextSyncSeqNumMalformed::OutOfBounds,
+            ))) => V1DataElementDeserializationResult::ContextSyncSeqNumOutOfBounds,
+            Ok(DeserializedGoogleDE::ContextSyncSeqNum(Err(
+                np_adv::extended::data_elements::ContextSyncSeqNumMalformed::WrongLength,
+            ))) => V1DataElementDeserializationResult::ContextSyncSeqNumWrongLength,
+            Ok(DeserializedGoogleDE::DedupHint(Ok(dedup_hint))) => {
+                V1DataElementDeserializationResult::Success(V1DataElement::DedupHint(
+                    dedup_hint.into(),
+                ))
+            }
+            Ok(DeserializedGoogleDE::DedupHint(Err(
+                np_adv::extended::data_elements::DeduplicationHintMalformed::WrongLength,
+            ))) => V1DataElementDeserializationResult::DedupHintWrongLength,
+            Ok(DeserializedGoogleDE::DeviceType(Ok(device_type))) => {
+                V1DataElementDeserializationResult::Success(V1DataElement::DeviceType(
+                    device_type.into(),
+                ))
+            }
+            Ok(DeserializedGoogleDE::DeviceType(Err(
+                np_adv::extended::data_elements::DeviceTypeDeserializationError::WrongLength,
+            ))) => V1DataElementDeserializationResult::DeviceTypeWrongLength,
+            Ok(DeserializedGoogleDE::ConnectivityInfo(Ok(connectivity_info))) => {
+                V1DataElementDeserializationResult::Success(V1DataElement::ConnectivityInfo(
+                    connectivity_info.into(),
+                ))
+            },
+            Ok(DeserializedGoogleDE::ConnectivityInfo(Err(
+                np_adv::extended::data_elements::ConnectivityInfoDeserializationError::ComponentParseFailure(component_index)
+            ))) => V1DataElementDeserializationResult::ConnectivityInfoMalformedComponent(component_index),
+            Ok(DeserializedGoogleDE::ConnectivityInfo(Err(_)))
+                => V1DataElementDeserializationResult::ConnectivityInfoMalformed,
+            Err(_) => V1DataElementDeserializationResult::Success(V1DataElement::Generic(self)),
+        })
     }
 }
 
-/// Representation of the data-element type tag
-/// of a V1 data element.
-#[derive(Clone, Copy)]
-#[repr(C)]
-pub struct V1DEType {
-    code: u32,
-}
-
-impl From<np_adv::extended::de_type::DeType> for V1DEType {
-    fn from(de_type: np_adv::extended::de_type::DeType) -> Self {
-        let code = de_type.as_u32();
-        Self { code }
+impl<'a> From<np_adv::extended::data_elements::CastIdDataElement<'a>> for CastId {
+    fn from(de: np_adv::extended::data_elements::CastIdDataElement<'a>) -> Self {
+        Self { bytes: *de.get_id_as_bytes() }
     }
 }
 
-impl V1DEType {
-    /// Yields this V1 DE type code as a u32.
-    pub fn to_u32(&self) -> u32 {
-        self.code
+impl From<np_adv::extended::data_elements::TxPowerDataElement> for TxPower {
+    fn from(de: np_adv::extended::data_elements::TxPowerDataElement) -> Self {
+        let tx_power: np_adv::shared_data::TxPower = de.into();
+        tx_power.into()
+    }
+}
+
+impl From<np_adv::extended::data_elements::ContextSyncSeqNumDataElement> for ContextSyncSeqNum {
+    fn from(de: np_adv::extended::data_elements::ContextSyncSeqNumDataElement) -> Self {
+        let num: np_adv::shared_data::ContextSyncSeqNum = de.into();
+        num.into()
+    }
+}
+
+impl From<np_adv::extended::data_elements::DeduplicationHintDataElement> for DedupHint {
+    fn from(de: np_adv::extended::data_elements::DeduplicationHintDataElement) -> Self {
+        Self { bytes: de.as_bytes() }
+    }
+}
+
+impl From<np_adv::extended::data_elements::DeviceTypeDataElement> for DeviceType {
+    fn from(de: np_adv::extended::data_elements::DeviceTypeDataElement) -> Self {
+        let device_type = de.0;
+        Self { device_type }
+    }
+}
+
+impl From<np_adv::extended::data_elements::ConnectivityInfoDataElement> for ConnectivityInfo {
+    fn from(de: np_adv::extended::data_elements::ConnectivityInfoDataElement) -> Self {
+        let ble_info = de.ble_info.into();
+        let wifi_lan_info = de.wifi_lan_info.into();
+        Self { ble_info, wifi_lan_info }
+    }
+}
+
+impl From<np_adv::extended::data_elements::BleConnectivityInfo> for BleConnectivityInfo {
+    fn from(info: np_adv::extended::data_elements::BleConnectivityInfo) -> Self {
+        let mac_address = info.mac_address.into();
+        let gatt_service_identifier = match info.gatt_service_identifier {
+            None => ByteBuffer::default(),
+            Some(x) => ByteBuffer::from_array_vec(x),
+        };
+        let psm = info.psm.into();
+        let device_token = info.device_token.into();
+        Self { mac_address, gatt_service_identifier, psm, device_token }
+    }
+}
+
+impl From<np_adv::extended::data_elements::WifiLanConnectivityInfo> for WifiLanConnectivityInfo {
+    fn from(info: np_adv::extended::data_elements::WifiLanConnectivityInfo) -> Self {
+        let ip = info.ip.into();
+        let port = info.port.map(|x| x.to_be_bytes()).into();
+        let bssid = info.bssid.into();
+        Self { ip, port, bssid }
+    }
+}
+
+impl From<Option<core::net::IpAddr>> for OptionalIpAddress {
+    fn from(maybe_addr: Option<core::net::IpAddr>) -> Self {
+        match maybe_addr {
+            None => Self::NotPresent,
+            Some(core::net::IpAddr::V4(x)) => Self::IPv4(x.octets().into()),
+            Some(core::net::IpAddr::V6(x)) => Self::IPv6(x.octets().into()),
+        }
     }
 }

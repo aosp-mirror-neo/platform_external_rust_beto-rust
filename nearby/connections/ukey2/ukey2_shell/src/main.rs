@@ -115,11 +115,11 @@ impl Ukey2Shell {
             let (cmd, payload) = (&input[0..idx], &input[idx + 1..]);
             if cmd == b"encrypt" {
                 let result =
-                    connection_ctx.encode_message_to_peer::<RustCrypto, &[u8]>(payload, None);
+                    connection_ctx.encode_message_to_peer::<RustCrypto>(payload, None::<&[u8]>);
                 write_frame(result);
             } else if cmd == b"decrypt" {
                 let result =
-                    connection_ctx.decode_message_from_peer::<RustCrypto, &[u8]>(payload, None);
+                    connection_ctx.decode_message_from_peer::<RustCrypto>(payload, None::<&[u8]>);
                 if result.is_err() {
                     println!("failed to decode payload");
                     return false;
@@ -148,7 +148,7 @@ impl Ukey2Shell {
         write_frame(initiator_ctx.get_next_handshake_message().unwrap_or_default());
         // confirm auth str
         let auth_str = initiator_ctx
-            .to_completed_handshake()
+            .completed_handshake()
             .ok()
             .and_then(|h| h.auth_string::<RustCrypto>().derive_vec(self.verification_string_length))
             .unwrap_or_else(|| vec![0; self.verification_string_length]);
@@ -178,7 +178,7 @@ impl Ukey2Shell {
             .expect("Failed to handle message");
         // confirm auth str
         let auth_str = server_ctx
-            .to_completed_handshake()
+            .completed_handshake()
             .ok()
             .and_then(|h| h.auth_string::<RustCrypto>().derive_vec(self.verification_string_length))
             .unwrap_or_else(|| vec![0; self.verification_string_length]);

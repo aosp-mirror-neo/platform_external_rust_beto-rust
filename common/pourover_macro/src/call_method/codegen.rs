@@ -284,7 +284,7 @@ fn generate_jvalue(ty: JavaType<'_>, expr: &Expr) -> TokenStream {
             if let NonArray::Primitive(p) = ty {
                 if depth.get() == 1 {
                     let prim_type = prim_to_sys_type(p);
-                    type_name = parse_quote![::jni::objects::JPrimitiveArray<'_, #prim_type>]
+                    type_name = parse_quote![&::jni::objects::JPrimitiveArray<'_, #prim_type>]
                 } else {
                     type_name = parse_quote![&::jni::objects::JObjectArray<'_>];
                 }

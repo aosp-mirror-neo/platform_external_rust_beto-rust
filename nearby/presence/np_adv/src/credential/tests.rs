@@ -30,23 +30,15 @@ use crate::credential::{
 };
 use crate::extended::{V1IdentityToken, V1_IDENTITY_TOKEN_LEN};
 use alloc::vec::Vec;
-use crypto_provider::{ed25519, CryptoProvider};
 use crypto_provider_default::CryptoProviderImpl;
-
-type Ed25519ProviderImpl = <CryptoProviderImpl as CryptoProvider>::Ed25519;
 
 fn get_zeroed_v0_discovery_credential() -> V0DiscoveryCredential {
     V0DiscoveryCredential::new([0u8; 32], [0u8; 32])
 }
 
 fn get_constant_packed_v1_discovery_credential(value: u8) -> V1DiscoveryCredential {
-    V1BroadcastCredential::new(
-        [value; 32],
-        V1IdentityToken::from([value; V1_IDENTITY_TOKEN_LEN]),
-        // NOTE: This winds up being unused in these test cases
-        ed25519::PrivateKey::generate::<Ed25519ProviderImpl>(),
-    )
-    .derive_discovery_credential::<CryptoProviderImpl>()
+    V1BroadcastCredential::new([value; 32], V1IdentityToken::from([value; V1_IDENTITY_TOKEN_LEN]))
+        .derive_discovery_credential::<CryptoProviderImpl>()
 }
 
 #[test]

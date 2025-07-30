@@ -64,7 +64,7 @@ impl<'a, T: DeviceDiscoveryListener + PartialEq> DiscoveryPublisher<'a, T>
     }
 }
 
-impl<'a, T: DeviceDiscoveryListener + PartialEq> Default for RemoteAuthService<'a, T> {
+impl<T: DeviceDiscoveryListener + PartialEq> Default for RemoteAuthService<'_, T> {
     fn default() -> Self {
         Self::new()
     }
