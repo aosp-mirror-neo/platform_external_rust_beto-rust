@@ -123,7 +123,9 @@ rust_ffi_shared {
         "libparking_lot",
         "libanyhow",
     ],
+    prefer_rlib: true,
     compile_multilib: "first",
+    visibility: ["//visibility:public"],
 }
 
 java_library_static {
