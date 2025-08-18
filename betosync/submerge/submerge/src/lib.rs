@@ -46,7 +46,7 @@ use crdt::{
     set::Set,
     typed_crdt::TypedCrdt,
     vector_data::{VectorData, VersionOverflow},
-    CrdtState,
+    ContentEq, CrdtState,
 };
 use derive_where::derive_where;
 use distributed_time::{
@@ -383,6 +383,8 @@ where
     delta: SubmergeContainer<Conf>,
     /// The update context for this document transaction.
     update_context: UpdateContext<Conf>,
+    /// The delta from network update only. This is a subset of the overall delta.
+    network_delta: SubmergeContainer<Conf>,
 }
 
 impl<Handle, Conf> DocumentTransaction<Handle, Conf>
@@ -406,6 +408,7 @@ where
             handle,
             delta: Default::default(),
             update_context,
+            network_delta: Default::default(),
         }
     }
 
@@ -437,21 +440,42 @@ where
     pub fn commit(mut self) -> Result<(), TransactionError<Conf>> {
         let handle = self.handle.borrow_mut();
         let merged = CrdtState::merge(&handle.doc.root, &self.delta);
-        if merged == handle.doc.root {
+        let merged_network_only = CrdtState::merge(&handle.doc.root, &self.network_delta);
+        // Network change should consider both content change and subtree_version change.
+        let has_network_change = merged_network_only != handle.doc.root;
+        // Local change should only consider content change.
+        let has_local_change = !merged.content_eq(&merged_network_only);
+        if !has_network_change && !has_local_change {
             info!("No updates were made");
             return Ok(());
         }
-        let new_version = handle.doc.version.increment(&handle.metadata.node_id)?;
+        let new_version = if has_local_change {
+            self.update_context
+                .version
+                .increment(&handle.metadata.node_id)?
+        } else {
+            self.update_context.version
+        };
+        let new_root = if has_local_change {
+            merged
+        } else {
+            // Use network merge if there is no local change. This is to ensure any subtree_version
+            // change caused by local read won't be committed.
+            merged_network_only
+        };
         let updated_doc = Document {
-            root: merged,
+            root: new_root,
             version: new_version.clone(),
         };
-        let delta_doc = DeltaDocument {
-            root: self.delta,
-            base_version: handle.doc.version.clone(),
-            version: new_version,
-        };
-        handle.metadata.network.on_new_update(&handle.id, delta_doc);
+        // Send network update if there is a local change.
+        if has_local_change {
+            let delta_doc = DeltaDocument {
+                root: self.delta,
+                base_version: handle.doc.version.clone(),
+                version: new_version,
+            };
+            handle.metadata.network.on_new_update(&handle.id, delta_doc);
+        }
         handle
             .metadata
             .storage
@@ -464,6 +488,32 @@ where
     /// Get the update context for the local node in this data store.
     pub fn update_context(&self) -> &UpdateContext<Conf> {
         &self.update_context
+    }
+
+    /// Merge a network delta into this transaction.
+    pub fn merge_network_delta(
+        &mut self,
+        delta: &DeltaDocument<Conf>,
+    ) -> Result<(), CommitUpdateError<Conf>> {
+        if let Some(Ordering::Less) | None =
+            self.update_context.version.partial_cmp(&delta.base_version)
+        {
+            return Err(CommitUpdateError::OlderBaseNeeded {
+                required_base_version: self.update_context.version.clone(),
+            });
+        }
+        if self.update_context.version >= delta.version {
+            debug!(
+                "Discard obsolete network update. our version={:?}. their version={:?}.",
+                self.update_context.version, delta.version,
+            );
+            return Ok(());
+        }
+        self.delta = CrdtState::merge(&self.delta, &delta.root);
+        self.network_delta = CrdtState::merge(&self.network_delta, &delta.root);
+        self.update_context.version =
+            VectorClock::least_upper_bound(&self.update_context.version, &delta.version);
+        Ok(())
     }
 }
 

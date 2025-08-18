@@ -27,6 +27,8 @@ regex = "1.10.2"
 xshell = "0.2.6"
 
 [dev-dependencies]
+env_logger.workspace = true
+log.workspace = true
 tempfile.workspace = true
 
 [[bin]]

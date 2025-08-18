@@ -12,14 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::cmp::Ordering;
+
+use super::exceptions::try_throwable_submerge;
 use distributed_time::vector_clock::VectorClock;
 use handle_map::HandleLike;
 use jni::{
-    objects::{JClass, JObject},
-    sys::jlong,
+    objects::{JByteArray, JClass, JObject},
+    sys::{jint, jlong},
     JNIEnv,
 };
-use pourover::{desc::ClassDesc, jni_method};
+use pourover::{desc::ClassDesc, exception::runtime_exception, jni_method};
+use protobuf::Message;
 
 use crate::utils::declare_handle;
 
@@ -59,4 +63,66 @@ extern "system" fn nativeClose<'local>(
     if let Ok(handle) = VersionVectorHandle::try_from(handle_id) {
         let _ = handle.deallocate();
     }
+}
+
+#[jni_method(package = "com.google.android.submerge", class = "VersionVector")]
+extern "system" fn nativeToByteArray<'local>(
+    mut env: JNIEnv<'local>,
+    _cls: JClass<'local>,
+    handle_id: jlong,
+) -> JByteArray<'local> {
+    try_throwable_submerge(&mut env, |env| {
+        let handle = VersionVectorHandle::try_from(handle_id)?;
+        let version_vector = handle.get()?;
+        let bytes = version_vector
+            .to_transferable_proto()
+            .write_to_bytes()
+            .map_err(runtime_exception)?;
+        Ok(env.byte_array_from_slice(&bytes)?)
+    })
+}
+
+#[jni_method(package = "com.google.android.submerge", class = "VersionVector")]
+extern "system" fn nativeFromByteArray<'local>(
+    mut env: JNIEnv<'local>,
+    _cls: JClass<'local>,
+    data: JByteArray<'local>,
+) -> jlong {
+    try_throwable_submerge(&mut env, |env| {
+        let bytes = env.convert_byte_array(data)?;
+        let proto =
+            submerge_internal_proto::protos::submerge::VectorClock::parse_from_bytes(&bytes)
+                .map_err(runtime_exception)?;
+        let version_vector =
+            VectorClock::from_transferable_proto(&proto).map_err(runtime_exception)?;
+        Ok(VersionVectorHandle::allocate(|| version_vector)?.jlong())
+    })
+}
+
+const OLDER: jint = -1;
+const EQUAL: jint = 0;
+const NEWER: jint = 1;
+const CONCURRENT: jint = 2;
+
+#[jni_method(package = "com.google.android.submerge", class = "VersionVector")]
+extern "system" fn nativeCompare<'local>(
+    mut env: JNIEnv<'local>,
+    _cls: JClass<'local>,
+    handle_id: jlong,
+    other_handle_id: jlong,
+) -> jint {
+    try_throwable_submerge(&mut env, |_| {
+        let handle = VersionVectorHandle::try_from(handle_id)?;
+        let self_version_vector = handle.get()?;
+        let other_handle = VersionVectorHandle::try_from(other_handle_id)?;
+        let other_version_vector = other_handle.get()?;
+        Ok(
+            match self_version_vector.partial_cmp(&other_version_vector) {
+                Some(Ordering::Less) => OLDER,
+                Some(Ordering::Equal) => EQUAL,
+                Some(Ordering::Greater) => NEWER,
+                None => CONCURRENT,
+            },
+        )
+    })
 }

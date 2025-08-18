@@ -20,14 +20,15 @@ use crdt::{
 };
 use handle_map::HandleLike;
 use jni::{
-    objects::{JClass, JString},
+    objects::{JClass, JObjectArray, JString},
     sys::jlong,
     JNIEnv,
 };
 use pourover::{exception::runtime_exception, jni_method};
 
-use crate::class::submerge_data_type::{
-    CrdtType, JavaSubmergeDataType, SubmergeDataTypeHandle, TreeRoot,
+use crate::{
+    class::submerge_data_type::{CrdtType, JavaSubmergeDataType, SubmergeDataTypeHandle, TreeRoot},
+    utils::collect_to_jarray,
 };
 
 use super::{
@@ -134,5 +135,34 @@ extern "system" fn nativeRemoveChild<'local>(
         let key = env.get_string(&key).map(String::from)?;
         map.remove_value(ctx, key)?;
         Ok(())
+    })
+}
+
+#[jni_method(package = "com.google.android.submerge", class = "SubmergeMap")]
+extern "system" fn nativeKeySet<'local>(
+    mut env: JNIEnv<'local>,
+    _cls: JClass<'local>,
+    data_handle_id: jlong,
+) -> JObjectArray<'local> {
+    try_throwable_submerge(&mut env, |env| {
+        let data_handle = SubmergeDataTypeHandle::try_from(data_handle_id)?;
+        let data = data_handle.get()?;
+        let mut guard = data.lock_write()?;
+        let (typed_crdt, _) = guard.get_context_and_node_mut()?;
+        let Some(TypedCrdtMut::Map(map)) = typed_crdt else {
+            Err(runtime_exception(format!(
+                "Expected Map but found {}",
+                type_string(typed_crdt)
+            )))?
+        };
+        Ok(collect_to_jarray(
+            env,
+            "java/lang/String",
+            map.keys()
+                .filter(|key| map.get_value(key).is_some())
+                .collect::<Vec<_>>()
+                .into_iter(),
+            |env, item| Ok(env.auto_local(env.new_string(item)?)),
+        )?)
     })
 }

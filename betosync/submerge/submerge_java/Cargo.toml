@@ -15,6 +15,7 @@ crate-type = ["cdylib"]
 crdt = { workspace = true, features = ["testing"] }
 distributed_time.workspace = true
 submerge = { workspace = true, features = ["proto"] }
+submerge_internal_proto.workspace = true
 
 anyhow.workspace = true
 arbitrary.workspace = true

@@ -29,7 +29,7 @@ use crate::{
     register::{RegisterRead, RegisterWrite},
     set::{SetRead, SetWrite},
     vector_data::{VectorDataRead, VectorDataWrite},
-    ApplyChanges, CrdtState, HasPlainRepresentation, ToPlain, UpdateContext,
+    ApplyChanges, ContentEq, CrdtState, HasPlainRepresentation, ToPlain, UpdateContext,
 };
 use arbitrary::{Arbitrary, Unstructured};
 use derive_where::derive_where;
@@ -408,6 +408,23 @@ where
             TypedCrdt::Register(_) => self.clone(),
             TypedCrdt::Set(_) => self.clone(),
             TypedCrdt::VectorData(_) => self.clone(),
+        }
+    }
+}
+
+impl<V, N, S> ContentEq for TypedCrdt<V, N, S>
+where
+    V: Eq + Hash + Clone,
+    N: Ord + Clone,
+    S: BuildHasher + Default + Clone,
+{
+    fn content_eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Map(a), Self::Map(b)) => a.content_eq(b),
+            (Self::Register(a), Self::Register(b)) => a.content_eq(b),
+            (Self::Set(a), Self::Set(b)) => a.content_eq(b),
+            (Self::VectorData(a), Self::VectorData(b)) => a.content_eq(b),
+            _ => false,
         }
     }
 }

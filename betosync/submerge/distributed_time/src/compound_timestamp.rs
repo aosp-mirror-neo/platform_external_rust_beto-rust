@@ -196,7 +196,7 @@ mod proto {
             node_ids: &mut NodeMapping<String>,
         ) -> (
             submerge_internal_proto::protos::submerge::HybridLogicalTimestamp,
-            submerge_internal_proto::protos::submerge::VectorClock,
+            submerge_internal_proto::protos::submerge::CompressedVectorClock,
         ) {
             (
                 self.hybrid_logical_timestamp.to_proto(node_ids),
@@ -207,7 +207,7 @@ mod proto {
         /// Construct a compound timestamp from the given protos.
         pub fn from_proto(
             timestamp: &submerge_internal_proto::protos::submerge::HybridLogicalTimestamp,
-            vector_clock: &submerge_internal_proto::protos::submerge::VectorClock,
+            vector_clock: &submerge_internal_proto::protos::submerge::CompressedVectorClock,
             node_ids: &[String],
         ) -> Result<Self, FromProtoError> {
             Ok(CompoundTimestamp {

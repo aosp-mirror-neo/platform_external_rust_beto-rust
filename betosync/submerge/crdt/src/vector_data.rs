@@ -21,7 +21,7 @@ use std::{cmp::max_by_key, collections::BTreeMap};
 use crate::{
     delta::{AsDeltaMut, AsDeltaRef},
     utils::{zip_btree_map, Either, ZipItem},
-    CrdtState, UpdateContext,
+    ContentEq, CrdtState, UpdateContext,
 };
 use arbitrary::Arbitrary;
 use derive_where::derive_where;
@@ -276,6 +276,16 @@ where
                     }
                 })
             })
+    }
+}
+
+impl<N, V> ContentEq for VectorData<N, V>
+where
+    N: Ord,
+    V: PartialEq,
+{
+    fn content_eq(&self, other: &Self) -> bool {
+        self == other
     }
 }
 

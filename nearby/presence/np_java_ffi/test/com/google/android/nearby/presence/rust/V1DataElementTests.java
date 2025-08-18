@@ -35,6 +35,7 @@ public class V1DataElementTests {
   private static final int CONTEXT_SYNC_SEQ_NUM_DE_TYPE = 19;
   private static final int CONNECTIVITY_INFO_DE_TYPE = 20;
   private static final int DEVICE_TYPE_DE_TYPE = 22;
+  private static final int MEDIA_DEDUPLICATION_ID_DE_TYPE = 23;
 
   /**
    * Checks that round-tripping a given DE through serialization and deserialization yields the same
@@ -188,6 +189,49 @@ public class V1DataElementTests {
         continue;
       }
       checkRoundtrip(de);
+    }
+  }
+
+  /**
+   * A test which verifies that round-tripping Media Deduplication Ids through serialization and
+   * deserialization is the identity.
+   */
+  @Test
+  public void roundtripMediaDeduplicationId() throws Exception {
+    Random random = new Random(12345);
+    byte[] id = new byte[20];
+
+    for (int i = 0; i < NUM_RANDOM_TRIALS; i++) {
+      random.nextBytes(id);
+      checkRoundtrip(new V1DataElement.MediaDeduplicationId(npAdv, id));
+    }
+  }
+
+  /**
+   * A test which verifies that round-tripping Capabilities through serialization and
+   * deserialization is the identity.
+   */
+  @Test
+  public void roundtripCapabilities() throws Exception {
+    int maxNumSupportedCapabilities = 4;
+    V1DataElement.Capabilities capabilities = new V1DataElement.Capabilities(npAdv);
+    for (int i = 0; i < maxNumSupportedCapabilities; i++) {
+      capabilities.addCapability(i);
+      checkRoundtrip(capabilities);
+    }
+  }
+
+  /**
+   * A test which verifies that round-tripping Requirements through serialization and
+   * deserialization is the identity.
+   */
+  @Test
+  public void roundtripRequirements() throws Exception {
+    int maxNumSupportedCapabilities = 4;
+    V1DataElement.Requirements requirements = new V1DataElement.Requirements(npAdv);
+    for (int i = 0; i < maxNumSupportedCapabilities; i++) {
+      requirements.addCapability(i);
+      checkRoundtrip(requirements);
     }
   }
 
@@ -419,5 +463,53 @@ public class V1DataElementTests {
   @Test(expected = IllegalArgumentException.class)
   public void wifiLanBSSIDIllegalArgumentException() throws Exception {
     new V1DataElement.WifiLanConnectivityInfo().setBssid(new byte[7]);
+  }
+
+  /**
+   * A test which verifies that attempting to construct a wrong-length Media Deduplication Id yields
+   * an exception.
+   */
+  @Test(expected = IllegalArgumentException.class)
+  public void mediaDeduplicationIdIllegalArgumentException() throws Exception {
+    byte[] payload = new byte[21];
+    V1DataElement unused = new V1DataElement.MediaDeduplicationId(npAdv, payload);
+  }
+
+  /**
+   * A test which verifies that attempting to deserialize a wrong-length media deduplication Id
+   * yields an exception.
+   */
+  @Test(expected = V1DataElement.MediaDeduplicationIdWrongLengthException.class)
+  public void mediaDeduplicationIdWrongLengthException() throws Exception {
+    byte[] payload = new byte[33];
+    V1DataElement.Generic generic =
+        new V1DataElement.Generic(npAdv, MEDIA_DEDUPLICATION_ID_DE_TYPE, payload);
+    V1DataElement unused = generic.tryDeserialize();
+  }
+
+  /**
+   * A test which verifies that attempting to construct a Capabilities DE with reserved bits throws
+   * a CapabilitiesMalformedException.
+   */
+  @Test(expected = IndexOutOfBoundsException.class)
+  public void capabilitiesMalformedException() throws Exception {
+    V1DataElement.Capabilities capabilities = new V1DataElement.Capabilities(npAdv);
+    for (int cap = 0; cap <= 7; cap++) {
+      capabilities.addCapability(cap);
+    }
+    V1DataElement.Generic unused = capabilities.trySerialize();
+  }
+
+  /**
+   * A test which verifies that attempting to construct a Requirements DE with reserved bits throws
+   * a RequirementsMalformedException.
+   */
+  @Test(expected = IndexOutOfBoundsException.class)
+  public void requirementsMalformedException() throws Exception {
+    V1DataElement.Requirements requirements = new V1DataElement.Requirements(npAdv);
+    for (int cap = 0; cap <= 7; cap++) {
+      requirements.addCapability(cap);
+    }
+    V1DataElement.Generic unused = requirements.trySerialize();
   }
 }

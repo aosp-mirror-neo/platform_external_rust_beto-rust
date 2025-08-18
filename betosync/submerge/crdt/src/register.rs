@@ -22,7 +22,7 @@ use std::{cmp::Ordering, collections::BTreeSet, fmt::Debug};
 use crate::{
     delta::{AsDeltaMut, AsDeltaRef},
     utils::{merge_descending_iters, Either},
-    CrdtState, UpdateContext,
+    ContentEq, CrdtState, UpdateContext,
 };
 use arbitrary::{Arbitrary, Unstructured};
 use derive_where::derive_where;
@@ -309,6 +309,17 @@ where
             .iter_pairs_unordered()
             .all(|(v1, v2)| CompoundTimestamp::is_comparable(v1, v2));
         is_comparable
+    }
+}
+
+impl<V, D> ContentEq for Register<V, D>
+where
+    V: PartialEq,
+    D: DistributedClock + PartialEq,
+    CompoundTimestamp<D>: PartialEq,
+{
+    fn content_eq(&self, other: &Self) -> bool {
+        self == other
     }
 }
 

@@ -32,7 +32,7 @@ message Document {
   // The version of the document. This is used to compare against incoming
   // DeltaDocuments (a.k.a. update messages) to determine whether the update is
   // ready to be applied.
-  VectorClock version = 2;
+  CompressedVectorClock version = 2;
   // The root of the data tree.
   SubmergeContainer root = 3;
 }
@@ -52,12 +52,12 @@ message DeltaDocument {
   // node_ids list.
   repeated string node_ids = 1;
   // The version a document will be at after applying this delta.
-  VectorClock version = 2;
+  CompressedVectorClock version = 2;
   // The base_version of this delta document. Information that hasn't changed
   // since this base_version won't be part of this delta, so Submerge documents
   // will verify that it is as least as new as the base before applying this
   // delta.
-  VectorClock base_version = 3;
+  CompressedVectorClock base_version = 3;
   // The root of the data tree, only containing delta information that has
   // changed since base_version.
   SubmergeContainer root = 4;
@@ -84,7 +84,7 @@ message SubmergeContainer {
   HybridLogicalTimestamp timestamp = 2;
   // The version vector tracking when this subtree (this node or any of its
   // descendants) were last updated.
-  VectorClock subtree_version = 3;
+  CompressedVectorClock subtree_version = 3;
 
   // The CRDT value contained in this container.
   //
@@ -136,7 +136,7 @@ message SubmergeRegister {
   // Next ID: 4
   message RegisterElement {
     optional bytes value = 1;
-    VectorClock vector_clock = 2;
+    CompressedVectorClock vector_clock = 2;
     HybridLogicalTimestamp hlc = 3;
   }
 
@@ -164,7 +164,13 @@ message SubmergeVectorData {
 
 // Timestamp types
 
-// A vector clock or version vector.
+// A compressed vector clock or version vector.
+//
+// Because the node IDs tend to be repeated many times in a document, and they
+// may be long, like 36 character UUIDs, they are extracted out to the top level
+// of a document. The nodes in this vector clock refers to the index of a node ID
+// in the `node_ids` list in the `Document` or `DeltaDocument` types. If a self-
+// contained version of vector clock is needed, use `VectorClock` instead.
 //
 // Despite the name, this message can be used as both vector clocks and version
 // vectors, depending on the usage.
@@ -172,7 +178,7 @@ message SubmergeVectorData {
 // Corresponds to the `VectorClock` type in Rust.
 //
 // Next ID: 3
-message VectorClock {
+message CompressedVectorClock {
   repeated uint32 nodes = 1 [packed = true];
   repeated uint32 values = 2 [packed = true];
 }
@@ -190,3 +196,18 @@ message HybridLogicalTimestamp {
   uint64 logical_time = 1;
   uint32 causality = 2;
 }
+
+
+// A vector clock or version vector.
+//
+// Despite the name, this message can be used as both vector clocks and version
+// vectors, depending on the usage.
+//
+// This message is self-contained and can be directly sent to remote devices.
+//
+// Next ID: 2
+message VectorClock {
+  // A map from the node ID to the clock value for that node.
+  map<string, uint32> node_clock_values = 1;
+}
+

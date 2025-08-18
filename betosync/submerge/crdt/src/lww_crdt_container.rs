@@ -20,7 +20,7 @@ use std::{cmp::Ordering, fmt::Debug};
 
 use crate::{
     delta::{AsDeltaMut, AsDeltaRef, DeltaMut, DeltaRef},
-    ApplyChanges, CrdtState, HasPlainRepresentation, ToPlain, UpdateContext,
+    ApplyChanges, ContentEq, CrdtState, HasPlainRepresentation, ToPlain, UpdateContext,
 };
 use arbitrary::Arbitrary;
 use derive_where::derive_where;
@@ -648,6 +648,30 @@ where
             .map(|s| s.timestamp())
             .by_ref()
             .is_uniq()
+    }
+}
+
+impl<V, T, N> ContentEq for LwwCrdtContainer<V, T, N>
+where
+    V: CrdtUnion<N> + ContentEq,
+    T: TotalTimestamp,
+    N: Ord,
+{
+    fn content_eq(&self, other: &Self) -> bool {
+        match (&self.value, &other.value) {
+            (Some(self_inner), Some(other_inner)) => {
+                if self_inner.timestamp != other_inner.timestamp {
+                    return false;
+                }
+                match (&self_inner.value, &other_inner.value) {
+                    (Some(self_crdt), Some(other_crdt)) => self_crdt.content_eq(other_crdt),
+                    (None, None) => true,
+                    _ => false,
+                }
+            }
+            (None, None) => true,
+            _ => false,
+        }
     }
 }
 

@@ -26,7 +26,7 @@ use std::{
 use crate::{
     delta::{AsDeltaMut, AsDeltaRef},
     utils::{zip_hash_map, ZipItem},
-    CrdtState,
+    ContentEq, CrdtState,
 };
 use arbitrary::{Arbitrary, Unstructured};
 use derive_where::derive_where;
@@ -369,6 +369,16 @@ where
                     .collect()
             },
         }
+    }
+}
+
+impl<E, S> ContentEq for Set<E, S>
+where
+    E: Hash + Eq,
+    S: BuildHasher,
+{
+    fn content_eq(&self, other: &Self) -> bool {
+        self == other
     }
 }
 

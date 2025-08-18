@@ -164,7 +164,7 @@ pub fn check_workspace(root: &path::Path, options: &CheckOptions) -> anyhow::Res
         // ensure the docs are valid (cross-references to other code, etc)
         concat!(
         "RUSTDOCFLAGS='--deny warnings' ",
-        "cargo doc --quiet --workspace --no-deps --document-private-items --features ph_client/testing ",
+        "cargo doc --quiet --workspace --no-deps --document-private-items --features ph_client/testing --exclude crypto_provider_test ",
         "--target-dir target/dist_docs",
         ),
         "cargo clippy --all-targets --workspace --features ph_client/testing -- --deny warnings",

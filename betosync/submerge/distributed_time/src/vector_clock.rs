@@ -128,7 +128,7 @@ mod proto {
     use super::VectorClock;
 
     impl FromProto for VectorClock<String> {
-        type Proto = submerge_internal_proto::protos::submerge::VectorClock;
+        type Proto = submerge_internal_proto::protos::submerge::CompressedVectorClock;
 
         fn from_proto(proto: &Self::Proto, node_ids: &[String]) -> Result<Self, FromProtoError> {
             if proto.nodes.len() != proto.values.len() {
@@ -153,8 +153,29 @@ mod proto {
         }
     }
 
+    impl VectorClock<String> {
+        /// Construct a new `VectorClock` from its transferable proto representation.
+        pub fn from_transferable_proto(
+            proto: &submerge_internal_proto::protos::submerge::VectorClock,
+        ) -> Result<Self, FromProtoError> {
+            Ok(Self {
+                dots: proto.node_clock_values.clone().into_iter().collect(),
+            })
+        }
+
+        /// Convert this `VectorClock` to its transferable proto representation.
+        pub fn to_transferable_proto(
+            &self,
+        ) -> submerge_internal_proto::protos::submerge::VectorClock {
+            submerge_internal_proto::protos::submerge::VectorClock {
+                node_clock_values: self.dots.clone().into_iter().collect(),
+                ..Default::default()
+            }
+        }
+    }
+
     impl ToProto for VectorClock<String> {
-        type Proto = submerge_internal_proto::protos::submerge::VectorClock;
+        type Proto = submerge_internal_proto::protos::submerge::CompressedVectorClock;
 
         fn to_proto(&self, node_ids: &mut NodeMapping<String>) -> Self::Proto {
             let (nodes, values) = self
@@ -162,7 +183,7 @@ mod proto {
                 .iter()
                 .map(|(node, v)| (node_ids.get_index(node), *v))
                 .unzip();
-            submerge_internal_proto::protos::submerge::VectorClock {
+            submerge_internal_proto::protos::submerge::CompressedVectorClock {
                 nodes,
                 values,
                 ..Default::default()
@@ -177,6 +198,10 @@ mod proto {
         assert_eq!(
             VectorClock::from_proto(&vector_clock.to_proto(&mut node_ids), &node_ids.into_vec())
                 .unwrap(),
+            vector_clock
+        );
+        assert_eq!(
+            VectorClock::from_transferable_proto(&vector_clock.to_transferable_proto()).unwrap(),
             vector_clock
         );
     }

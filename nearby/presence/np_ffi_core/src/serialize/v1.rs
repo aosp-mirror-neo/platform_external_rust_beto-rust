@@ -667,6 +667,15 @@ impl CastId {
     }
 }
 
+impl MediaDeduplicationId {
+    /// Serialize this Cast ID to a generic data element.
+    pub fn serialize(&self) -> GenericV1DataElement {
+        let de =
+            np_adv::extended::data_elements::MediaDeduplicationIdDataElement::from(&self.bytes);
+        GenericV1DataElement::from_write_de(&de)
+    }
+}
+
 /// The result of attempting to serialize V1 actions
 /// represented as a bitmap into a DE.
 #[repr(C)]
@@ -835,6 +844,138 @@ impl From<OptionalIpAddress> for Option<core::net::IpAddr> {
     }
 }
 
+/// The result of attempting to serialize capabilities
+/// represented as a bitmap into a DE.
+#[repr(C)]
+#[allow(missing_docs)]
+pub enum SerializeCapabilitiesBitmapResult {
+    Success(GenericV1DataElement),
+    ReservedBitsSet,
+}
+
+impl FfiEnum for SerializeCapabilitiesBitmapResult {
+    type Kind = SerializeCapabilitiesBitmapResultKind;
+    fn kind(&self) -> Self::Kind {
+        match self {
+            Self::Success(_) => SerializeCapabilitiesBitmapResultKind::Success,
+            Self::ReservedBitsSet => SerializeCapabilitiesBitmapResultKind::ReservedBitsSet,
+        }
+    }
+}
+
+impl SerializeCapabilitiesBitmapResult {
+    declare_enum_cast! {into_success, Success, GenericV1DataElement }
+}
+
+/// Discriminant for `SerializeCapabilitiesBitmapResult`
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[repr(u8)]
+pub enum SerializeCapabilitiesBitmapResultKind {
+    /// The attempt succeeded. The wrapped data element
+    /// may be obtained via
+    /// `SerializeCapabilitiesBitmapResult#into_success`.
+    Success = 0,
+    /// The attempt failed because reserved bits were set.
+    ReservedBitsSet = 1,
+}
+
+impl Capabilities {
+    /// Attempts to serialize some capabilities given in
+    /// a bitmap format into a DE byte-buffer. May fail if an attempt
+    /// is made to encode capabilities into reserved bits.
+    #[allow(clippy::expect_used)]
+    pub fn try_serialize(&self) -> SerializeCapabilitiesBitmapResult {
+        let maybe_capabilities_de =
+            np_adv::extended::data_elements::CapabilitiesDataElement::try_from(self.capabilities);
+        match maybe_capabilities_de {
+            Ok(capabilities_de) => {
+                // Convert the internal DE representation to the FFI one.
+                let mut payload = tinyvec::ArrayVec::<[u8; 127]>::new();
+                capabilities_de
+                    .write_de_contents(np_adv::extended::salt::Unsalted, &mut payload)
+                    .expect("Capabilities DE -> 1 byte buffer should always succeed");
+                let de_type = capabilities_de.de_type();
+                let de_type = de_type.into();
+                let payload = ByteBuffer::from_array_vec(payload);
+                SerializeCapabilitiesBitmapResult::Success(GenericV1DataElement {
+                    de_type,
+                    payload,
+                })
+            }
+            Err(
+                np_adv::extended::data_elements::CapabilityBitsetDeserializationError::ReservedBitsSet,
+            ) => SerializeCapabilitiesBitmapResult::ReservedBitsSet,
+            _ => unreachable!(),
+        }
+    }
+}
+
+/// The result of attempting to serialize requirements
+/// represented as a bitmap into a DE.
+#[repr(C)]
+#[allow(missing_docs)]
+pub enum SerializeRequirementsBitmapResult {
+    Success(GenericV1DataElement),
+    ReservedBitsSet,
+}
+
+impl FfiEnum for SerializeRequirementsBitmapResult {
+    type Kind = SerializeRequirementsBitmapResultKind;
+    fn kind(&self) -> Self::Kind {
+        match self {
+            Self::Success(_) => SerializeRequirementsBitmapResultKind::Success,
+            Self::ReservedBitsSet => SerializeRequirementsBitmapResultKind::ReservedBitsSet,
+        }
+    }
+}
+
+impl SerializeRequirementsBitmapResult {
+    declare_enum_cast! {into_success, Success, GenericV1DataElement }
+}
+
+/// Discriminant for `SerializeRequirementsBitmapResult`
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[repr(u8)]
+pub enum SerializeRequirementsBitmapResultKind {
+    /// The attempt succeeded. The wrapped data element
+    /// may be obtained via
+    /// `SerializeRequirementsBitmapResult#into_success`.
+    Success = 0,
+    /// The attempt failed because reserved bits were set.
+    ReservedBitsSet = 1,
+}
+
+impl Requirements {
+    /// Attempts to serialize some requirements given in
+    /// a bitmap format into a DE byte-buffer. May fail if an attempt
+    /// is made to encode requirements into reserved bits.
+    #[allow(clippy::expect_used)]
+    pub fn try_serialize(&self) -> SerializeRequirementsBitmapResult {
+        let maybe_requirements_de =
+            np_adv::extended::data_elements::RequirementsDataElement::try_from(self.requirements);
+        match maybe_requirements_de {
+            Ok(requirements_de) => {
+                // Convert the internal DE representation to the FFI one.
+                let mut payload = tinyvec::ArrayVec::<[u8; 127]>::new();
+                requirements_de
+                    .write_de_contents(np_adv::extended::salt::Unsalted, &mut payload)
+                    .expect("Requirements DE -> 1 byte buffer should always succeed");
+                let de_type = requirements_de.de_type();
+                let de_type = de_type.into();
+                let payload = ByteBuffer::from_array_vec(payload);
+                SerializeRequirementsBitmapResult::Success(GenericV1DataElement {
+                    de_type,
+                    payload,
+                })
+            }
+            Err(
+                np_adv::extended::data_elements::CapabilityBitsetDeserializationError::ReservedBitsSet,
+            ) => SerializeRequirementsBitmapResult::ReservedBitsSet,
+            _ => unreachable!(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -855,6 +996,34 @@ mod tests {
         let actions_bitmap = V1ActionsBitmap { bitmap: [255u8; 256] };
         let result = actions_bitmap.try_serialize();
         assert_eq!(result.kind(), V1SerializeActionsBitmapResultKind::TooManyActions);
+    }
+
+    #[test]
+    fn test_serialize_valid_capabilities() {
+        let capabilities = Capabilities { capabilities: 0b0000_1111 };
+        let result = capabilities.try_serialize();
+        assert_eq!(result.kind(), SerializeCapabilitiesBitmapResultKind::Success);
+    }
+
+    #[test]
+    fn test_serialize_capabilities_with_reserved_bits() {
+        let capabilities = Capabilities { capabilities: 0b0001_0001 };
+        let result = capabilities.try_serialize();
+        assert_eq!(result.kind(), SerializeCapabilitiesBitmapResultKind::ReservedBitsSet);
+    }
+
+    #[test]
+    fn test_serialize_valid_requirements() {
+        let requirements = Requirements { requirements: 0b0000_1111 };
+        let result = requirements.try_serialize();
+        assert_eq!(result.kind(), SerializeRequirementsBitmapResultKind::Success);
+    }
+
+    #[test]
+    fn test_serialize_requirements_with_reserved_bits() {
+        let requirements = Requirements { requirements: 0b0001_0001 };
+        let result = requirements.try_serialize();
+        assert_eq!(result.kind(), SerializeRequirementsBitmapResultKind::ReservedBitsSet);
     }
 
     #[cfg(not(feature = "nocrypto"))]
