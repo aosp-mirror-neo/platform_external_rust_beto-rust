@@ -18,7 +18,7 @@ use crate::exception_wrapper;
 use array_view::ArrayView;
 use jni::{
     objects::{JByteArray, JClass, JObject, JThrowable},
-    sys::{jint, jlong},
+    sys::{jbyte, jint, jlong},
     JNIEnv,
 };
 use np_ffi_core::{common::ByteBuffer, v1::GenericV1DataElement};
@@ -64,6 +64,15 @@ exception_wrapper!(
 exception_wrapper!(
     /// Rust representation of `class V1DataElement.ConnectivityInfoMalformedException`
     ConnectivityInfoMalformedException, "com/google/android/nearby/presence/rust/V1DataElement$ConnectivityInfoMalformedException");
+exception_wrapper!(
+    /// Rust representation of `class V1DataElement.MediaDeduplicationIdWrongLengthException`
+    MediaDeduplicationIdWrongLengthException, "com/google/android/nearby/presence/rust/V1DataElement$MediaDeduplicationIdWrongLengthException");
+exception_wrapper!(
+    /// Rust representation of `class V1DataElement.CapabilitiesMalformedException`
+    CapabilitiesMalformedException, "com/google/android/nearby/presence/rust/V1DataElement$CapabilitiesMalformedException");
+exception_wrapper!(
+    /// Rust representation of `class V1DataElement.RequirementsMalformedException`
+    RequirementsMalformedException, "com/google/android/nearby/presence/rust/V1DataElement$RequirementsMalformedException");
 
 static CONNECTIVITY_INFO_MALFORMED_COMPONENT_EXCEPTION_CLASS: ClassDesc =
     ClassDesc::new("com/google/android/nearby/presence/rust/V1DataElement$ConnectivityInfoComponentMalformedException");
@@ -76,6 +85,9 @@ static TX_POWER_CLASS: ClassDesc =
 
 static CAST_ID_CLASS: ClassDesc =
     ClassDesc::new("com/google/android/nearby/presence/rust/V1DataElement$CastId");
+
+static MEDIA_DEDUPLICATION_ID_CLASS: ClassDesc =
+    ClassDesc::new("com/google/android/nearby/presence/rust/V1DataElement$MediaDeduplicationId");
 
 static ACTIONS_CLASS: ClassDesc =
     ClassDesc::new("com/google/android/nearby/presence/rust/V1DataElement$Actions");
@@ -97,6 +109,12 @@ static BLE_CONNECTIVITY_INFO_CLASS: ClassDesc =
 
 static WIFI_LAN_CONNECTIVITY_INFO_CLASS: ClassDesc =
     ClassDesc::new("com/google/android/nearby/presence/rust/V1DataElement$WifiLanConnectivityInfo");
+
+static CAPABILITIES_CLASS: ClassDesc =
+    ClassDesc::new("com/google/android/nearby/presence/rust/V1DataElement$Capabilities");
+
+static REQUIREMENTS_CLASS: ClassDesc =
+    ClassDesc::new("com/google/android/nearby/presence/rust/V1DataElement$Requirements");
 
 /// Rust representation of `class V1DataElement.Generic`.
 #[repr(transparent)]
@@ -180,6 +198,9 @@ fn translate_deserialized_de<'local>(
     let result: jni::errors::Result<Option<JObject<'local>>> = match de {
         V1DataElement::Generic(generic) => Generic::construct(env, generic).map(|x| x.map(|y| y.0)),
         V1DataElement::CastId(cast_id) => CastId::construct(env, cast_id).map(|x| Some(x.0)),
+        V1DataElement::MediaDeduplicationId(media_deduplication_id) => {
+            MediaDeduplicationId::construct(env, media_deduplication_id).map(|x| Some(x.0))
+        }
         V1DataElement::Actions(actions) => Actions::construct(env, actions).map(|x| Some(x.0)),
         V1DataElement::TxPower(tx_power) => TxPower::construct(env, tx_power).map(|x| Some(x.0)),
         V1DataElement::ContextSyncSeqNum(seq_num) => {
@@ -193,6 +214,12 @@ fn translate_deserialized_de<'local>(
         }
         V1DataElement::ConnectivityInfo(connectivity_info) => {
             ConnectivityInfo::construct(env, connectivity_info).map(|x| Some(x.0))
+        }
+        V1DataElement::Capabilities(capabilities) => {
+            Capabilities::construct(env, capabilities).map(|x| Some(x.0))
+        }
+        V1DataElement::Requirements(requirements) => {
+            Requirements::construct(env, requirements).map(|x| Some(x.0))
         }
     };
     match result {
@@ -278,6 +305,15 @@ extern "system" fn try_deserialize_generic_de<'local>(
                 return JObject::null();
             };
             let _ = env.throw(<&JThrowable>::from(ex.as_ref()));
+        }
+        V1DataElementDeserializationResult::MediaDeduplicationIdWrongLength => {
+            let _ = MediaDeduplicationIdWrongLengthException::throw_new(&mut env);
+        }
+        V1DataElementDeserializationResult::CapabilitiesMalformed => {
+            let _ = CapabilitiesMalformedException::throw_new(&mut env);
+        }
+        V1DataElementDeserializationResult::RequirementsMalformed => {
+            let _ = RequirementsMalformedException::throw_new(&mut env);
         }
     }
     // Catch-all return value for thrown errors.
@@ -422,6 +458,71 @@ extern "system" fn try_serialize_cast_id_de<'local>(
         &mut env,
         maybe_cast_id.map(|cast_id| cast_id.serialize()),
         "Invalid Cast Id DE",
+    )
+}
+
+/// Rust representation of `class V1DataElement.MediaDeduplicationId`.
+#[repr(transparent)]
+pub struct MediaDeduplicationId<'local>(pub JObject<'local>);
+
+impl<'local> MediaDeduplicationId<'local> {
+    /// Create a new Java instance from the given `np_ffi_core::v1::MediaDeduplicationId`.
+    pub fn construct(
+        env: &mut JNIEnv<'local>,
+        media_deduplication_id: np_ffi_core::v1::MediaDeduplicationId,
+    ) -> jni::errors::Result<Self> {
+        let media_deduplication_id =
+            env.auto_local(env.byte_array_from_slice(&media_deduplication_id.bytes)?);
+        pourover::call_constructor!(
+            env,
+            &MEDIA_DEDUPLICATION_ID_CLASS,
+            "([B)V",
+            media_deduplication_id.as_ref()
+        )
+        .map(Self)
+    }
+    /// Attempts to convert a Java instance into a `np_ffi_core::v1::MediaDeduplicationId`.
+    /// Since the Java representation is not length-restricted, this method
+    /// returns a wrapped `None` in the case where the value did not have
+    /// an acceptable length.
+    pub fn as_core<'env>(
+        &self,
+        env: &mut JNIEnv<'env>,
+    ) -> jni::errors::Result<Option<np_ffi_core::v1::MediaDeduplicationId>> {
+        let bytes = pourover::call_method!(
+            env,
+            &MEDIA_DEDUPLICATION_ID_CLASS,
+            "getMediaDeduplicationId",
+            "()[B",
+            &self.0
+        )?;
+        let bytes = env.convert_byte_array(bytes)?;
+        let Ok(bytes) = <[u8; 20]>::try_from(bytes) else {
+            return Ok(None);
+        };
+        Ok(Some(np_ffi_core::v1::MediaDeduplicationId { bytes }))
+    }
+}
+
+#[jni_method(
+    package = "com.google.android.nearby.presence.rust",
+    class = "V1DataElement.MediaDeduplicationId",
+    method_name = "nativeTrySerialize"
+)]
+extern "system" fn try_serialize_media_deduplication_id_de<'local>(
+    mut env: JNIEnv<'local>,
+    _cls: JClass<'local>,
+    this: MediaDeduplicationId<'local>,
+) -> JObject<'local> {
+    let Ok(maybe_media_deduplication_id) = this.as_core(&mut env) else {
+        // Unrecoverable JNI error.
+        return JObject::null();
+    };
+    try_construct_generic_de_from_serialized(
+        &mut env,
+        maybe_media_deduplication_id
+            .map(|media_deduplication_id| media_deduplication_id.serialize()),
+        "Invalid Media Deduplication Id DE",
     )
 }
 
@@ -892,6 +993,140 @@ extern "system" fn try_serialize_connectivity_info_de<'local>(
             .and_then(|connectivity_info| connectivity_info.try_serialize().ok()),
         "Attempt to Serialize Invalid Connectivity Info DE",
     )
+}
+
+/// Rust representation of `class V1DataElement.Capabilities`.
+#[repr(transparent)]
+pub struct Capabilities<'local>(pub JObject<'local>);
+
+impl<'local> Capabilities<'local> {
+    /// Create a new Java instance from the given `np_ffi_core::v1::Capabilities`.
+    pub fn construct(
+        env: &mut JNIEnv<'local>,
+        capabilities: np_ffi_core::v1::Capabilities,
+    ) -> jni::errors::Result<Self> {
+        let capabilities = capabilities.capabilities as jbyte;
+        pourover::call_constructor!(env, &CAPABILITIES_CLASS, "(B)V", capabilities).map(Self)
+    }
+
+    /// Attempts to convert a Java instance into a `np_ffi_core::v1::Capabilities`.
+    pub fn as_core<'env>(
+        &self,
+        env: &mut JNIEnv<'env>,
+    ) -> jni::errors::Result<Option<np_ffi_core::v1::Capabilities>> {
+        let bitmap = pourover::call_method!(env, &CAPABILITIES_CLASS, "getValue", "()B", &self.0)?;
+        let Ok(capabilities) = u8::try_from(bitmap) else {
+            return Ok(None);
+        };
+        Ok(Some(np_ffi_core::v1::Capabilities { capabilities }))
+    }
+}
+
+#[jni_method(
+    package = "com.google.android.nearby.presence.rust",
+    class = "V1DataElement.Capabilities",
+    method_name = "nativeTrySerialize"
+)]
+extern "system" fn try_serialize_capabilities_de<'local>(
+    mut env: JNIEnv<'local>,
+    _cls: JClass<'local>,
+    this: Capabilities<'local>,
+) -> JObject<'local> {
+    let Ok(maybe_capabilities) = this.as_core(&mut env) else {
+        // Unrecoverable JNI error.
+        return JObject::null();
+    };
+    let Some(capabilities) = maybe_capabilities else {
+        // Malformed Java data structure for capabilities.
+        let _ = env
+            .throw_new("java/lang/IllegalStateException", "Malformed Capabilities DE in Java impl");
+        return JObject::null();
+    };
+    use np_ffi_core::serialize::v1::SerializeCapabilitiesBitmapResult;
+    match capabilities.try_serialize() {
+        SerializeCapabilitiesBitmapResult::Success(generic_de) => {
+            let Ok(Some(generic_de)) = Generic::construct(&mut env, generic_de) else {
+                // Either a serialization routine yields borked stack data structures,
+                // or the JNI has hit an internal error.
+                return JObject::null();
+            };
+            generic_de.0
+        }
+        SerializeCapabilitiesBitmapResult::ReservedBitsSet => {
+            let _ = env.throw_new(
+                "java/lang/IllegalStateException",
+                "Reserved bits set in Capabilities DE serialization",
+            );
+            JObject::null()
+        }
+    }
+}
+
+/// Rust representation of `class V1DataElement.Requirements`.
+#[repr(transparent)]
+pub struct Requirements<'local>(pub JObject<'local>);
+
+impl<'local> Requirements<'local> {
+    /// Create a new Java instance from the given `np_ffi_core::v1::Requirements`.
+    pub fn construct(
+        env: &mut JNIEnv<'local>,
+        requirements: np_ffi_core::v1::Requirements,
+    ) -> jni::errors::Result<Self> {
+        let requirements = requirements.requirements as jbyte;
+        pourover::call_constructor!(env, &REQUIREMENTS_CLASS, "(B)V", requirements).map(Self)
+    }
+
+    /// Attempts to convert a Java instance into a `np_ffi_core::v1::Requirements`.
+    pub fn as_core<'env>(
+        &self,
+        env: &mut JNIEnv<'env>,
+    ) -> jni::errors::Result<Option<np_ffi_core::v1::Requirements>> {
+        let bitmap = pourover::call_method!(env, &REQUIREMENTS_CLASS, "getValue", "()B", &self.0)?;
+        let Ok(requirements) = u8::try_from(bitmap) else {
+            return Ok(None);
+        };
+        Ok(Some(np_ffi_core::v1::Requirements { requirements }))
+    }
+}
+
+#[jni_method(
+    package = "com.google.android.nearby.presence.rust",
+    class = "V1DataElement.Requirements",
+    method_name = "nativeTrySerialize"
+)]
+extern "system" fn try_serialize_requirements_de<'local>(
+    mut env: JNIEnv<'local>,
+    _cls: JClass<'local>,
+    this: Requirements<'local>,
+) -> JObject<'local> {
+    let Ok(maybe_requirements) = this.as_core(&mut env) else {
+        // Unrecoverable JNI error.
+        return JObject::null();
+    };
+    let Some(requirements) = maybe_requirements else {
+        // Malformed Java data structure for requirements.
+        let _ = env
+            .throw_new("java/lang/IllegalStateException", "Malformed Requirements DE in Java impl");
+        return JObject::null();
+    };
+    use np_ffi_core::serialize::v1::SerializeRequirementsBitmapResult;
+    match requirements.try_serialize() {
+        SerializeRequirementsBitmapResult::Success(generic_de) => {
+            let Ok(Some(generic_de)) = Generic::construct(&mut env, generic_de) else {
+                // Either a serialization routine yields borked stack data structures,
+                // or the JNI has hit an internal error.
+                return JObject::null();
+            };
+            generic_de.0
+        }
+        SerializeRequirementsBitmapResult::ReservedBitsSet => {
+            let _ = env.throw_new(
+                "java/lang/IllegalStateException",
+                "Reserved bits set in Requirements DE serialization",
+            );
+            JObject::null()
+        }
+    }
 }
 
 /// Reads a `byte[]` into an `Option<Vec<u8>>`, where `None` represents `null`.

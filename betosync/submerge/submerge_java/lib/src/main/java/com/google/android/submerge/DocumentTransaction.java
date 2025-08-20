@@ -198,6 +198,19 @@ public class DocumentTransaction<T> implements AutoCloseable {
     }
   }
 
+  /**
+   * Merges an update from the network into the current transaction.
+   *
+   * @param update The update message from the network.
+   * @throws OlderBaseNeededException if the {@code updateMessage} given doesn't cover an old enough
+   *     base to be applied.
+   */
+  public void mergeNetworkUpdate(byte[] update) throws OlderBaseNeededException {
+    synchronized (this.handle) {
+      nativeMergeNetworkUpdate(this.handle.handle, update);
+    }
+  }
+
   @Override
   public String toString() {
     synchronized (this.handle) {
@@ -264,6 +277,10 @@ public class DocumentTransaction<T> implements AutoCloseable {
 
   private static native void nativeCommit(@DocumentTransactionHandleId long handle)
       throws TransactionException;
+
+  private static native void nativeMergeNetworkUpdate(
+      @DocumentTransactionHandleId long handle, byte[] update)
+      throws OlderBaseNeededException;
 
   private static native void nativeClose(@DocumentTransactionHandleId long handle);
 

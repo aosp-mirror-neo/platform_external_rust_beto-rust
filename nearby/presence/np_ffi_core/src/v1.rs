@@ -123,6 +123,12 @@ pub enum V1DataElementKind {
     DeviceType = 6,
     /// Connectivity information.
     ConnectivityInfo = 7,
+    /// A Media Deduplication Id.
+    MediaDeduplicationId = 8,
+    /// A Capabilities DE.
+    Capabilities = 9,
+    /// A Requirements DE.
+    Requirements = 10,
 }
 
 /// A V1 data element, which may be a "generic" data element
@@ -140,6 +146,9 @@ pub enum V1DataElement {
     DedupHint(DedupHint),
     DeviceType(DeviceType),
     ConnectivityInfo(ConnectivityInfo),
+    MediaDeduplicationId(MediaDeduplicationId),
+    Capabilities(Capabilities),
+    Requirements(Requirements),
 }
 
 impl FfiEnum for V1DataElement {
@@ -154,6 +163,9 @@ impl FfiEnum for V1DataElement {
             Self::DedupHint(_) => V1DataElementKind::DedupHint,
             Self::DeviceType(_) => V1DataElementKind::DeviceType,
             Self::ConnectivityInfo(_) => V1DataElementKind::ConnectivityInfo,
+            Self::MediaDeduplicationId(_) => V1DataElementKind::MediaDeduplicationId,
+            Self::Capabilities(_) => V1DataElementKind::Capabilities,
+            Self::Requirements(_) => V1DataElementKind::Requirements,
         }
     }
 }
@@ -167,6 +179,9 @@ impl V1DataElement {
     declare_enum_cast! {into_dedup_hint, DedupHint, DedupHint}
     declare_enum_cast! {into_device_type, DeviceType, DeviceType}
     declare_enum_cast! {into_connectivity_info, ConnectivityInfo, ConnectivityInfo}
+    declare_enum_cast! {into_media_deduplication_id, MediaDeduplicationId, MediaDeduplicationId}
+    declare_enum_cast! {into_capabilities, Capabilities, Capabilities}
+    declare_enum_cast! {into_requirements, Requirements, Requirements}
 }
 
 /// Represents the contents of a V1 Actions DE as a bitmap
@@ -194,6 +209,18 @@ pub struct V1ActionsBitmap {
 pub struct CastId {
     /// The raw bytes of the Cast Id.
     pub bytes: [u8; 32],
+}
+
+/// A Media Deduplication identifier of 20 bytes.
+///
+/// This representation is stable, so you may directly
+/// reference this struct's fields if you wish.
+#[derive(Clone)]
+#[cfg_attr(any(test, feature = "testing"), derive(Debug, PartialEq, Eq, arbitrary::Arbitrary))]
+#[repr(C)]
+pub struct MediaDeduplicationId {
+    /// The raw bytes of the Media Deduplication Id.
+    pub bytes: [u8; 20],
 }
 
 /// Discriminant for `BuildContextSyncSeqNumResult`.
@@ -445,4 +472,32 @@ impl WifiLanConnectivityInfo {
             || self.port.is_present()
             || self.bssid.is_present()
     }
+}
+
+/// Represents the contents of a Capabilities DE as a bitmap where the absence/presence of bits
+/// represent the absence/presence of device capabilities, where each bit-position within the byte
+/// is kept in little-endian.
+///
+/// This representation is stable, and so you may directly
+/// reference this struct's fields if you wish.
+#[derive(Clone)]
+#[cfg_attr(any(test, feature = "testing"), derive(Debug, PartialEq, Eq, arbitrary::Arbitrary))]
+#[repr(C)]
+pub struct Capabilities {
+    /// The underlying byte.
+    pub capabilities: u8,
+}
+
+/// Represents the contents of a Requirements DE as a bitmap where the absence/presence of bits
+/// represent the absence/presence of required remote device capabilities, where each bit-position within the byte
+/// is kept in little-endian.
+///
+/// This representation is stable, and so you may directly
+/// reference this struct's fields if you wish.
+#[derive(Clone)]
+#[cfg_attr(any(test, feature = "testing"), derive(Debug, PartialEq, Eq, arbitrary::Arbitrary))]
+#[repr(C)]
+pub struct Requirements {
+    /// The underlying byte.
+    pub requirements: u8,
 }

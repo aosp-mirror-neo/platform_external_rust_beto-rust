@@ -107,8 +107,29 @@ impl DocumentActor {
         ctx: &mut impl ActorContext,
     ) {
         match msg {
-            ActorMessage::DeltaDocument(update_message) => {
-                match self.doc_handle.commit_network_update(&update_message) {
+            ActorMessage::DeltaDocument {
+                update_message,
+                merge_to_transaction,
+            } => {
+                let result = if merge_to_transaction {
+                    let mut transaction = DocumentTransaction::new(&mut self.doc_handle);
+                    let merge_result = transaction.merge_network_delta(&update_message);
+                    if merge_result.is_err() {
+                        merge_result
+                    } else {
+                        transaction.commit().map_err(|e| match e {
+                            submerge::TransactionError::StorageError(storage_err) => {
+                                CommitUpdateError::StorageError(storage_err)
+                            }
+                            _ => unreachable!(
+                                "The simulator should not overflow the timestamp with its limited input size"
+                            ),
+                        })
+                    }
+                } else {
+                    self.doc_handle.commit_network_update(&update_message)
+                };
+                match result {
                     Ok(()) => {}
                     Err(CommitUpdateError::StorageError(_)) => unreachable!(),
                     Err(CommitUpdateError::OlderBaseNeeded {
@@ -133,7 +154,10 @@ impl DocumentActor {
                 let msg_id = ctx.send_message(
                     self.id,
                     sender_id,
-                    ActorMessage::DeltaDocument(delta.clone()),
+                    ActorMessage::DeltaDocument {
+                        update_message: delta.clone(),
+                        merge_to_transaction: true,
+                    },
                 );
                 debug!(
                     "Node {} Processing delta request. Sent response #{msg_id}. Delta = {:?}",
@@ -264,8 +288,13 @@ impl DocumentActor {
 
 #[derive(Clone, Debug)]
 pub enum ActorMessage {
-    DeltaDocument(Rc<DeltaDocument<TestDataStoreConfig>>),
-    RequestDelta { base_version: VectorClock<u16> },
+    DeltaDocument {
+        update_message: Rc<DeltaDocument<TestDataStoreConfig>>,
+        merge_to_transaction: bool,
+    },
+    RequestDelta {
+        base_version: VectorClock<u16>,
+    },
 }
 
 fn arbitrary_nonempty_array_vec<'a, T: Arbitrary<'a>, const CAP: usize>(
@@ -471,7 +500,10 @@ impl NetworkInterface<TestDataStoreConfig> for ActorNetwork {
     fn on_new_update(&mut self, _doc_id: &str, document: DeltaDocument<TestDataStoreConfig>) {
         self.buffered_messages
             .borrow_mut()
-            .push(ActorMessage::DeltaDocument(Rc::new(document)))
+            .push(ActorMessage::DeltaDocument {
+                update_message: Rc::new(document),
+                merge_to_transaction: false,
+            })
     }
 }
 

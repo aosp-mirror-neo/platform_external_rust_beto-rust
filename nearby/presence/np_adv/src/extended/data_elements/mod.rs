@@ -54,6 +54,8 @@ define_data_element_deserializer! {
         CastId: CastIdDataElement<'adv>,
         /// A collection of actions
         Actions: DeserializedActionsDE<'adv>,
+        /// A media deduplication ID
+        MediaDeduplicationId: MediaDeduplicationIdDataElement<'adv>,
     } owns {
         /// A transmission power
         TxPower: TxPowerDataElement,
@@ -65,6 +67,10 @@ define_data_element_deserializer! {
         DeviceType: DeviceTypeDataElement,
         /// Connectivity information.
         ConnectivityInfo: ConnectivityInfoDataElement,
+        /// Device capabilities
+        Capabilities: CapabilitiesDataElement,
+        /// Required capabilities for remote device.
+        Requirements: RequirementsDataElement,
     }
 }
 
@@ -323,6 +329,59 @@ impl<'adv> DeserializedDataElement<'adv> for CastIdDataElement<'adv> {
 }
 
 impl WriteDataElement for CastIdDataElement<'_> {
+    type Salt = Unsalted;
+    fn write_de_contents<S: Sink<u8>>(&self, _salt: Self::Salt, sink: &mut S) -> Option<()> {
+        sink.try_extend_from_slice(self.id)
+    }
+}
+
+/// The length of a Media Deduplication ID in bytes.
+pub const MEDIA_DEDUPLICATION_ID_LENGTH: usize = 20;
+
+/// Media Deduplication ID
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct MediaDeduplicationIdDataElement<'adv> {
+    id: &'adv [u8; MEDIA_DEDUPLICATION_ID_LENGTH],
+}
+impl<'adv> From<&'adv [u8; MEDIA_DEDUPLICATION_ID_LENGTH]>
+    for MediaDeduplicationIdDataElement<'adv>
+{
+    fn from(id: &'adv [u8; MEDIA_DEDUPLICATION_ID_LENGTH]) -> Self {
+        Self { id }
+    }
+}
+impl MediaDeduplicationIdDataElement<'_> {
+    /// Gets the media deduplication ID as raw bytes.
+    pub fn get_id_as_bytes(&self) -> &[u8; MEDIA_DEDUPLICATION_ID_LENGTH] {
+        self.id
+    }
+}
+
+/// Potential errors raised when attempting to deserialize
+/// a Media Deduplication ID data element.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum MediaDeduplicationIdDeserializationError {
+    /// The DE payload was of the wrong length.
+    WrongLength,
+}
+
+impl HasDEType for MediaDeduplicationIdDataElement<'_> {
+    const DE_TYPE: DeType = DeType::const_from(0x17);
+}
+
+impl<'adv> DeserializedDataElement<'adv> for MediaDeduplicationIdDataElement<'adv> {
+    type DeserializationError = MediaDeduplicationIdDeserializationError;
+    fn try_deserialize(
+        _maybe_salt: Option<&DeSalt>,
+        contents: &'adv [u8],
+    ) -> Result<Self, Self::DeserializationError> {
+        let id = <&[u8; MEDIA_DEDUPLICATION_ID_LENGTH]>::try_from(contents)
+            .map_err(|_| MediaDeduplicationIdDeserializationError::WrongLength)?;
+        Ok(Self { id })
+    }
+}
+
+impl WriteDataElement for MediaDeduplicationIdDataElement<'_> {
     type Salt = Unsalted;
     fn write_de_contents<S: Sink<u8>>(&self, _salt: Self::Salt, sink: &mut S) -> Option<()> {
         sink.try_extend_from_slice(self.id)
@@ -792,4 +851,146 @@ impl ConnectivityInfoComponent for WifiLanConnectivityInfo {
             move |(port, bssid)| Self { ip, port, bssid },
         )(after_ip)
     }
+}
+
+/// A characteristic identifying a capability of a device.
+#[derive(Default, Debug, PartialEq, Eq, Clone, Copy)]
+#[repr(u8)]
+pub enum Capability {
+    /// The device has internet connectivity.
+    #[default]
+    InternetConnectivity = 0,
+    /// The device is a cast receiver.
+    CastReceiver = 1,
+    /// The device is a camera.
+    Camera = 2,
+    /// The device is a speaker.
+    Speaker = 3,
+}
+
+/// Trait to represent the kind of capability bitset.
+/// This is a "marker" trait, it has no methods, but we can implement it for
+/// different types to differentiate them.
+pub trait CapabilityBitsetKind {
+    /// The DE type code of the associated capability bitset DE.
+    const DE_TYPE: DeType;
+}
+
+/// Capabilities DE bitset kind.
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub struct Capabilities;
+
+impl CapabilityBitsetKind for Capabilities {
+    const DE_TYPE: DeType = DeType::const_from(0x18);
+}
+
+/// Requirements DE bitset kind.
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub struct Requirements;
+
+impl CapabilityBitsetKind for Requirements {
+    const DE_TYPE: DeType = DeType::const_from(0x19);
+}
+
+/// A generic data element for capabilities and requirements.
+/// The T type parameter will be either `Capabilities` or `Requirements`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CapabilityBitsetDataElement<T: CapabilityBitsetKind>(u8, core::marker::PhantomData<T>);
+
+/// Data element representing a set of device capabilities.
+pub type CapabilitiesDataElement = CapabilityBitsetDataElement<Capabilities>;
+/// Data element representing a set of required device capabilities for a remote device.
+pub type RequirementsDataElement = CapabilityBitsetDataElement<Requirements>;
+
+impl<T: CapabilityBitsetKind> Default for CapabilityBitsetDataElement<T> {
+    fn default() -> Self {
+        Self(0, core::marker::PhantomData)
+    }
+}
+
+impl<T: CapabilityBitsetKind> CapabilityBitsetDataElement<T> {
+    /// Creates a new empty capability bitset data element.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Adds a capability to the bitset.
+    pub fn add(&mut self, capability: Capability) {
+        self.0 |= 1 << (capability as u8);
+    }
+
+    /// Checks if a capability is present in the bitset.
+    pub fn has(&self, capability: Capability) -> bool {
+        (self.0 >> (capability as u8)) & 1 == 1
+    }
+
+    /// Creates a `CapabilityBitSetDataElement<T>` from a list of capabilities.
+    pub fn from_capabilities(capabilities: tinyvec::ArrayVec<[Capability; 4]>) -> Self {
+        let mut caps = Self::new();
+        for &capability in capabilities.iter() {
+            caps.add(capability);
+        }
+        caps
+    }
+}
+
+impl<T: CapabilityBitsetKind> From<CapabilityBitsetDataElement<T>> for u8 {
+    fn from(capabilities: CapabilityBitsetDataElement<T>) -> Self {
+        capabilities.0
+    }
+}
+
+impl<T: CapabilityBitsetKind> TryFrom<u8> for CapabilityBitsetDataElement<T> {
+    type Error = CapabilityBitsetDeserializationError;
+
+    fn try_from(byte: u8) -> Result<Self, Self::Error> {
+        // Check for reserved bits. The 4 high bits are reserved.
+        if byte & 0b1111_0000 != 0 {
+            return Err(CapabilityBitsetDeserializationError::ReservedBitsSet);
+        }
+        Ok(Self(byte, core::marker::PhantomData))
+    }
+}
+
+impl<T: CapabilityBitsetKind> HasDEType for CapabilityBitsetDataElement<T> {
+    const DE_TYPE: DeType = T::DE_TYPE;
+}
+
+impl<T: CapabilityBitsetKind> WriteDataElement for CapabilityBitsetDataElement<T> {
+    type Salt = Unsalted;
+    fn write_de_contents<S: Sink<u8>>(&self, _salt: Self::Salt, sink: &mut S) -> Option<()> {
+        sink.try_push(self.0)
+    }
+}
+
+impl<'adv, T: CapabilityBitsetKind + 'adv> DeserializedDataElement<'adv>
+    for CapabilityBitsetDataElement<T>
+{
+    type DeserializationError = CapabilityBitsetDeserializationError;
+
+    fn try_deserialize(
+        _maybe_salt: Option<&DeSalt>,
+        contents: &'adv [u8],
+    ) -> Result<Self, Self::DeserializationError> {
+        if contents.len() != 1 {
+            return Err(CapabilityBitsetDeserializationError::InvalidLength);
+        }
+        // Eagerly check format
+        let byte = contents[0];
+        if byte & 0b1111_0000 != 0 {
+            return Err(CapabilityBitsetDeserializationError::ReservedBitsSet);
+        }
+        Ok(Self(byte, core::marker::PhantomData))
+    }
+}
+
+/// Errors that can occur when deserializing a capability bitset DE.
+#[derive(Debug, PartialEq, Eq, Clone, Copy, thiserror::Error)]
+pub enum CapabilityBitsetDeserializationError {
+    /// The DE payload was not exactly 1 byte.
+    #[error("Invalid length")]
+    InvalidLength,
+    /// Reserved bits in the byte were set.
+    #[error("Reserved bits set")]
+    ReservedBitsSet,
 }

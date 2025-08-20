@@ -185,3 +185,14 @@ pub trait UpdateContext<N> {
         self.version().increment(self.updater())
     }
 }
+
+/// A type supporting content equality check besides the standard PartialEq check. This is useful if
+/// a type contains both payload and metadata, in which case PartialEq compares both, while
+/// ContentEq only compares the payload.
+///
+/// This corresponds to [equivalence relations](https://en.wikipedia.org/wiki/Equivalence_relation).
+/// Implementations must make sure that the relation is symmetric, transitive, and reflexive.
+pub trait ContentEq<Rhs: ?Sized = Self> {
+    /// Perform a content equality check.
+    fn content_eq(&self, other: &Rhs) -> bool;
+}

@@ -60,6 +60,7 @@ reqwest = "0.12.5"
 tokio = { version = "1.39.1", features = ["full"] }
 protobuf = "=3.7.2"
 protobuf-codegen = "=3.7.2"
+googletest = "0.14.2"
 
 [workspace.package]
 version = "0.1.0"
