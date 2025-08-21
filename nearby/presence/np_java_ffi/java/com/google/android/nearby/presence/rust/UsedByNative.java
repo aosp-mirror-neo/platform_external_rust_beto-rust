@@ -19,9 +19,6 @@ package com.google.android.nearby.presence.rust;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Target;
 
-/**
- * An annotation used to mark APIs that are used by native code.
- *
- */
+/** An annotation used to mark APIs that are used by native code. */
 @Target({ElementType.METHOD, ElementType.FIELD, ElementType.TYPE, ElementType.CONSTRUCTOR})
 public @interface UsedByNative {}

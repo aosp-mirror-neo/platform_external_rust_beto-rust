@@ -446,8 +446,8 @@ dependencies = [
  "chrono",
  "crossbeam",
  "mockito",
- "protobuf",
- "protobuf-codegen",
+ "protobuf 3.7.2",
+ "protobuf-codegen 3.7.2",
  "protobuf-json-mapping",
  "rand",
  "reqwest",
@@ -1812,6 +1812,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "paste"
+version = "1.0.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "57c0d7b74b563b49d38dae00a0c37d4d6de9b432382b2892f0574ddcae73fd0a"
+
+[[package]]
 name = "pathdiff"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1829,8 +1835,8 @@ version = "0.1.0"
 dependencies = [
  "googletest",
  "ph_client_sys",
- "protobuf",
- "protobuf-codegen",
+ "protobuf 4.32.0-release",
+ "protobuf-codegen 4.32.0-release",
  "tokio",
 ]
 
@@ -1994,6 +2000,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "protobuf"
+version = "4.32.0-release"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "951f19b825af28f7c7ce3daaf71e4e8961394dcc410b3a0aac6e4e0e5b7e2d2b"
+dependencies = [
+ "cc",
+ "paste",
+]
+
+[[package]]
 name = "protobuf-codegen"
 version = "3.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2001,7 +2017,7 @@ checksum = "5d3976825c0014bbd2f3b34f0001876604fe87e0c86cd8fa54251530f1544ace"
 dependencies = [
  "anyhow",
  "once_cell",
- "protobuf",
+ "protobuf 3.7.2",
  "protobuf-parse",
  "regex",
  "tempfile",
@@ -2009,12 +2025,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "protobuf-codegen"
+version = "4.32.0-release"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7756fa998bcc36bb53ff0d857043d96e734956b8ef46eff17d63f550db629b93"
+
+[[package]]
 name = "protobuf-json-mapping"
 version = "3.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e0d6e4be637b310d8a5c02fa195243328e2d97fa7df1127a27281ef1187fcb1d"
 dependencies = [
- "protobuf",
+ "protobuf 3.7.2",
  "protobuf-support",
  "thiserror 1.0.69",
 ]
@@ -2028,7 +2050,7 @@ dependencies = [
  "anyhow",
  "indexmap",
  "log",
- "protobuf",
+ "protobuf 3.7.2",
  "protobuf-support",
  "tempfile",
  "thiserror 1.0.69",
