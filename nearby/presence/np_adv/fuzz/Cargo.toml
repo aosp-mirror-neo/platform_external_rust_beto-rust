@@ -10,7 +10,7 @@ cargo-fuzz = true
 
 [lints.rust.unexpected_cfgs]
 level = "warn"
-check-cfg = ["cfg(fuzzing)"]
+check-cfg = ["cfg(fuzzing)", "cfg(rust_analyzer)"]
 
 [dependencies]
 arbitrary = { workspace = true, features = ["derive"] }

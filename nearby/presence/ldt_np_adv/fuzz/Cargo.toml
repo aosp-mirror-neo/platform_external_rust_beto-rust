@@ -21,7 +21,10 @@ xts_aes.workspace = true
 libfuzzer-sys.workspace = true
 
 [lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = ['cfg(fuzzing)'] }
+unexpected_cfgs = { level = "warn", check-cfg = [
+    'cfg(fuzzing)',
+    'cfg(rust_analyzer)',
+] }
 
 [[bin]]
 name = "ldt_np_roundtrip"

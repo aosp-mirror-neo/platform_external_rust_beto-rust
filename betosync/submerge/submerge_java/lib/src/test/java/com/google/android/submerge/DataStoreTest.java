@@ -101,22 +101,22 @@ public class DataStoreTest {
   public void testCommitEmptyTransaction() throws Exception {
     // Create a document.
     try (DocumentTransaction<String> doc = dataStore.newDocumentTransaction("mydoc");
-          SubmergeMap<String> root = doc.newMap();
-          SubmergeRegister<String> r = doc.newRegister()) {
-        doc.setRoot(root);
-        root.setChild("child", r);
-        doc.commit();
+        SubmergeMap<String> root = doc.newMap();
+        SubmergeRegister<String> r = doc.newRegister()) {
+      doc.setRoot(root);
+      root.setChild("child", r);
+      doc.commit();
     }
     reset(networkInterface);
     reset(storageInterface);
 
     // Read and commit again with no change.
     try (DocumentTransaction<String> doc = dataStore.newDocumentTransaction("mydoc");
-            SubmergeMap<String> root = (SubmergeMap<String>) doc.getRoot();
-            SubmergeRegister<String> r = (SubmergeRegister<String>) root.getChild("child")) {
-        assertThat(root).isNotNull();
-        assertThat(r).isNotNull();
-        doc.commit();
+        SubmergeMap<String> root = (SubmergeMap<String>) doc.getRoot();
+        SubmergeRegister<String> r = (SubmergeRegister<String>) root.getChild("child")) {
+      assertThat(root).isNotNull();
+      assertThat(r).isNotNull();
+      doc.commit();
     }
 
     // Verify nothing happens.
@@ -579,7 +579,7 @@ public class DataStoreTest {
             new StringConverter())) {
       try (DocumentTransaction<String> doc2 = dataStore2.newDocumentTransaction("mydoc")) {
         doc2.mergeNetworkUpdate(captor.getValue());
-        SubmergeRegister<String> child = (SubmergeRegister<String>) doc2.getRoot() ;
+        SubmergeRegister<String> child = (SubmergeRegister<String>) doc2.getRoot();
         child.set("Hi");
         doc2.commit();
       }
@@ -598,10 +598,10 @@ public class DataStoreTest {
 
     // Send the network update back to the first device.
     try (DocumentTransaction<String> doc = dataStore.newDocumentTransaction("mydoc")) {
-        doc.mergeNetworkUpdate(captor.getValue());
-        SubmergeRegister<String> register = (SubmergeRegister<String>) doc.getRoot();
-        assertThat(register.get()).isEqualTo("Hi");
-        doc.commit();
+      doc.mergeNetworkUpdate(captor.getValue());
+      SubmergeRegister<String> register = (SubmergeRegister<String>) doc.getRoot();
+      assertThat(register.get()).isEqualTo("Hi");
+      doc.commit();
     }
 
     // Verify no network update triggered.
@@ -611,6 +611,23 @@ public class DataStoreTest {
     try (DocumentTransaction<String> doc = dataStore.newDocumentTransaction("mydoc")) {
       SubmergeRegister<String> register = (SubmergeRegister<String>) doc.getRoot();
       assertThat(register.get()).isEqualTo("Hi");
+    }
+  }
+
+  @Test(timeout = 10000)
+  public void testMapGetSetChild_doesNotDeadlock() throws Exception {
+    // Submerge data types are stored in handle map, which holds items in shards. Handle maps have
+    // a footgun where it's easy for calling code to deadlock on itself (b/440130634). This test
+    // sets many child elements to a map to ensure that different sharding scenarios are covered.
+    try (DocumentTransaction<String> doc = dataStore.newDocumentTransaction("mydoc")) {
+      SubmergeMap<String> root = doc.newMap();
+      doc.setRoot(root);
+      for (int i = 0; i < 50; i++) {
+        SubmergeMap<String> map = doc.newMap();
+        root.setChild("map" + i, map);
+        assertThat(root.getChild("map" + i)).isNotNull();
+      }
+      doc.commit();
     }
   }
 
@@ -847,7 +864,7 @@ public class DataStoreTest {
 
   @Test
   public void testDeserializeVersionVector_invalidFormat() {
-      assertThrows(RuntimeException.class, () -> VersionVector.fromByteArray(new byte[]{1,2,3}));
+    assertThrows(RuntimeException.class, () -> VersionVector.fromByteArray(new byte[] {1, 2, 3}));
   }
 
   @Test

@@ -65,7 +65,7 @@ Building the image creates a snapshot of the environment that has all of the
 system dependencies needed to start building and running all of the artifacts in
 the codebase.
 
-Running the image runs `cargo run -- check-everything` to verify all of the targets can
+Running the image runs `cargo run -- run-default-checks` to verify all of the targets can
 successfully build and all of the tests pass in your new container environment.
 
 To open a bash shell from the container environment:
@@ -86,7 +86,7 @@ See `cargo run -- --help` for all the available subcommands.
 Check everything:
 
 ```
-cargo run -- check-everything
+cargo run -- run-default-checks
 ```
 
 Build everything:

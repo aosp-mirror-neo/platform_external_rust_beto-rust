@@ -47,6 +47,9 @@ pub const LICENSE_CHECKER: LicenseChecker = LicenseChecker {
         "**/WORKSPACE",
         "**/.bazelrc",
         "**/submerge_java/lib/build/**",
+        "**/*.wasm",
+        "**/submerge_web_demo/node_modules/**",
+        "**/submerge_web_demo/wasm/pkg/**",
     ],
 };
 
