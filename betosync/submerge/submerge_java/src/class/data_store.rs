@@ -28,7 +28,8 @@ use submerge::{
 use crate::{
     class::{
         exceptions::{
-            older_base_needed_exception, transaction_exception, transaction_exception_with_cause,
+            merge_exception, older_base_needed_exception, transaction_exception,
+            transaction_exception_with_cause,
         },
         storage_interface::StorageError,
     },
@@ -186,6 +187,7 @@ extern "system" fn nativeCommitNetworkUpdate<'local>(
                 let version_handle = VersionVectorHandle::allocate(|| required_base_version)?;
                 Err(older_base_needed_exception(env, version_handle)?)?
             }
+            Err(CommitUpdateError::MergeError(err)) => Err(merge_exception(err.to_string()))?,
             Err(err) => Err(transaction_exception(err.to_string()))?,
         }
         Ok(())

@@ -445,10 +445,13 @@ dependencies = [
  "anyhow",
  "chrono",
  "crossbeam",
+ "googletest",
  "mockito",
- "protobuf 3.7.2",
- "protobuf-codegen 3.7.2",
+ "nom",
+ "protobuf 4.32.0-release",
+ "protobuf-codegen",
  "protobuf-json-mapping",
+ "protobuf-well-known-types",
  "rand",
  "reqwest",
  "tempfile",
@@ -979,15 +982,6 @@ name = "hex"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
-
-[[package]]
-name = "home"
-version = "0.5.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "589533453244b0995c858700322199b2becb13b627df2851f64a2775d024abcf"
-dependencies = [
- "windows-sys 0.59.0",
-]
 
 [[package]]
 name = "http"
@@ -1836,7 +1830,7 @@ dependencies = [
  "googletest",
  "ph_client_sys",
  "protobuf 4.32.0-release",
- "protobuf-codegen 4.32.0-release",
+ "protobuf-codegen",
  "tokio",
 ]
 
@@ -2011,21 +2005,6 @@ dependencies = [
 
 [[package]]
 name = "protobuf-codegen"
-version = "3.7.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5d3976825c0014bbd2f3b34f0001876604fe87e0c86cd8fa54251530f1544ace"
-dependencies = [
- "anyhow",
- "once_cell",
- "protobuf 3.7.2",
- "protobuf-parse",
- "regex",
- "tempfile",
- "thiserror 1.0.69",
-]
-
-[[package]]
-name = "protobuf-codegen"
 version = "4.32.0-release"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7756fa998bcc36bb53ff0d857043d96e734956b8ef46eff17d63f550db629b93"
@@ -2042,28 +2021,22 @@ dependencies = [
 ]
 
 [[package]]
-name = "protobuf-parse"
-version = "3.7.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b4aeaa1f2460f1d348eeaeed86aea999ce98c1bded6f089ff8514c9d9dbdc973"
-dependencies = [
- "anyhow",
- "indexmap",
- "log",
- "protobuf 3.7.2",
- "protobuf-support",
- "tempfile",
- "thiserror 1.0.69",
- "which",
-]
-
-[[package]]
 name = "protobuf-support"
 version = "3.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3e36c2f31e0a47f9280fb347ef5e461ffcd2c52dd520d8e216b52f93b0b0d7d6"
 dependencies = [
  "thiserror 1.0.69",
+]
+
+[[package]]
+name = "protobuf-well-known-types"
+version = "4.32.0-release"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cea576686a71c5f30bc811ea6754258efd9d726ca841e109822ebdc14b64705f"
+dependencies = [
+ "protobuf 4.32.0-release",
+ "protobuf-codegen",
 ]
 
 [[package]]
@@ -2510,6 +2483,7 @@ dependencies = [
  "log",
  "objc2",
  "objc2-foundation",
+ "once_cell",
  "rusqlite",
  "serde",
  "serde_json",
@@ -2963,18 +2937,6 @@ checksum = "33b6dd2ef9186f1f2072e409e99cd22a975331a6b3591b12c764e0e55c60d5d2"
 dependencies = [
  "js-sys",
  "wasm-bindgen",
-]
-
-[[package]]
-name = "which"
-version = "4.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "87ba24419a2078cd2b0f2ede2691b6c66d8e47836da3b6db8265ebad47afbfc7"
-dependencies = [
- "either",
- "home",
- "once_cell",
- "rustix",
 ]
 
 [[package]]

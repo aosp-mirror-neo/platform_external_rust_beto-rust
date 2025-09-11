@@ -41,5 +41,5 @@ fn delta_vector_data(
     }
 
     assert_eq!(expected.entries(), delta.entries());
-    assert_eq!(expected, delta.merge());
+    assert_eq!(expected, delta.merge().expect("merge must not fail"));
 }

@@ -41,3 +41,7 @@ doc = false
 [[bin]]
 name = "delta_round_trip"
 doc = false
+
+[[bin]]
+name = "commit_update"
+doc = false

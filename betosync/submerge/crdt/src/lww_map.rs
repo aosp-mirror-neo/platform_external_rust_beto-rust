@@ -347,20 +347,20 @@ where
     T: TotalTimestamp + Clone,
     N: Ord + Clone,
 {
-    fn merge(a: &Self, b: &Self) -> Self {
-        Self {
+    fn merge(a: &Self, b: &Self) -> Result<Self, crate::MergeError> {
+        Ok(Self {
             elements: zip_btree_map(&a.elements, &b.elements)
                 .map(|(key, item)| {
-                    (
+                    Ok((
                         key.clone(),
                         match item {
                             ZipItem::Left(value) | ZipItem::Right(value) => value.clone(),
-                            ZipItem::Both(value_a, value_b) => CrdtState::merge(value_a, value_b),
+                            ZipItem::Both(value_a, value_b) => CrdtState::merge(value_a, value_b)?,
                         },
-                    )
+                    ))
                 })
-                .collect(),
-        }
+                .collect::<Result<_, _>>()?,
+        })
     }
 
     #[cfg(any(test, feature = "checker"))]

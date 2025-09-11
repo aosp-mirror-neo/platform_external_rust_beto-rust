@@ -16,7 +16,7 @@ use std::collections::HashSet;
 
 use crate::{
     checker::{utils::DeterministicHasher, MergeInvariantTest},
-    CrdtState,
+    CrdtState, MergeError,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -31,8 +31,8 @@ impl<'a> arbitrary::Arbitrary<'a> for SetUnion {
 }
 
 impl CrdtState for SetUnion {
-    fn merge(a: &Self, b: &Self) -> Self {
-        SetUnion(a.0.union(&b.0).cloned().collect())
+    fn merge(a: &Self, b: &Self) -> Result<Self, MergeError> {
+        Ok(SetUnion(a.0.union(&b.0).cloned().collect()))
     }
 }
 

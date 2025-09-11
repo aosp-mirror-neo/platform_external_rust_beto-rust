@@ -132,6 +132,7 @@ impl DocumentActor {
                 match result {
                     Ok(()) => {}
                     Err(CommitUpdateError::StorageError(_)) => unreachable!(),
+                    Err(CommitUpdateError::MergeError(_)) => unreachable!(),
                     Err(CommitUpdateError::OlderBaseNeeded {
                         required_base_version,
                     }) => {
