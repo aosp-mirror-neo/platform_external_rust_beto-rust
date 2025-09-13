@@ -44,19 +44,34 @@ enum ArbitraryCrdt {
 fn default_bottom_state(crdt: ArbitraryCrdt) {
     match crdt {
         ArbitraryCrdt::Set(original) => {
-            assert_eq!(original, CrdtState::merge(&original, &Default::default()));
+            assert_eq!(
+                original,
+                CrdtState::merge(&original, &Default::default()).expect("merge must not fail")
+            );
         }
         ArbitraryCrdt::Register(original) => {
-            assert_eq!(original, CrdtState::merge(&original, &Default::default()));
+            assert_eq!(
+                original,
+                CrdtState::merge(&original, &Default::default()).expect("merge must not fail")
+            );
         }
         ArbitraryCrdt::VectorData(original) => {
-            assert_eq!(original, CrdtState::merge(&original, &Default::default()));
+            assert_eq!(
+                original,
+                CrdtState::merge(&original, &Default::default()).expect("merge must not fail")
+            );
         }
         ArbitraryCrdt::Map(original) => {
-            assert_eq!(original, CrdtState::merge(&original, &Default::default()));
+            assert_eq!(
+                original,
+                CrdtState::merge(&original, &Default::default()).expect("merge must not fail")
+            );
         }
         ArbitraryCrdt::Container(original) => {
-            assert_eq!(original, CrdtState::merge(&original, &Default::default()));
+            assert_eq!(
+                original,
+                CrdtState::merge(&original, &Default::default()).expect("merge must not fail")
+            );
         }
     }
 }

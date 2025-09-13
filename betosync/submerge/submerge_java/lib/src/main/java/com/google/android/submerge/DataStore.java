@@ -143,10 +143,11 @@ public class DataStore<T> implements AutoCloseable {
    *     failures while trying to write to disk.
    * @throws OlderBaseNeededException if the {@code updateMessage} given doesn't cover an old enough
    *     base to be applied.
+   * @throws MergeException if the {@code updateMessage} has incompatible changes.
    * @throws RuntimeException if this transaction has already been committed.
    */
   public void commitNetworkUpdate(String docId, byte[] updateMessage)
-      throws TransactionException, OlderBaseNeededException {
+      throws TransactionException, OlderBaseNeededException, MergeException {
     synchronized (this.handle) {
       nativeCommitNetworkUpdate(this.handle.handle, docId, updateMessage);
     }

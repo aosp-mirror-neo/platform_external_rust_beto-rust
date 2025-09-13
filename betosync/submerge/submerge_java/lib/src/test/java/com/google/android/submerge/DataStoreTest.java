@@ -17,7 +17,7 @@
 package com.google.android.submerge;
 
 import static com.google.common.truth.Truth.assertThat;
-import static java.nio.charset.StandardCharsets.UTF_8;
+
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -29,11 +29,14 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import androidx.annotation.Nullable;
+
 import com.google.android.submerge.StorageInterface.StorageException;
 import com.google.android.submerge.SubmergeDataType.SubmergeDataTypeHandleId;
 import com.google.errorprone.annotations.MustBeClosed;
-import java.util.HashMap;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -46,6 +49,8 @@ import org.mockito.Mockito;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+
+import java.util.HashMap;
 
 @RunWith(JUnit4.class)
 public class DataStoreTest {
@@ -925,6 +930,103 @@ public class DataStoreTest {
 
     // A descendant is newer than its ancestor.
     assertThat(v5.compare(v1)).isEqualTo(VersionVector.NEWER);
+  }
+
+  @Test
+  public void testCommitNetworkUpdate_incompatibleType() throws Exception {
+    // 1. Create two datastores for the same actor to simulate divergent states.
+    try (DataStore<String> dataStore1 = createDataStore("actor1");
+         DataStore<String> dataStore2 =
+                    new DataStore<>(
+                            "actor1",
+                            networkInterface,
+                            new Storage(),
+                            timestampProvider,
+                            new StringConverter())) {
+      // 2. Create a base document in store 1 and sync it to store 2.
+      try (DocumentTransaction<String> doc = dataStore1.newDocumentTransaction("mydoc")) {
+        doc.setRoot(doc.newRegister());
+        doc.commit();
+      }
+      byte[] baseUpdate = dataStore1.getFullUpdateMessage("mydoc");
+      dataStore2.commitNetworkUpdate("mydoc", baseUpdate);
+      VersionVector baseVersion = dataStore1.getDocumentVersion("mydoc");
+
+      // 3. Mock timestamp provider to produce identical timestamps to force a content merge.
+      when(timestampProvider.now()).thenReturn(1000L);
+
+      // 4. Create divergent updates with incompatible types from each actor.
+      try (DocumentTransaction<String> doc = dataStore1.newDocumentTransaction("mydoc")) {
+        doc.setRoot(doc.newMap());
+        doc.commit();
+      }
+
+      try (DocumentTransaction<String> doc = dataStore2.newDocumentTransaction("mydoc")) {
+        doc.setRoot(doc.newSet());
+        doc.commit();
+      }
+      byte[] update2;
+      try (DocumentTransaction<String> doc = dataStore2.newDocumentTransaction("mydoc")) {
+        // Make another commit to advance the version vector.
+        ((SubmergeSet<String>) doc.getRoot()).add("another change");
+        doc.commit();
+        update2 = dataStore2.calculateDelta("mydoc", baseVersion);
+      }
+
+      // 5. Now, apply update from store 2 to store 1. This should fail with a merge exception.
+      assertThrows(MergeException.class, () -> dataStore1.commitNetworkUpdate("mydoc", update2));
+    }
+  }
+
+  @Test
+  public void testMergeNetworkUpdateInTransaction_incompatibleType() throws Exception {
+    // 1. Setup two datastores for the same actor.
+    try (DataStore<String> dataStore1 = createDataStore("actor1");
+         DataStore<String> dataStore2 =
+                    new DataStore<>(
+                            "actor1",
+                            networkInterface,
+                            new Storage(),
+                            timestampProvider,
+                            new StringConverter())) {
+
+      // 2. Create a base document and sync.
+      try (DocumentTransaction<String> doc = dataStore1.newDocumentTransaction("mydoc")) {
+        doc.setRoot(doc.newRegister());
+        doc.commit();
+      }
+      byte[] baseUpdate = dataStore1.getFullUpdateMessage("mydoc");
+      dataStore2.commitNetworkUpdate("mydoc", baseUpdate);
+      VersionVector baseVersion = dataStore1.getDocumentVersion("mydoc");
+
+      // 3. Mock timestamp to create conflicting updates.
+      when(timestampProvider.now()).thenReturn(1000L);
+
+      // 4. Create divergent updates with incompatible types from each actor.
+      try (DocumentTransaction<String> doc = dataStore1.newDocumentTransaction("mydoc")) {
+        doc.setRoot(doc.newMap());
+        doc.commit();
+      }
+
+      try (DocumentTransaction<String> doc = dataStore2.newDocumentTransaction("mydoc")) {
+        doc.setRoot(doc.newSet());
+        doc.commit();
+      }
+      byte[] update2;
+      try (DocumentTransaction<String> doc = dataStore2.newDocumentTransaction("mydoc")) {
+        // Make another commit to advance the version vector.
+        ((SubmergeSet<String>) doc.getRoot()).add("another change");
+        doc.commit();
+        update2 = dataStore2.calculateDelta("mydoc", baseVersion);
+      }
+
+
+      // 5.Now, merge update from store 2 to store 1. This should fail with a merge exception.
+      try (DocumentTransaction<String> doc = dataStore1.newDocumentTransaction("mydoc")) {
+        // Now merge the incompatible update from store 1.
+        assertThrows(MergeException.class, () -> doc.mergeNetworkUpdate(update2));
+      }
+    }
   }
 
   private static class StringConverter implements Converter<String> {

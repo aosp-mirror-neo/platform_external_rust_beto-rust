@@ -43,5 +43,5 @@ fn delta_register(
 
     assert_eq!(expected.get_all(), delta.get_all());
     assert_eq!(expected.get(), delta.get());
-    assert_eq!(expected, delta.merge());
+    assert_eq!(expected, delta.merge().expect("merge must not fail"));
 }

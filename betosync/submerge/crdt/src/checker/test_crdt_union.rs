@@ -20,8 +20,8 @@ use std::{convert::Infallible, fmt::Debug};
 
 use crate::{
     delta::{AsDeltaMut, AsDeltaRef, DeltaMut, DeltaRef},
-    lww_crdt_container::{CrdtUnion, IncompatibleType, TryAsChild},
-    ApplyChanges, CrdtState, HasPlainRepresentation, ToPlain, UpdateContext,
+    lww_crdt_container::{CrdtUnion, TryAsChild},
+    ApplyChanges, CrdtState, HasPlainRepresentation, MergeError, ToPlain, UpdateContext,
 };
 use arbitrary::Arbitrary;
 use distributed_time::vector_clock::VectorClock;
@@ -59,11 +59,11 @@ impl TestCrdtUnionRef<'_> {
     /// Combines the base part and the delta part and return the resulting merged component.
     ///
     /// See [`CrdtState::merge`] for details on the merge operation.
-    pub fn merge(&self) -> TestCrdtUnion {
-        match self {
-            Self::Type1(r) => TestCrdtUnion::Type1(r.merge()),
-            Self::Type2(r) => TestCrdtUnion::Type2(r.merge()),
-        }
+    pub fn merge(&self) -> Result<TestCrdtUnion, crate::MergeError> {
+        Ok(match self {
+            Self::Type1(r) => TestCrdtUnion::Type1(r.merge()?),
+            Self::Type2(r) => TestCrdtUnion::Type2(r.merge()?),
+        })
     }
 }
 
@@ -79,11 +79,11 @@ impl TestCrdtUnionMut<'_> {
     /// Combines the base part and the delta part and return the resulting merged component.
     ///
     /// See [`CrdtState::merge`] for details on the merge operation.
-    pub fn merge(&self) -> TestCrdtUnion {
-        match self {
-            Self::Type1(r) => TestCrdtUnion::Type1(r.as_ref().merge()),
-            Self::Type2(r) => TestCrdtUnion::Type2(r.as_ref().merge()),
-        }
+    pub fn merge(&self) -> Result<TestCrdtUnion, crate::MergeError> {
+        Ok(match self {
+            Self::Type1(r) => TestCrdtUnion::Type1(r.as_ref().merge()?),
+            Self::Type2(r) => TestCrdtUnion::Type2(r.as_ref().merge()?),
+        })
     }
 }
 
@@ -92,8 +92,8 @@ impl TestCrdtUnionMut<'_> {
 pub struct TestVariant1(pub u8);
 
 impl CrdtState for TestVariant1 {
-    fn merge(a: &Self, b: &Self) -> Self {
-        Self(a.0.max(b.0))
+    fn merge(a: &Self, b: &Self) -> Result<Self, crate::MergeError> {
+        Ok(Self(a.0.max(b.0)))
     }
 }
 
@@ -116,8 +116,8 @@ impl DeltaRef<'_, TestVariant1> {
 pub struct TestVariant2(pub u8);
 
 impl CrdtState for TestVariant2 {
-    fn merge(a: &Self, b: &Self) -> Self {
-        Self(a.0.max(b.0))
+    fn merge(a: &Self, b: &Self) -> Result<Self, crate::MergeError> {
+        Ok(Self(a.0.max(b.0)))
     }
 }
 
@@ -171,7 +171,7 @@ impl<N: Ord> CrdtUnion<N> for TestCrdtUnion {
     type DeltaRef<'d> = TestCrdtUnionRef<'d>;
     type DeltaMut<'d> = TestCrdtUnionMut<'d>;
 
-    fn try_merge(a: &Self, b: &Self) -> Result<Self, IncompatibleType> {
+    fn try_merge(a: &Self, b: &Self) -> Result<Self, MergeError> {
         match (a, b) {
             (TestCrdtUnion::Type1(state_a), TestCrdtUnion::Type1(state_b)) => {
                 Ok(TestCrdtUnion::Type1(*state_a.max(state_b)))
@@ -179,7 +179,7 @@ impl<N: Ord> CrdtUnion<N> for TestCrdtUnion {
             (TestCrdtUnion::Type2(state_a), TestCrdtUnion::Type2(state_b)) => {
                 Ok(TestCrdtUnion::Type2(*state_a.max(state_b)))
             }
-            _ => Err(IncompatibleType),
+            _ => Err(MergeError::IncompatibleType),
         }
     }
 
@@ -277,7 +277,7 @@ impl ToPlain for TestCrdtUnionRef<'_> {
     type Plain = TestCrdtUnion;
 
     fn to_plain(&self) -> TestCrdtUnion {
-        self.merge()
+        self.merge().expect("merge must not fail")
     }
 }
 

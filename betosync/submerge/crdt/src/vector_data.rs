@@ -240,18 +240,24 @@ where
     N: Ord + Clone,
     V: Clone + Eq,
 {
-    fn merge(a: &Self, b: &Self) -> Self {
-        Self {
+    fn merge(a: &Self, b: &Self) -> Result<Self, crate::MergeError> {
+        Ok(Self {
             elements: zip_btree_map(&a.elements, &b.elements)
-                .map(|(key, item)| match item {
-                    ZipItem::Left(value) | ZipItem::Right(value) => (key.clone(), value.clone()),
-                    ZipItem::Both(value_a, value_b) => (
-                        key.clone(),
-                        max_by_key(value_a, value_b, |v| v.version).clone(),
-                    ),
+                .map(|(key, item)| {
+                    let entry = match item {
+                        ZipItem::Left(value) => value.clone(),
+                        ZipItem::Right(value) => value.clone(),
+                        ZipItem::Both(value_a, value_b) => {
+                            if value_a.version == value_b.version && value_a.data != value_b.data {
+                                return Err(crate::MergeError::InconsistentValue);
+                            }
+                            max_by_key(value_a, value_b, |v| v.version).clone()
+                        }
+                    };
+                    Ok((key.clone(), entry))
                 })
-                .collect(),
-        }
+                .collect::<Result<_, _>>()?,
+        })
     }
 
     #[cfg(any(test, feature = "checker"))]
@@ -342,7 +348,7 @@ pub mod checker {
         V: Debug + PartialEq + Eq + Clone + 'static,
     {
         fn apply(self, mut state: DeltaMut<VectorData<N, V>>, ctx: &SimulationContext<N>) {
-            let before = state.as_ref().merge();
+            let before = state.as_ref().merge().expect("merge must not fail");
             let before_entries = before.entries();
             match self {
                 VecDataOp::Set { node, value } => {
@@ -510,7 +516,7 @@ mod tests {
         let mut child2 = v_parent.clone();
         let _ = child2.set(2, Some(22)).unwrap();
 
-        let v_merged = VectorData::merge(&child1, &child2);
+        let v_merged = VectorData::merge(&child1, &child2).unwrap();
         assert_eq!(
             BTreeMap::from_iter([(&0, &88), (&1, &44), (&2, &22)]),
             v_merged.entries()
@@ -525,10 +531,10 @@ mod tests {
         let mut v2 = VectorData::<u8, u8>::default();
         let _ = v2.set(1, Some(44)).unwrap();
 
-        let _ = VectorData::merge(&v1, &v2);
-        // This is undefined behavior (in the generic sense of the word), it should never happen
-        // since set(1, 44) should always happen after observing set(1, 88) and thus increment the
-        // version number
+        assert_eq!(
+            VectorData::merge(&v1, &v2).unwrap_err(),
+            crate::MergeError::InconsistentValue
+        );
     }
 
     #[test]

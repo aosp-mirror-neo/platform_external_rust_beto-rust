@@ -21,7 +21,7 @@ use crdt::{
         test_fakes::TriState,
     },
     delta::{AsDeltaMut, AsDeltaRef, DeltaMut},
-    CrdtState,
+    CrdtState, MergeError,
 };
 
 /// Our trivial example CRDT.
@@ -30,8 +30,8 @@ pub struct IntegerMaxCrdt(u8);
 
 /// Merges by taking the max of the two values.
 impl CrdtState for IntegerMaxCrdt {
-    fn merge(a: &Self, b: &Self) -> Self {
-        a.max(b).clone()
+    fn merge(a: &Self, b: &Self) -> Result<Self, MergeError> {
+        Ok(a.max(b).clone())
     }
 }
 
@@ -47,7 +47,7 @@ impl Operation<IntegerMaxCrdt, TriState> for IntegerMaxOp {
     fn apply(self, mut state: DeltaMut<IntegerMaxCrdt>, _ctx: &SimulationContext<TriState>) {
         match self {
             IntegerMaxOp::SetInteger { value } => {
-                if value > state.as_ref().merge().0 {
+                if value > state.as_ref().merge().expect("merge must not fail").0 {
                     state.delta_mut().0 = value;
                 }
             }

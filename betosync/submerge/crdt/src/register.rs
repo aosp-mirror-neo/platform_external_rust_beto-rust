@@ -289,10 +289,10 @@ where
     V: Clone,
     D: DistributedClock + NonSemanticOrd + Clone + Default,
 {
-    fn merge(a: &Self, b: &Self) -> Self {
-        Self {
+    fn merge(a: &Self, b: &Self) -> Result<Self, crate::MergeError> {
+        Ok(Self {
             elements: Self::merge_elements(&a.elements, &b.elements),
-        }
+        })
     }
 
     #[cfg(any(test, feature = "checker"))]
@@ -504,8 +504,8 @@ mod tests {
 
         let r3: TestRegister = Register::new(&FakeContext::new(2, 2_u8), 3)?;
 
-        let r_merged = CrdtState::merge(&r1, &r2);
-        let r_merged = CrdtState::merge(&r_merged, &r3);
+        let r_merged = CrdtState::merge(&r1, &r2).unwrap();
+        let r_merged = CrdtState::merge(&r_merged, &r3).unwrap();
 
         // Ordered from oldest to newest according to timestamp, tie-broken by node ID
         assert_eq!(vec![&3, &1, &2], r_merged.get_all());
@@ -522,7 +522,7 @@ mod tests {
         let r2: TestRegister = Register::new(&FakeContext::new(0, 2_u8), 1)?;
 
         // Merging r2 doesn't change r1 because r1 has already observed that change.
-        let r_merged = CrdtState::merge(&r1, &r2);
+        let r_merged = CrdtState::merge(&r1, &r2).unwrap();
 
         assert_eq!(vec![&2], r_merged.get_all());
         assert_eq!(Some(&2), r_merged.get());
@@ -534,7 +534,7 @@ mod tests {
     fn test_merge_same() {
         let r1: TestRegister = Register::new(&FakeContext::new(0, 0_u8), 1).unwrap();
 
-        let r_merged = CrdtState::merge(&r1, &r1);
+        let r_merged = CrdtState::merge(&r1, &r1).unwrap();
 
         assert_eq!(vec![&1], r_merged.get_all());
         assert_eq!(Some(&1), r_merged.get());

@@ -204,8 +204,9 @@ public class DocumentTransaction<T> implements AutoCloseable {
    * @param update The update message from the network.
    * @throws OlderBaseNeededException if the {@code updateMessage} given doesn't cover an old enough
    *     base to be applied.
+   * @throws MergeException if the {@code updateMessage} has incompatible changes.
    */
-  public void mergeNetworkUpdate(byte[] update) throws OlderBaseNeededException {
+  public void mergeNetworkUpdate(byte[] update) throws OlderBaseNeededException, MergeException {
     synchronized (this.handle) {
       nativeMergeNetworkUpdate(this.handle.handle, update);
     }

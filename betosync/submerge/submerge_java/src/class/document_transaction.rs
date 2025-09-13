@@ -29,8 +29,8 @@ use submerge::{
 use crate::{
     class::{
         exceptions::{
-            older_base_needed_exception, ownership_exception, transaction_exception,
-            transaction_exception_with_cause,
+            merge_exception, older_base_needed_exception, ownership_exception,
+            transaction_exception, transaction_exception_with_cause,
         },
         storage_interface::StorageError,
         submerge_data_type::{CrdtType, JavaSubmergeDataType, SubmergeDataTypeHandle, TreeRoot},
@@ -144,6 +144,7 @@ extern "system" fn nativeCommit<'local>(
                     <&JThrowable>::from(throwable.as_obj()),
                 )?)?
             }
+            Err(TransactionError::MergeError(err)) => Err(merge_exception(err.to_string()))?,
             Err(err) => Err(transaction_exception(err.to_string()))?,
         }
         Ok(())
@@ -171,6 +172,7 @@ extern "system" fn nativeMergeNetworkUpdate<'local>(
                 let version_handle = VersionVectorHandle::allocate(|| required_base_version)?;
                 Err(older_base_needed_exception(env, version_handle)?)?
             }
+            Err(CommitUpdateError::MergeError(err)) => Err(merge_exception(err.to_string()))?,
             Err(err) => Err(runtime_exception(err.to_string()))?,
         }
     })

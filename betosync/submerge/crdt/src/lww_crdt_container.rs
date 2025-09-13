@@ -30,6 +30,8 @@ use distributed_time::{
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
+use crate::MergeError;
+
 /// Error returned when a [`CrdtUnion`] cannot be merged.
 #[derive(Debug)]
 pub struct IncompatibleType;
@@ -65,7 +67,7 @@ pub trait CrdtUnion<N: Ord>: Sized {
     /// If `a` and `b` are of the same variant, it should return
     /// `Self::from(CrdtState::merge(a.as_child(), b.as_child()))`. Otherwise, it should return
     /// `Err(IncompatibleType)`.
-    fn try_merge(a: &Self, b: &Self) -> Result<Self, IncompatibleType>;
+    fn try_merge(a: &Self, b: &Self) -> Result<Self, MergeError>;
 
     /// Create a new read-only delta reference from the given `base` and `delta` components.
     fn create_ref<'d>(
@@ -593,47 +595,38 @@ where
     T: TotalTimestamp + Clone,
     N: Ord + Clone,
 {
-    fn merge(a: &Self, b: &Self) -> Self {
+    fn merge(a: &Self, b: &Self) -> Result<Self, MergeError> {
         fn merge_inner<V, T, N: Ord>(
             a: &LwwCrdtContainerInner<V, T>,
             b: &LwwCrdtContainerInner<V, T>,
-        ) -> LwwCrdtContainerInner<V, T>
+        ) -> Result<LwwCrdtContainerInner<V, T>, MergeError>
         where
             V: CrdtUnion<N> + Clone,
             T: TotalTimestamp + Clone,
         {
-            match a.timestamp.cmp(&b.timestamp) {
-                Ordering::Equal => {
-                    match (&a.value, &b.value) {
-                        (Some(value_a), Some(value_b)) => LwwCrdtContainerInner {
-                            value: Some(
-                                CrdtUnion::try_merge(value_a, value_b)
-                                    // This container does not allow updating the value without also
-                                    // updating the timestamp outside of mutating a child CRDT, and
-                                    // `try_merge` is required to delegate to the child CRDT's
-                                    // `merge` which is infallible.
-                                    .expect("Values with the same timestamp should be mergeable."),
-                            ),
-                            timestamp: a.timestamp.clone(),
-                        },
-                        (Some(_), None) => a.clone(),
-                        (None, Some(_)) => b.clone(),
-                        (None, None) => a.clone(),
-                    }
-                }
+            Ok(match a.timestamp.cmp(&b.timestamp) {
+                Ordering::Equal => match (&a.value, &b.value) {
+                    (Some(value_a), Some(value_b)) => LwwCrdtContainerInner {
+                        value: Some(CrdtUnion::try_merge(value_a, value_b)?),
+                        timestamp: a.timestamp.clone(),
+                    },
+                    (Some(_), None) => a.clone(),
+                    (None, Some(_)) => b.clone(),
+                    (None, None) => a.clone(),
+                },
                 Ordering::Less => b.clone(),
                 Ordering::Greater => a.clone(),
-            }
+            })
         }
 
-        LwwCrdtContainer {
+        Ok(LwwCrdtContainer {
             value: match (&a.value, &b.value) {
-                (Some(inner_a), Some(inner_b)) => Some(merge_inner(inner_a, inner_b)),
+                (Some(inner_a), Some(inner_b)) => Some(merge_inner(inner_a, inner_b)?),
                 (Some(inner), None) | (None, Some(inner)) => Some(inner.clone()),
                 (None, None) => None,
             },
             subtree_version: VectorClock::least_upper_bound(&a.subtree_version, &b.subtree_version),
-        }
+        })
     }
 
     #[cfg(any(test, feature = "checker"))]
@@ -790,7 +783,7 @@ mod tests {
         set::Set,
         typed_crdt::{TypedCrdt, TypedCrdtRef},
         vector_data::VectorData,
-        CrdtState,
+        CrdtState, MergeError,
     };
 
     use super::LwwCrdtContainer;
@@ -846,7 +839,7 @@ mod tests {
             .set_value(&FakeContext::new(1, 2_u8), VectorData::default().into())
             .unwrap();
 
-        let merged = CrdtState::merge(&container1, &container2);
+        let merged = CrdtState::merge(&container1, &container2).unwrap();
         // container2 wins because its timestamp is larger
         assert!(matches!(
             merged.get_value(),
@@ -868,7 +861,7 @@ mod tests {
             .set_value(&ctx2, VectorData::default().into())
             .unwrap();
 
-        let merged = CrdtState::merge(&container1, &container2);
+        let merged = CrdtState::merge(&container1, &container2).unwrap();
         // d2 wins even though its timestamp is smaller, because it has observed d1 (d2 is cloned
         // from d1)
         assert!(matches!(
@@ -908,7 +901,7 @@ mod tests {
             .unwrap();
         child_reg1.set(&FakeContext::new(0, 10_u8), "abcd").unwrap();
 
-        let merged = CrdtState::merge(&container1, &container2);
+        let merged = CrdtState::merge(&container1, &container2).unwrap();
         let merged_child_reg = merged.get_child::<Register<_, _>>().unwrap();
         // Merge should be done by Register rules, which is to keep all conflicting values.
         // "5678" comes first because it is newer (timestamp value of 12)
@@ -990,6 +983,23 @@ mod tests {
         assert_eq!(
             container.get_child::<Register<_, _>>().unwrap().get_all(),
             vec!["#1", "#0"]
+        );
+    }
+
+    #[test]
+    fn test_merge_incompatible_type() {
+        let mut container1 = TestContainer::default();
+        let ctx = FakeContext::new(0, 0_u8);
+        container1
+            .set_value(&ctx, Register::default().into())
+            .unwrap();
+
+        let mut container2 = TestContainer::default();
+        container2.set_value(&ctx, Set::default().into()).unwrap();
+
+        assert_eq!(
+            CrdtState::merge(&container1, &container2).unwrap_err(),
+            MergeError::IncompatibleType
         );
     }
 }

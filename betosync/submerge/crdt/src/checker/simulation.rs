@@ -76,7 +76,7 @@ pub trait Operation<S, N: Ord + Eq> {
 ///         test_fakes::TriState,
 ///     },
 ///     delta::{AsDeltaMut, AsDeltaRef, DeltaMut},
-///     CrdtState,
+///     CrdtState, MergeError,
 /// };
 ///
 /// /// Our trivial example CRDT.
@@ -85,8 +85,8 @@ pub trait Operation<S, N: Ord + Eq> {
 ///
 /// /// Merges by taking the max of the two values.
 /// impl CrdtState for IntegerMaxCrdt {
-///     fn merge(a: &Self, b: &Self) -> Self {
-///         a.max(b).clone()
+///     fn merge(a: &Self, b: &Self) -> Result<Self, MergeError> {
+///         Ok(a.max(b).clone())
 ///     }
 /// }
 ///
@@ -102,7 +102,7 @@ pub trait Operation<S, N: Ord + Eq> {
 ///     fn apply(self, mut state: DeltaMut<IntegerMaxCrdt>, _ctx: &SimulationContext<TriState>) {
 ///         match self {
 ///             IntegerMaxOp::SetInteger { value } => {
-///                 if value > state.as_ref().merge().0 {
+///                 if value > state.as_ref().merge().unwrap().0 {
 ///                     state.delta_mut().0 = value;
 ///                 }
 ///             }
@@ -145,7 +145,8 @@ where
                     let mut delta = DeltaOwned::new(&current_state);
                     op.apply(delta.as_mut(), &context);
                     let delta_component = delta.into_delta();
-                    current_state = CrdtState::merge(&current_state, &delta_component);
+                    current_state = CrdtState::merge(&current_state, &delta_component)
+                        .expect("merge must not fail");
                     update_messages.push(delta_component);
                 }
                 SimulationOperation::ContextOp(op) => {
@@ -172,10 +173,14 @@ where
         let delivered_messages = self.delivery_scenario.scramble(&sent_messages)?;
         let state1 = sent_messages
             .into_iter()
-            .fold(self.init_state.clone(), |a, b| CrdtState::merge(&a, &b));
+            .fold(self.init_state.clone(), |a, b| {
+                CrdtState::merge(&a, &b).expect("merge must not fail")
+            });
         let state2 = delivered_messages
             .into_iter()
-            .fold(self.init_state.clone(), |a, b| CrdtState::merge(&a, &b));
+            .fold(self.init_state.clone(), |a, b| {
+                CrdtState::merge(&a, &b).expect("merge must not fail")
+            });
 
         assert_eq!(state1, state2);
         assert_eq!(state1, final_state);

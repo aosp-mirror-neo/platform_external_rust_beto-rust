@@ -1,6 +1,8 @@
 **
 
 !common/
+!nearby/common/
+!nearby/identity/
 common/target/
 !nearby/.cargo
 !nearby/build_scripts/
