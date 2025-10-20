@@ -17,20 +17,24 @@ use std::{ops::Deref, sync::Arc};
 use crdt::lww_crdt_container::{LwwCrdtContainerRead, LwwCrdtContainerWrite};
 use handle_map::HandleLike;
 use jni::{
-    objects::{JClass, JString, JThrowable},
+    objects::{JByteArray, JClass, JString, JThrowable},
     sys::jlong,
     JNIEnv,
 };
 use pourover::{exception::runtime_exception, jni_method};
-use submerge::{DocumentHandle, DocumentTransaction, TransactionError};
+use submerge::{
+    CommitUpdateError, DeltaDocument, DocumentHandle, DocumentTransaction, TransactionError,
+};
 
 use crate::{
     class::{
         exceptions::{
-            ownership_exception, transaction_exception, transaction_exception_with_cause,
+            merge_exception, older_base_needed_exception, ownership_exception,
+            transaction_exception, transaction_exception_with_cause,
         },
         storage_interface::StorageError,
         submerge_data_type::{CrdtType, JavaSubmergeDataType, SubmergeDataTypeHandle, TreeRoot},
+        version_vector::VersionVectorHandle,
     },
     utils::declare_handle,
 };
@@ -140,9 +144,37 @@ extern "system" fn nativeCommit<'local>(
                     <&JThrowable>::from(throwable.as_obj()),
                 )?)?
             }
+            Err(TransactionError::MergeError(err)) => Err(merge_exception(err.to_string()))?,
             Err(err) => Err(transaction_exception(err.to_string()))?,
         }
         Ok(())
+    })
+}
+
+#[jni_method(package = "com.google.android.submerge", class = "DocumentTransaction")]
+extern "system" fn nativeMergeNetworkUpdate<'local>(
+    mut env: JNIEnv<'local>,
+    _cls: JClass<'local>,
+    handle_id: jlong,
+    update_message: JByteArray<'local>,
+) {
+    try_throwable_submerge(&mut env, |env| {
+        let handle = DocumentTransactionHandle::try_from(handle_id)?;
+        let mut transaction = handle.get_mut()?;
+        let update_message = env.convert_byte_array(update_message)?;
+        let delta = DeltaDocument::<JavaDataStoreConfig>::from_proto_bytes(&update_message)
+            .map_err(runtime_exception)?;
+        match transaction.merge_network_delta(&delta) {
+            Ok(_) => Ok(()),
+            Err(CommitUpdateError::OlderBaseNeeded {
+                required_base_version,
+            }) => {
+                let version_handle = VersionVectorHandle::allocate(|| required_base_version)?;
+                Err(older_base_needed_exception(env, version_handle)?)?
+            }
+            Err(CommitUpdateError::MergeError(err)) => Err(merge_exception(err.to_string()))?,
+            Err(err) => Err(runtime_exception(err.to_string()))?,
+        }
     })
 }
 

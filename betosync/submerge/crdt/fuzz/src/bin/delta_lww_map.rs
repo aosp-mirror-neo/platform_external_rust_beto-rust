@@ -88,5 +88,5 @@ fn delta_lww_map(
             .map(|k| (k, delta.get_value(k).map(|f| f.merge())))
             .collect::<Vec<_>>()
     );
-    assert_eq!(expected, delta.merge());
+    assert_eq!(expected, delta.merge().expect("merge must not fail"));
 }

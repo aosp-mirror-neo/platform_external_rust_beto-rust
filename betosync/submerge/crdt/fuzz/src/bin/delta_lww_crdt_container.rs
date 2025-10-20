@@ -84,5 +84,5 @@ fn delta_lww_crdt_container(
             .get_value_mut(&ctx)
             .map(|result| result.map(|d| d.merge())),
     );
-    assert_eq!(expected, delta.merge());
+    assert_eq!(expected, delta.merge().expect("merge must not fail"));
 }

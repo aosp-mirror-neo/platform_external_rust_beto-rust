@@ -26,7 +26,7 @@ use std::{
 use crate::{
     delta::{AsDeltaMut, AsDeltaRef},
     utils::{zip_hash_map, ZipItem},
-    CrdtState,
+    ContentEq, CrdtState,
 };
 use arbitrary::{Arbitrary, Unstructured};
 use derive_where::derive_where;
@@ -358,8 +358,8 @@ where
     E: Hash + Eq + Clone,
     S: BuildHasher + Default,
 {
-    fn merge(a: &Self, b: &Self) -> Self {
-        Self {
+    fn merge(a: &Self, b: &Self) -> Result<Self, crate::MergeError> {
+        Ok(Self {
             elements: {
                 zip_hash_map(&a.elements, &b.elements)
                     .map(|(key, item)| match item {
@@ -368,7 +368,17 @@ where
                     })
                     .collect()
             },
-        }
+        })
+    }
+}
+
+impl<E, S> ContentEq for Set<E, S>
+where
+    E: Hash + Eq,
+    S: BuildHasher,
+{
+    fn content_eq(&self, other: &Self) -> bool {
+        self == other
     }
 }
 
@@ -572,7 +582,7 @@ mod tests {
         let _ = set2.add(3).unwrap();
         let _ = set2.add(4).unwrap();
 
-        let merged = CrdtState::merge(&set1, &set2);
+        let merged = CrdtState::merge(&set1, &set2).unwrap();
 
         assert_eq!(HashSet::from_iter(&[1, 2, 3, 4]), merged.entries());
     }
@@ -586,7 +596,7 @@ mod tests {
 
         let set2: TestSet = Set::default();
 
-        let mut set2 = CrdtState::merge(&set1, &set2);
+        let mut set2 = CrdtState::merge(&set1, &set2).unwrap();
         let _ = set2.remove(2);
 
         assert_eq!(HashSet::from_iter(&[1, 3]), set2.entries());

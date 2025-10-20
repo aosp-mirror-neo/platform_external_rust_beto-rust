@@ -12,15 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::{checker::MergeInvariantTest, CrdtState};
+use crate::{checker::MergeInvariantTest, CrdtState, MergeError};
 use arbitrary::Arbitrary;
 
 #[derive(Debug, Clone, PartialEq, Eq, Arbitrary)]
 struct Counter(u8);
 
 impl CrdtState for Counter {
-    fn merge(a: &Self, b: &Self) -> Self {
-        Counter(a.0.max(b.0))
+    fn merge(a: &Self, b: &Self) -> Result<Self, MergeError> {
+        Ok(Counter(a.0.max(b.0)))
     }
 }
 

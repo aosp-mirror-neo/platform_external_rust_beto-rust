@@ -48,6 +48,12 @@ public abstract class V1DataElement {
     void visitDeviceType(DeviceType deviceType);
 
     void visitConnectivityInfo(ConnectivityInfo connectivityInfo);
+
+    void visitMediaDeduplicationId(MediaDeduplicationId mediaDeduplicationId);
+
+    void visitCapabilities(Capabilities capabilities);
+
+    void visitRequirements(Requirements requirements);
   }
 
   // All subclasses should be in this file
@@ -344,6 +350,81 @@ public abstract class V1DataElement {
     @Override
     public String toString() {
       return "CastIdDE(" + formatByteArrayToString(this.castId, ByteValuePrintFormat.HEX) + ")";
+    }
+  }
+
+  /**
+   * Exception raised upon attempting to deserialize a Cast ID which fails to occupy exactly 32
+   * bytes.
+   */
+  @UsedByNative
+  public static final class MediaDeduplicationIdWrongLengthException
+      extends DeserializationException {
+    @UsedByNative
+    public MediaDeduplicationIdWrongLengthException() {
+      super("Media deduplication ID payload doesn't occupy exactly 20 bytes");
+    }
+  }
+
+  /** A 20-byte Media Deduplication ID. */
+  @UsedByNative
+  public static final class MediaDeduplicationId extends V1DataElement {
+    @UsedByNative private final byte[] mediaDeduplicationId;
+
+    /**
+     * Constructs a new Cast ID DE.
+     *
+     * @throws IllegalArgumentException if the raw bytes of the ID were a length other than 32.
+     */
+    public MediaDeduplicationId(NpAdv npAdv, byte[] mediaDeduplicationId) {
+      this(mediaDeduplicationId);
+      npAdv.ensureLoaded();
+    }
+
+    @UsedByNative
+    private MediaDeduplicationId(byte[] mediaDeduplicationId) {
+      this.mediaDeduplicationId = mediaDeduplicationId;
+      if (mediaDeduplicationId.length != 20) {
+        throw new IllegalArgumentException("Media deduplication ID is not of length 20");
+      }
+    }
+
+    @UsedByNative
+    public byte[] getMediaDeduplicationId() {
+      return Arrays.copyOf(mediaDeduplicationId, mediaDeduplicationId.length);
+    }
+
+    @Override
+    public void visit(Visitor v) {
+      v.visitMediaDeduplicationId(this);
+    }
+
+    @Override
+    public Generic trySerialize() {
+      return nativeTrySerialize(this);
+    }
+
+    private native Generic nativeTrySerialize(MediaDeduplicationId mediaDeduplicationId);
+
+    @Override
+    public boolean equals(@Nullable Object o) {
+      if (o instanceof MediaDeduplicationId) {
+        MediaDeduplicationId other = (MediaDeduplicationId) o;
+        return Arrays.equals(this.mediaDeduplicationId, other.mediaDeduplicationId);
+      }
+      return false;
+    }
+
+    @Override
+    public int hashCode() {
+      return Arrays.hashCode(this.mediaDeduplicationId);
+    }
+
+    @Override
+    public String toString() {
+      return "MediaDeduplicationIdDE("
+          + formatByteArrayToString(this.mediaDeduplicationId, ByteValuePrintFormat.HEX)
+          + ")";
     }
   }
 
@@ -1110,6 +1191,177 @@ public abstract class V1DataElement {
           + ", BSSID="
           + formatByteArrayToString(this.bssid, ByteValuePrintFormat.HEX)
           + ")";
+    }
+  }
+
+  /**
+   * Blanket exception raised when the payload of a Capabilities DE was unable to be interpreted as
+   * a set of capabilities upon deserialization.
+   */
+  @UsedByNative
+  public static final class CapabilitiesMalformedException extends DeserializationException {
+    @UsedByNative
+    public CapabilitiesMalformedException() {
+      super("Capabilities DE was malformed");
+    }
+  }
+
+  /** A collection of one or more device capabilities supported by the broadcaster. */
+  @UsedByNative
+  public static final class Capabilities extends V1DataElement {
+    private final BitSet deviceCapabilities;
+
+    /** Constructs an (initially-empty) set of V1 device capabilities. */
+    public Capabilities(NpAdv npAdv) {
+      this.deviceCapabilities = new BitSet();
+      npAdv.ensureLoaded();
+    }
+
+    @UsedByNative
+    private Capabilities(byte capabilities) {
+      if (capabilities < 0 || capabilities > 15) {
+        throw new IllegalArgumentException("Capabilities is using reserved bits.");
+      }
+      this.deviceCapabilities = BitSet.valueOf(new byte[] {capabilities});
+    }
+
+    /** Gets a copy of the underlying bit-set of device capabilities. */
+    public BitSet getBitSet() {
+      return (BitSet) this.deviceCapabilities.clone();
+    }
+
+    @UsedByNative
+    private byte getValue() {
+      return this.deviceCapabilities.toByteArray()[0];
+    }
+
+    /**
+     * Adds the device capability to this set of capabilities if it was not already present.
+     *
+     * @throws IndexOutOfBoundsException If the device capability is not in the range [0, 3].
+     */
+    public void addCapability(int deviceCapability) {
+      if (deviceCapability < 0 || deviceCapability > 3) {
+        throw new IndexOutOfBoundsException(
+            "Device Capability: " + deviceCapability + " is out of bounds.");
+      }
+      this.deviceCapabilities.set(deviceCapability);
+    }
+
+    @Override
+    public void visit(Visitor v) {
+      v.visitCapabilities(this);
+    }
+
+    @Override
+    public Generic trySerialize() {
+      return nativeTrySerialize(this);
+    }
+
+    private static native Generic nativeTrySerialize(Capabilities actions);
+
+    @Override
+    public boolean equals(@Nullable Object o) {
+      if (o instanceof Capabilities) {
+        Capabilities other = (Capabilities) o;
+        return this.deviceCapabilities.equals(other.deviceCapabilities);
+      }
+      return false;
+    }
+
+    @Override
+    public int hashCode() {
+      return this.deviceCapabilities.hashCode();
+    }
+
+    @Override
+    public String toString() {
+      return "Capabilities(" + this.deviceCapabilities + ")";
+    }
+  }
+
+  /**
+   * Blanket exception raised when the payload of a Requirements DE was unable to be interpreted as
+   * a set of required capabilities upon deserialization.
+   */
+  @UsedByNative
+  public static final class RequirementsMalformedException extends DeserializationException {
+    @UsedByNative
+    public RequirementsMalformedException() {
+      super("Requirements DE was malformed");
+    }
+  }
+
+  /** A collection of one or more capabilities of a remote device required by the broadcaster. */
+  @UsedByNative
+  public static final class Requirements extends V1DataElement {
+    private final BitSet requirements;
+
+    /** Constructs an (initially-empty) set of requirements. */
+    public Requirements(NpAdv npAdv) {
+      this.requirements = new BitSet();
+      npAdv.ensureLoaded();
+    }
+
+    @UsedByNative
+    private Requirements(byte requirements) {
+      if (requirements < 0 || requirements > 15) {
+        throw new IllegalArgumentException("Requirements is using reserved bits.");
+      }
+      this.requirements = BitSet.valueOf(new byte[] {requirements});
+    }
+
+    /** Gets a copy of the underlying bit-set of requirements. */
+    public BitSet getBitSet() {
+      return (BitSet) this.requirements.clone();
+    }
+
+    @UsedByNative
+    private byte getValue() {
+      return this.requirements.toByteArray()[0];
+    }
+
+    /**
+     * Adds the capability to this set of required capabilities if it was not already present.
+     *
+     * @throws IndexOutOfBoundsException If the capability is not in the range [0, 3].
+     */
+    public void addCapability(int capability) {
+      if (capability < 0 || capability > 3) {
+        throw new IndexOutOfBoundsException("Capability: " + capability + " is out of bounds.");
+      }
+      this.requirements.set(capability);
+    }
+
+    @Override
+    public void visit(Visitor v) {
+      v.visitRequirements(this);
+    }
+
+    @Override
+    public Generic trySerialize() {
+      return nativeTrySerialize(this);
+    }
+
+    private static native Generic nativeTrySerialize(Requirements actions);
+
+    @Override
+    public boolean equals(@Nullable Object o) {
+      if (o instanceof Requirements) {
+        Requirements other = (Requirements) o;
+        return this.requirements.equals(other.requirements);
+      }
+      return false;
+    }
+
+    @Override
+    public int hashCode() {
+      return this.requirements.hashCode();
+    }
+
+    @Override
+    public String toString() {
+      return "Requirements(" + this.requirements + ")";
     }
   }
 

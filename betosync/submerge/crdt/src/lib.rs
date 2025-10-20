@@ -22,6 +22,7 @@ use distributed_time::{
     vector_clock::VectorClock, DistributedClock, TimestampOverflow, WallTimestampProvider,
 };
 use lww_crdt_container::CrdtUnion;
+use thiserror::Error;
 
 pub mod lww_crdt_container;
 pub mod lww_map;
@@ -36,11 +37,24 @@ pub mod checker;
 pub mod delta;
 mod utils;
 
+/// Error returned when a CRDT merge fails.
+///
+/// When a merge error occurs, the CRDTs cannot be combined, and data convergence is not guaranteed.
+#[derive(Debug, Error, PartialEq, Eq, Clone, Copy)]
+pub enum MergeError {
+    /// Merge failed because the types are incompatible.
+    #[error("incompatible types")]
+    IncompatibleType,
+    /// Merge failed because the values are inconsistent.
+    #[error("inconsistent values")]
+    InconsistentValue,
+}
+
 /// A CRDT state that is mergeable with instance. The [`merge`][CrdtState::merge] operation must be:
 ///
-/// * associative: `merge(merge(a, b), c) == merge(a, merge(b, c))`, and
-/// * commutative: `merge(a, b) == merge(b, a)`, and
-/// * idempotent: `merge(a, a) == a`
+/// * associative: `merge(merge(a, b)?, c)? == merge(a, merge(b, c)?)?`, and
+/// * commutative: `merge(a, b)? == merge(b, a)?`, and
+/// * idempotent: `merge(a, a)? == a`
 ///
 /// These properties can be verified using
 /// [`MergeInvariantTest`][crate::checker::MergeInvariantTest]. Any implementations of `CrdtState`
@@ -53,9 +67,9 @@ mod utils;
 /// See also:
 /// * [A comprehensive study of Convergent and Commutative Replicated Data
 ///   Types](https://inria.hal.science/inria-00555588/document)
-pub trait CrdtState {
+pub trait CrdtState: Sized {
     /// Merges two CRDT states of the same type. See the trait documentation for details.
-    fn merge(a: &Self, b: &Self) -> Self;
+    fn merge(a: &Self, b: &Self) -> Result<Self, MergeError>;
 
     /// Return whether a given collection of CRDTs are valid.
     ///
@@ -184,4 +198,15 @@ pub trait UpdateContext<N> {
     {
         self.version().increment(self.updater())
     }
+}
+
+/// A type supporting content equality check besides the standard PartialEq check. This is useful if
+/// a type contains both payload and metadata, in which case PartialEq compares both, while
+/// ContentEq only compares the payload.
+///
+/// This corresponds to [equivalence relations](https://en.wikipedia.org/wiki/Equivalence_relation).
+/// Implementations must make sure that the relation is symmetric, transitive, and reflexive.
+pub trait ContentEq<Rhs: ?Sized = Self> {
+    /// Perform a content equality check.
+    fn content_eq(&self, other: &Rhs) -> bool;
 }

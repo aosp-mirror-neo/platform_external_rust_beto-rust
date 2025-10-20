@@ -65,6 +65,57 @@ fn serialize_cast_id() {
 }
 
 #[test]
+fn deserialize_media_deduplication_id() {
+    // Successful case
+    let media_deduplication_id: [u8; MEDIA_DEDUPLICATION_ID_LENGTH] =
+        [5u8; MEDIA_DEDUPLICATION_ID_LENGTH];
+    let de =
+        DataElement::new(MediaDeduplicationIdDataElement::DE_TYPE, &media_deduplication_id, None);
+    let de = DeserializedGoogleDE::try_deserialize(de)
+        .expect("Should recognize a media deduplication id.");
+    let DeserializedGoogleDE::MediaDeduplicationId(de) = de else {
+        panic!(
+            "Media deduplication Id data elements don't deserialize to Media deduplication Ids?"
+        );
+    };
+    let de = de.expect("A proper-length media deduplication ID should deserialize correctly.");
+    assert_eq!(&media_deduplication_id, de.get_id_as_bytes());
+
+    // Failure case
+    let bad_media_deduplication_id: [u8; MEDIA_DEDUPLICATION_ID_LENGTH + 1] =
+        [5u8; MEDIA_DEDUPLICATION_ID_LENGTH + 1];
+    let bad_de = DataElement::new(
+        MediaDeduplicationIdDataElement::DE_TYPE,
+        &bad_media_deduplication_id,
+        None,
+    );
+    let bad_de = DeserializedGoogleDE::try_deserialize(bad_de)
+        .expect("Should recognize even a malformatted cast id.");
+    let DeserializedGoogleDE::MediaDeduplicationId(bad_de) = bad_de else {
+        panic!(
+            "Media deduplication Id data elements don't deserialize to Media deduplication Ids?"
+        );
+    };
+    assert_eq!(
+        bad_de.expect_err(
+            "Wrong-length media deduplication IDs should yield a deserialization error."
+        ),
+        MediaDeduplicationIdDeserializationError::WrongLength
+    );
+}
+
+#[test]
+fn serialize_media_deduplication_id() {
+    let media_deduplication_id: [u8; MEDIA_DEDUPLICATION_ID_LENGTH] =
+        [5u8; MEDIA_DEDUPLICATION_ID_LENGTH];
+    let de = MediaDeduplicationIdDataElement::from(&media_deduplication_id);
+    let mut sink: ArrayVec<[u8; MEDIA_DEDUPLICATION_ID_LENGTH]> = ArrayVec::new();
+    de.write_de_contents(Unsalted, &mut sink)
+        .expect("Should be able to write a Media deduplication Id.");
+    assert_eq!(sink.as_slice(), &media_deduplication_id);
+}
+
+#[test]
 fn deserialize_dedup_hint() {
     // Successful case
     let dedup_hint: [u8; DEDUP_HINT_LENGTH] = [2u8; DEDUP_HINT_LENGTH];
@@ -431,6 +482,120 @@ fn wifi_lan_connectivity_info_no_disallowed_bitmasks() {
         let _ = WifiLanConnectivityInfo::parse_from_payload(&[disallowed_bitmask])
             .expect_err(&format!("Bitmask {} should be disallowed", disallowed_bitmask));
     }
+}
+
+#[test]
+fn capabilities_bitmask() {
+    let mut caps = CapabilitiesDataElement::new();
+    assert_eq!(caps.0, 0b0000_0000);
+
+    caps.add(Capability::InternetConnectivity);
+    assert_eq!(caps.0, 0b0000_0001);
+    assert!(caps.has(Capability::InternetConnectivity));
+    assert!(!caps.has(Capability::Speaker));
+
+    caps.add(Capability::Speaker);
+    assert_eq!(caps.0, 0b0000_1001);
+    assert!(caps.has(Capability::InternetConnectivity));
+    assert!(caps.has(Capability::Speaker));
+
+    let byte: u8 = caps.into();
+    assert_eq!(byte, 0b0000_1001);
+}
+
+#[test]
+fn capabilities_from_byte() {
+    let caps = CapabilitiesDataElement::try_from(0b0000_1101).unwrap();
+    assert!(caps.has(Capability::InternetConnectivity));
+    assert!(!caps.has(Capability::CastReceiver));
+    assert!(caps.has(Capability::Camera));
+    assert!(caps.has(Capability::Speaker));
+}
+
+#[test]
+fn capabilities_from_byte_reserved_bits_set() {
+    let err = CapabilitiesDataElement::try_from(0b0001_0001).unwrap_err();
+    assert_eq!(err, CapabilityBitsetDeserializationError::ReservedBitsSet);
+}
+
+#[test]
+fn deserialize_capabilities_de() {
+    let caps = CapabilitiesDataElement::try_deserialize(None, &[0b0000_0101]).unwrap();
+    assert!(caps.has(Capability::InternetConnectivity));
+    assert!(!caps.has(Capability::CastReceiver));
+    assert!(caps.has(Capability::Camera));
+    assert!(!caps.has(Capability::Speaker));
+}
+
+#[test]
+fn deserialize_capabilities_de_invalid_length() {
+    let err = CapabilitiesDataElement::try_deserialize(None, &[0b0, 0b1]).unwrap_err();
+    assert_eq!(err, CapabilityBitsetDeserializationError::InvalidLength);
+    let err = CapabilitiesDataElement::try_deserialize(None, &[]).unwrap_err();
+    assert_eq!(err, CapabilityBitsetDeserializationError::InvalidLength);
+}
+
+#[test]
+fn deserialize_capabilities_de_reserved_bits() {
+    let err = CapabilitiesDataElement::try_deserialize(None, &[0b1000_0001]).unwrap_err();
+    assert_eq!(err, CapabilityBitsetDeserializationError::ReservedBitsSet);
+}
+
+#[test]
+fn requirements_bitmask() {
+    let mut reqs = RequirementsDataElement::new();
+    assert_eq!(reqs.0, 0b0000_0000);
+
+    reqs.add(Capability::InternetConnectivity);
+    assert_eq!(reqs.0, 0b0000_0001);
+    assert!(reqs.has(Capability::InternetConnectivity));
+    assert!(!reqs.has(Capability::Speaker));
+
+    reqs.add(Capability::Speaker);
+    assert_eq!(reqs.0, 0b0000_1001);
+    assert!(reqs.has(Capability::InternetConnectivity));
+    assert!(reqs.has(Capability::Speaker));
+
+    let byte: u8 = reqs.into();
+    assert_eq!(byte, 0b0000_1001);
+}
+
+#[test]
+fn requirements_from_byte() {
+    let reqs = RequirementsDataElement::try_from(0b0000_1101).unwrap();
+    assert!(reqs.has(Capability::InternetConnectivity));
+    assert!(!reqs.has(Capability::CastReceiver));
+    assert!(reqs.has(Capability::Camera));
+    assert!(reqs.has(Capability::Speaker));
+}
+
+#[test]
+fn requirements_from_byte_reserved_bits_set() {
+    let err = RequirementsDataElement::try_from(0b0001_0001).unwrap_err();
+    assert_eq!(err, CapabilityBitsetDeserializationError::ReservedBitsSet);
+}
+
+#[test]
+fn deserialize_requirements_de() {
+    let reqs = RequirementsDataElement::try_deserialize(None, &[0b0000_0101]).unwrap();
+    assert!(reqs.has(Capability::InternetConnectivity));
+    assert!(!reqs.has(Capability::CastReceiver));
+    assert!(reqs.has(Capability::Camera));
+    assert!(!reqs.has(Capability::Speaker));
+}
+
+#[test]
+fn deserialize_requirements_de_invalid_length() {
+    let err = RequirementsDataElement::try_deserialize(None, &[0b0, 0b1]).unwrap_err();
+    assert_eq!(err, CapabilityBitsetDeserializationError::InvalidLength);
+    let err = RequirementsDataElement::try_deserialize(None, &[]).unwrap_err();
+    assert_eq!(err, CapabilityBitsetDeserializationError::InvalidLength);
+}
+
+#[test]
+fn deserialize_requirements_de_reserved_bits() {
+    let err = RequirementsDataElement::try_deserialize(None, &[0b1000_0001]).unwrap_err();
+    assert_eq!(err, CapabilityBitsetDeserializationError::ReservedBitsSet);
 }
 
 mod coverage_gaming {

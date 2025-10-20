@@ -20,14 +20,15 @@ use crdt::{
 };
 use handle_map::HandleLike;
 use jni::{
-    objects::{JClass, JString},
+    objects::{JClass, JObjectArray, JString},
     sys::jlong,
     JNIEnv,
 };
 use pourover::{exception::runtime_exception, jni_method};
 
-use crate::class::submerge_data_type::{
-    CrdtType, JavaSubmergeDataType, SubmergeDataTypeHandle, TreeRoot,
+use crate::{
+    class::submerge_data_type::{CrdtType, JavaSubmergeDataType, SubmergeDataTypeHandle, TreeRoot},
+    utils::collect_to_jarray,
 };
 
 use super::{
@@ -43,24 +44,30 @@ extern "system" fn nativeGetChild<'local>(
     key: JString<'local>,
 ) -> jlong {
     try_throwable_submerge(&mut env, |env| {
-        let data_handle = SubmergeDataTypeHandle::try_from(data_handle_id)?;
-        let data = data_handle.get()?;
-        let mut guard = data.lock_write()?;
-        let (typed_crdt, _) = guard.get_context_and_node_mut()?;
-        let key = env.get_string(&key).map(String::from)?;
-        let Some(TypedCrdtMut::Map(map)) = typed_crdt else {
-            Err(runtime_exception(format!(
-                "Expected Map but found {}",
-                type_string(typed_crdt)
-            )))?
+        let new_data_type = {
+            // Create a scope for the SubmergeDataTypeHandle shard locks. They must be released
+            // before trying to allocate a new SubmergeDataTypeHandle for the return value.
+            let data_handle = SubmergeDataTypeHandle::try_from(data_handle_id)?;
+            let data = data_handle.get()?;
+            let mut guard = data.lock_write()?;
+            let (typed_crdt, _) = guard.get_context_and_node_mut()?;
+            let key = env.get_string(&key).map(String::from)?;
+            let Some(TypedCrdtMut::Map(map)) = typed_crdt else {
+                Err(runtime_exception(format!(
+                    "Expected Map but found {}",
+                    type_string(typed_crdt)
+                )))?
+            };
+            let crdt_type = map.get_value(&key).map(CrdtType::from);
+            let path = [&data.path, [key].as_slice()].concat();
+            let root_handle = data.root_handle.clone();
+            JavaSubmergeDataType {
+                path,
+                crdt_type,
+                root_handle,
+            }
         };
-        let crdt_type = map.get_value(&key).map(CrdtType::from);
-        let new_handle = SubmergeDataTypeHandle::allocate(|| JavaSubmergeDataType {
-            path: [&data.path, [key].as_slice()].concat(),
-            crdt_type,
-            root_handle: data.root_handle.clone(),
-        })?;
-        Ok(new_handle.jlong())
+        Ok(SubmergeDataTypeHandle::allocate(|| new_data_type)?.jlong())
     })
 }
 
@@ -73,42 +80,43 @@ extern "system" fn nativeSetChild<'local>(
     child_handle_id: jlong,
 ) -> jlong {
     try_throwable_submerge(&mut env, |env| {
-        let data_handle = SubmergeDataTypeHandle::try_from(data_handle_id)?;
-        let data = data_handle.get()?;
-        if !matches!(&data.root_handle, TreeRoot::Document(_)) {
-            return Err(ownership_exception(
-                "Map must be added to a document before calling Map.setChild",
-            ))?;
-        }
-        let mut guard = data.lock_write()?;
-        let (typed_crdt, ctx) = guard.get_context_and_node_mut()?;
-        let Some(TypedCrdtMut::Map(mut map)) = typed_crdt else {
-            Err(runtime_exception(format!(
-                "Expected Map but found {}",
-                type_string(typed_crdt)
-            )))?
-        };
-        let key = env.get_string(&key).map(String::from)?;
         let child_data_type = SubmergeDataTypeHandle::try_from(child_handle_id)?.deallocate()?;
-        let TreeRoot::Detached { root: child, .. } = child_data_type.root_handle else {
-            Err(ownership_exception("Cannot set child which is not owned"))?
+        let new_data = {
+            // Create a scope for the SubmergeDataTypeHandle shard locks. They must be released
+            // before trying to allocate a new SubmergeDataTypeHandle for the return value.
+            let data_handle = SubmergeDataTypeHandle::try_from(data_handle_id)?;
+            let data = data_handle.get()?;
+            if !matches!(&data.root_handle, TreeRoot::Document(_)) {
+                return Err(ownership_exception(
+                    "Map must be added to a document before calling Map.setChild",
+                ))?;
+            }
+            let mut guard = data.lock_write()?;
+            let (typed_crdt, ctx) = guard.get_context_and_node_mut()?;
+            let Some(TypedCrdtMut::Map(mut map)) = typed_crdt else {
+                Err(runtime_exception(format!(
+                    "Expected Map but found {}",
+                    type_string(typed_crdt)
+                )))?
+            };
+            let key = env.get_string(&key).map(String::from)?;
+            let TreeRoot::Detached { root: child, .. } = child_data_type.root_handle else {
+                Err(ownership_exception("Cannot set child which is not owned"))?
+            };
+            let child = Arc::into_inner(child)
+                .ok_or_else(|| ownership_exception("Outstanding refs, cannot take ownership"))?
+                .into_inner();
+            if let Some(value) = child {
+                map.set_value(ctx, key.clone(), value)?;
+            } else {
+                map.remove_value(ctx, key.clone())?;
+            }
+            JavaSubmergeDataType {
+                path: [data.path.as_slice(), [key].as_slice()].concat(),
+                crdt_type: child_data_type.crdt_type,
+                root_handle: data.root_handle.clone(),
+            }
         };
-        let child = Arc::into_inner(child)
-            .ok_or_else(|| ownership_exception("Outstanding refs, cannot take ownership"))?
-            .into_inner();
-        if let Some(value) = child {
-            map.set_value(ctx, key.clone(), value)?;
-        } else {
-            map.remove_value(ctx, key.clone())?;
-        }
-        let new_data = JavaSubmergeDataType {
-            path: [data.path.as_slice(), [key].as_slice()].concat(),
-            crdt_type: child_data_type.crdt_type,
-            root_handle: data.root_handle.clone(),
-        };
-        // Drop the data before allocating new SubmergeDataTypeHandle to avoid deadlock
-        drop(guard);
-        drop(data);
         Ok(SubmergeDataTypeHandle::allocate(|| new_data)?.jlong())
     })
 }
@@ -134,5 +142,34 @@ extern "system" fn nativeRemoveChild<'local>(
         let key = env.get_string(&key).map(String::from)?;
         map.remove_value(ctx, key)?;
         Ok(())
+    })
+}
+
+#[jni_method(package = "com.google.android.submerge", class = "SubmergeMap")]
+extern "system" fn nativeKeySet<'local>(
+    mut env: JNIEnv<'local>,
+    _cls: JClass<'local>,
+    data_handle_id: jlong,
+) -> JObjectArray<'local> {
+    try_throwable_submerge(&mut env, |env| {
+        let data_handle = SubmergeDataTypeHandle::try_from(data_handle_id)?;
+        let data = data_handle.get()?;
+        let mut guard = data.lock_write()?;
+        let (typed_crdt, _) = guard.get_context_and_node_mut()?;
+        let Some(TypedCrdtMut::Map(map)) = typed_crdt else {
+            Err(runtime_exception(format!(
+                "Expected Map but found {}",
+                type_string(typed_crdt)
+            )))?
+        };
+        Ok(collect_to_jarray(
+            env,
+            "java/lang/String",
+            map.keys()
+                .filter(|key| map.get_value(key).is_some())
+                .collect::<Vec<_>>()
+                .into_iter(),
+            |env, item| Ok(env.auto_local(env.new_string(item)?)),
+        )?)
     })
 }

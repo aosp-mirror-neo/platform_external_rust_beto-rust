@@ -23,7 +23,7 @@ use crate::{
     delta::{AsDeltaMut, AsDeltaRef, DeltaMut, DeltaRef},
     lww_crdt_container::{LwwCrdtContainerRead, LwwCrdtContainerWrite, TryAsChild},
     utils::{zip_btree_map, Either, ZipItem},
-    ApplyChanges, CrdtState, HasPlainRepresentation, ToPlain, UpdateContext,
+    ApplyChanges, ContentEq, CrdtState, HasPlainRepresentation, ToPlain, UpdateContext,
 };
 use arbitrary::Arbitrary;
 use derive_where::derive_where;
@@ -347,20 +347,20 @@ where
     T: TotalTimestamp + Clone,
     N: Ord + Clone,
 {
-    fn merge(a: &Self, b: &Self) -> Self {
-        Self {
+    fn merge(a: &Self, b: &Self) -> Result<Self, crate::MergeError> {
+        Ok(Self {
             elements: zip_btree_map(&a.elements, &b.elements)
                 .map(|(key, item)| {
-                    (
+                    Ok((
                         key.clone(),
                         match item {
                             ZipItem::Left(value) | ZipItem::Right(value) => value.clone(),
-                            ZipItem::Both(value_a, value_b) => CrdtState::merge(value_a, value_b),
+                            ZipItem::Both(value_a, value_b) => CrdtState::merge(value_a, value_b)?,
                         },
-                    )
+                    ))
                 })
-                .collect(),
-        }
+                .collect::<Result<_, _>>()?,
+        })
     }
 
     #[cfg(any(test, feature = "checker"))]
@@ -371,6 +371,26 @@ where
         LwwCrdtContainer::is_valid_collection(
             collection.into_iter().flat_map(|s| s.elements.values()),
         )
+    }
+}
+
+impl<K, V, T, N> ContentEq for LwwMap<K, V, T, N>
+where
+    K: Ord,
+    V: CrdtUnion<N> + ContentEq,
+    T: TotalTimestamp,
+    N: Ord + Clone,
+{
+    fn content_eq(&self, other: &Self) -> bool {
+        if self.elements.len() != other.elements.len() {
+            return false;
+        }
+        self.elements
+            .iter()
+            .all(|(key, self_container)| match other.elements.get(key) {
+                Some(other_container) => self_container.content_eq(other_container),
+                None => false,
+            })
     }
 }
 

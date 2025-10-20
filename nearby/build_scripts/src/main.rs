@@ -125,7 +125,15 @@ fn check_format(root: &path::Path, options: &FormatterOptions) -> anyhow::Result
         let root_str =
             glob::Pattern::escape(root.to_str().expect("Non-unicode paths are not supported"));
         let search = format!("{}/**/*.java", root_str);
-        let java_files: Vec<_> = glob::glob(&search).unwrap().filter_map(Result::ok).collect();
+        let java_files: Vec<_> = glob::glob(&search)
+            .unwrap()
+            .filter_map(Result::ok)
+            .filter(|p| {
+                !p.starts_with(format!(
+                    "{root_str}/connections/ukey2/ukey2_jni/java/build/jmh-generated-sources/"
+                ))
+            })
+            .collect();
 
         for file_set in java_files.chunks(100) {
             let mut args = fmt_command[1..].to_vec();
@@ -144,12 +152,20 @@ pub fn check_workspace(root: &path::Path, options: &CheckOptions) -> anyhow::Res
     // ensure formatting is correct (Check for it first because it is fast compared to running tests)
     check_format(root, &options.formatter_options)?;
 
+    // BEGIN-EXTERNAL
+    // let workspace_features = &[];
+    // END-EXTERNAL
+
     for cargo_cmd in [
         // make sure everything compiles
-        "cargo check --workspace --all-targets --quiet --features ph_client/testing",
+        &format!("cargo check --workspace --all-targets --quiet --features={}", workspace_features.join(",")),
         "cargo check -p np_adv -Falloc,devtools --example generate_test_data",
         // run all the tests
-        &options.cargo_options.test("check_workspace", "--workspace --quiet --features ph_client/testing", None),
+        &options.cargo_options.test(
+            "check_workspace", 
+            format!("--workspace --quiet --features={}", workspace_features.join(",")),
+            None
+        ),
         // Test ukey2 builds with different crypto providers
         &options.cargo_options.test(
             "check_workspace_ukey2",
@@ -162,12 +178,16 @@ pub fn check_workspace(root: &path::Path, options: &CheckOptions) -> anyhow::Res
             None,
         ),
         // ensure the docs are valid (cross-references to other code, etc)
-        concat!(
-        "RUSTDOCFLAGS='--deny warnings' ",
-        "cargo doc --quiet --workspace --no-deps --document-private-items --features ph_client/testing ",
-        "--target-dir target/dist_docs",
+        &format!(
+            "RUSTDOCFLAGS='--deny warnings' \
+            cargo doc --quiet --workspace --no-deps --document-private-items --features={} \
+            --exclude crypto_provider_test --target-dir target/dist_docs",
+            workspace_features.join(",")
         ),
-        "cargo clippy --all-targets --workspace --features ph_client/testing -- --deny warnings",
+        &format!(
+            "cargo clippy --all-targets --workspace --features={} -- --deny warnings",
+            workspace_features.join(",")
+        ),
         "cargo deny --workspace check",
     ] {
         run_cmd_shell(root, cargo_cmd)?;
@@ -202,7 +222,7 @@ pub fn run_all_checks(root: &path::Path, check_options: &CheckOptions) -> anyhow
     Ok(())
 }
 
-/// Runs default checks that are suiable for verifying a local change.
+/// Runs default checks that are suitable for verifying a local change.
 pub fn run_default_checks(root: &path::Path, check_options: &CheckOptions) -> anyhow::Result<()> {
     license::LICENSE_CHECKER.check(root)?;
     check_workspace(root, check_options)?;

@@ -54,14 +54,14 @@ impl<T> DeltaRef<'_, T> {
     /// Combines the base part and the delta part and return the resulting merged component.
     ///
     /// See [`CrdtState::merge`] for details on the merge operation.
-    pub fn merge(&self) -> T
+    pub fn merge(&self) -> Result<T, crate::MergeError>
     where
         T: CrdtState + Clone + Default,
     {
         match (self.base, self.delta) {
-            (None, None) => T::default(),
-            (None, Some(delta)) => delta.clone(),
-            (Some(base), None) => base.clone(),
+            (None, None) => Ok(T::default()),
+            (None, Some(delta)) => Ok(delta.clone()),
+            (Some(base), None) => Ok(base.clone()),
             (Some(base), Some(delta)) => T::merge(base, delta),
         }
     }
@@ -153,7 +153,7 @@ impl<'b, T> DeltaOwned<'b, T> {
     /// Merges the base and the delta components of this.
     ///
     /// See [`CrdtState::merge`] for details on the merge operation.
-    pub fn merge(&self) -> T
+    pub fn merge(&self) -> Result<T, crate::MergeError>
     where
         T: CrdtState,
     {

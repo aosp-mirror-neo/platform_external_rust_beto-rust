@@ -17,6 +17,7 @@
 package com.google.android.submerge;
 
 import androidx.annotation.GuardedBy;
+import androidx.annotation.IntDef;
 import com.google.android.submerge.SubmergeCleaner.Cleanable;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -24,6 +25,15 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 public final class VersionVector implements AutoCloseable {
+
+  public static final int OLDER = -1;
+  public static final int EQUAL = 0;
+  public static final int NEWER = 1;
+  public static final int CONCURRENT = 2;
+
+  @IntDef({OLDER, EQUAL, NEWER, CONCURRENT})
+  @Retention(RetentionPolicy.SOURCE)
+  public @interface ComparisonResult {}
 
   private final VersionVectorHandle handle;
 
@@ -35,6 +45,26 @@ public final class VersionVector implements AutoCloseable {
   @Override
   public void close() {
     this.handle.close();
+  }
+
+  public byte[] toByteArray() {
+    return nativeToByteArray(getHandle());
+  }
+
+  public static VersionVector fromByteArray(byte[] data) {
+    return new VersionVector(nativeFromByteArray(data));
+  }
+
+  /**
+   * Compares this version vector with another.
+   *
+   * @param other The other version vector to compare against.
+   * @return The {@link ComparisonResult} of the operation. OLDER if this is older than
+   *    {@code other}, NEWER if this is newer than {@code other}, and so on.
+   */
+  @ComparisonResult
+  public int compare(VersionVector other) {
+    return nativeCompare(getHandle(), other.getHandle());
   }
 
   @VersionVectorHandleId
@@ -76,4 +106,11 @@ public final class VersionVector implements AutoCloseable {
   @interface VersionVectorHandleId {}
 
   private static native void nativeClose(@VersionVectorHandleId long handle);
+
+  private static native byte[] nativeToByteArray(@VersionVectorHandleId long handle);
+
+  private static native @VersionVectorHandleId long nativeFromByteArray(byte[] data);
+
+  private static native int nativeCompare(
+      @VersionVectorHandleId long handle, @VersionVectorHandleId long other);
 }

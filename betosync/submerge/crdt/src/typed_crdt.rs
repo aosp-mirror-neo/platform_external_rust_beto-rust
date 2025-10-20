@@ -29,7 +29,7 @@ use crate::{
     register::{RegisterRead, RegisterWrite},
     set::{SetRead, SetWrite},
     vector_data::{VectorDataRead, VectorDataWrite},
-    ApplyChanges, CrdtState, HasPlainRepresentation, ToPlain, UpdateContext,
+    ApplyChanges, ContentEq, CrdtState, HasPlainRepresentation, ToPlain, UpdateContext,
 };
 use arbitrary::{Arbitrary, Unstructured};
 use derive_where::derive_where;
@@ -42,7 +42,14 @@ use crate::{
     register::{Register, RegisterError},
     set::{GenerationExhausted, Set},
     vector_data::{VectorData, VectorDataError},
+    MergeError,
 };
+
+impl From<MergeError> for IncompatibleType {
+    fn from(_: MergeError) -> Self {
+        IncompatibleType
+    }
+}
 
 /// An enum of the CRDT types supported by this crate.
 ///
@@ -281,22 +288,22 @@ where
     type DeltaRef<'d> = TypedCrdtRef<'d, V, N, S>;
     type DeltaMut<'d> = TypedCrdtMut<'d, V, N, S>;
 
-    fn try_merge(a: &Self, b: &Self) -> Result<Self, IncompatibleType> {
-        match (a, b) {
+    fn try_merge(a: &Self, b: &Self) -> Result<Self, MergeError> {
+        Ok(match (a, b) {
             (TypedCrdt::Map(map_a), TypedCrdt::Map(map_b)) => {
-                Ok(TypedCrdt::Map(CrdtState::merge(map_a, map_b)))
+                TypedCrdt::Map(CrdtState::merge(map_a, map_b)?)
             }
             (TypedCrdt::Register(reg_a), TypedCrdt::Register(reg_b)) => {
-                Ok(TypedCrdt::Register(CrdtState::merge(reg_a, reg_b)))
+                TypedCrdt::Register(CrdtState::merge(reg_a, reg_b)?)
             }
             (TypedCrdt::Set(set_a), TypedCrdt::Set(set_b)) => {
-                Ok(TypedCrdt::Set(CrdtState::merge(set_a, set_b)))
+                TypedCrdt::Set(CrdtState::merge(set_a, set_b)?)
             }
             (TypedCrdt::VectorData(vec_a), TypedCrdt::VectorData(vec_b)) => {
-                Ok(TypedCrdt::VectorData(CrdtState::merge(vec_a, vec_b)))
+                TypedCrdt::VectorData(CrdtState::merge(vec_a, vec_b)?)
             }
-            _ => Err(IncompatibleType),
-        }
+            _ => return Err(MergeError::IncompatibleType),
+        })
     }
 
     fn create_ref<'d>(
@@ -408,6 +415,23 @@ where
             TypedCrdt::Register(_) => self.clone(),
             TypedCrdt::Set(_) => self.clone(),
             TypedCrdt::VectorData(_) => self.clone(),
+        }
+    }
+}
+
+impl<V, N, S> ContentEq for TypedCrdt<V, N, S>
+where
+    V: Eq + Hash + Clone,
+    N: Ord + Clone,
+    S: BuildHasher + Default + Clone,
+{
+    fn content_eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Map(a), Self::Map(b)) => a.content_eq(b),
+            (Self::Register(a), Self::Register(b)) => a.content_eq(b),
+            (Self::Set(a), Self::Set(b)) => a.content_eq(b),
+            (Self::VectorData(a), Self::VectorData(b)) => a.content_eq(b),
+            _ => false,
         }
     }
 }
@@ -559,14 +583,14 @@ pub mod checker {
     pub struct CrdtUnionMergeResult(Option<TypedCrdt<TriState, u8, DeterministicHasher>>);
 
     impl CrdtState for CrdtUnionMergeResult {
-        fn merge(a: &Self, b: &Self) -> Self {
-            match (&a.0, &b.0) {
+        fn merge(a: &Self, b: &Self) -> Result<Self, crate::MergeError> {
+            Ok(match (&a.0, &b.0) {
                 (Some(v_a), Some(v_b)) => match CrdtUnion::try_merge(v_a, v_b) {
                     Ok(v) => CrdtUnionMergeResult(Some(v)),
                     Err(_) => CrdtUnionMergeResult(None),
                 },
                 _ => CrdtUnionMergeResult(None),
-            }
+            })
         }
 
         fn is_valid_collection<'a>(collection: impl IntoIterator<Item = &'a Self>) -> bool

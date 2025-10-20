@@ -46,7 +46,7 @@ use crdt::{
     set::Set,
     typed_crdt::TypedCrdt,
     vector_data::{VectorData, VersionOverflow},
-    CrdtState,
+    ContentEq, CrdtState,
 };
 use derive_where::derive_where;
 use distributed_time::{
@@ -199,29 +199,39 @@ where
 
 /// Error returned when a delta is not applicable to the given base.
 #[derive(Debug, Clone, Error)]
-#[error("Delta is not applicable to the given base")]
-pub struct DeltaNotApplicable;
+pub enum DeltaApplicationError {
+    /// Delta is not applicable to the given base, base version is too old.
+    #[error("Delta is not applicable to the given base, base version is too old")]
+    BaseVersionTooOld,
+    /// The CRDT merge failed.
+    #[error("The CRDT merge failed")]
+    CrdtMergeError(#[from] crdt::MergeError),
+}
 
 impl<Conf: DataStoreConfig> DeltaDocument<Conf> {
     /// Merge this delta document into the given `base`.
     ///
     /// The given `base` should be generated with [`Document::calculate_delta`] or
     /// [`DeltaOwned::into_delta`][crdt::delta::DeltaOwned::into_delta], and must be at least as new
-    /// as the [`base_version`][Self::base_version], or `Err(DeltaNotApplicable)` will be returned.
+    /// as the [`base_version`][Self::base_version], or `Err(DeltaApplicationError::BaseVersionTooOld)`
+    /// will be returned.
     ///
     /// The resulting document will contain all changes from both this delta and the `base`, merged
     /// together according to the CRDT definitions.
     pub fn into_document(
         self,
         base: &Document<Conf>,
-    ) -> Result<Document<Conf>, DeltaNotApplicable> {
+    ) -> Result<Document<Conf>, DeltaApplicationError> {
         if let None | Some(Ordering::Less) = base.version.partial_cmp(&self.base_version) {
-            Err(DeltaNotApplicable)
+            Err(DeltaApplicationError::BaseVersionTooOld)
         } else {
-            Ok(Document {
-                root: CrdtState::merge(&self.root, &base.root),
-                version: VectorClock::least_upper_bound(&self.version, &base.version),
-            })
+            match CrdtState::merge(&self.root, &base.root) {
+                Ok(root) => Ok(Document {
+                    root,
+                    version: VectorClock::least_upper_bound(&self.version, &base.version),
+                }),
+                Err(e) => Err(DeltaApplicationError::CrdtMergeError(e)),
+            }
         }
     }
 }
@@ -239,6 +249,9 @@ pub enum TransactionError<Conf: DataStoreConfig> {
     /// The storage interface failed to persist the resulting data.
     #[error(transparent)]
     StorageError(StorageError<Conf>),
+    /// The CRDT merge failed.
+    #[error("The CRDT merge failed.")]
+    MergeError(#[from] crdt::MergeError),
 }
 
 impl<Conf: DataStoreConfig> From<TimestampOverflow> for TransactionError<Conf> {
@@ -383,6 +396,8 @@ where
     delta: SubmergeContainer<Conf>,
     /// The update context for this document transaction.
     update_context: UpdateContext<Conf>,
+    /// The delta from network update only. This is a subset of the overall delta.
+    network_delta: SubmergeContainer<Conf>,
 }
 
 impl<Handle, Conf> DocumentTransaction<Handle, Conf>
@@ -406,6 +421,7 @@ where
             handle,
             delta: Default::default(),
             update_context,
+            network_delta: Default::default(),
         }
     }
 
@@ -436,22 +452,43 @@ where
     ///   handle the error.
     pub fn commit(mut self) -> Result<(), TransactionError<Conf>> {
         let handle = self.handle.borrow_mut();
-        let merged = CrdtState::merge(&handle.doc.root, &self.delta);
-        if merged == handle.doc.root {
+        let merged = CrdtState::merge(&handle.doc.root, &self.delta)?;
+        let merged_network_only = CrdtState::merge(&handle.doc.root, &self.network_delta)?;
+        // Network change should consider both content change and subtree_version change.
+        let has_network_change = merged_network_only != handle.doc.root;
+        // Local change should only consider content change.
+        let has_local_change = !merged.content_eq(&merged_network_only);
+        if !has_network_change && !has_local_change {
             info!("No updates were made");
             return Ok(());
         }
-        let new_version = handle.doc.version.increment(&handle.metadata.node_id)?;
+        let new_version = if has_local_change {
+            self.update_context
+                .version
+                .increment(&handle.metadata.node_id)?
+        } else {
+            self.update_context.version
+        };
+        let new_root = if has_local_change {
+            merged
+        } else {
+            // Use network merge if there is no local change. This is to ensure any subtree_version
+            // change caused by local read won't be committed.
+            merged_network_only
+        };
         let updated_doc = Document {
-            root: merged,
+            root: new_root,
             version: new_version.clone(),
         };
-        let delta_doc = DeltaDocument {
-            root: self.delta,
-            base_version: handle.doc.version.clone(),
-            version: new_version,
-        };
-        handle.metadata.network.on_new_update(&handle.id, delta_doc);
+        // Send network update if there is a local change.
+        if has_local_change {
+            let delta_doc = DeltaDocument {
+                root: self.delta,
+                base_version: handle.doc.version.clone(),
+                version: new_version,
+            };
+            handle.metadata.network.on_new_update(&handle.id, delta_doc);
+        }
         handle
             .metadata
             .storage
@@ -464,6 +501,35 @@ where
     /// Get the update context for the local node in this data store.
     pub fn update_context(&self) -> &UpdateContext<Conf> {
         &self.update_context
+    }
+
+    /// Merge a network delta into this transaction.
+    pub fn merge_network_delta(
+        &mut self,
+        delta: &DeltaDocument<Conf>,
+    ) -> Result<(), CommitUpdateError<Conf>> {
+        if let Some(Ordering::Less) | None =
+            self.update_context.version.partial_cmp(&delta.base_version)
+        {
+            return Err(CommitUpdateError::OlderBaseNeeded {
+                required_base_version: self.update_context.version.clone(),
+            });
+        }
+        if self.update_context.version >= delta.version {
+            debug!(
+                "Discard obsolete network update. our version={:?}. their version={:?}.",
+                self.update_context.version, delta.version,
+            );
+            return Ok(());
+        }
+        let new_delta = CrdtState::merge(&self.delta, &delta.root)?;
+        // Attempt merging with the base now to ensure the network delta is compatible.
+        let _ = CrdtState::merge(&self.handle.borrow_mut().doc.root, &new_delta)?;
+        self.delta = new_delta;
+        self.network_delta = CrdtState::merge(&self.network_delta, &delta.root)?;
+        self.update_context.version =
+            VectorClock::least_upper_bound(&self.update_context.version, &delta.version);
+        Ok(())
     }
 }
 
@@ -478,6 +544,9 @@ pub enum CommitUpdateError<Conf: DataStoreConfig> {
         /// The base version needed to successfully update this data store.
         required_base_version: VectorClock<Conf::NodeId>,
     },
+    /// The CRDT merge failed.
+    #[error("The CRDT merge failed.")]
+    MergeError(#[from] crdt::MergeError),
 }
 
 /// Error type used for [`DocumentHandle::modify`].
@@ -557,7 +626,7 @@ where
             return Ok(());
         }
         let updated_document = Document {
-            root: CrdtState::merge(&self.doc.root, &update_message.root),
+            root: CrdtState::merge(&self.doc.root, &update_message.root)?,
             version: VectorClock::least_upper_bound(&self.doc.version, &update_message.version),
         };
         debug!(

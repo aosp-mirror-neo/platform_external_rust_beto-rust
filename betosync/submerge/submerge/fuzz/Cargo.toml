@@ -29,7 +29,10 @@ libfuzzer-sys.workspace = true
 nolog = ["log/release_max_level_off"]
 
 [lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = ['cfg(fuzzing)'] }
+unexpected_cfgs = { level = "warn", check-cfg = [
+    "cfg(fuzzing)",
+    "cfg(rust_analyzer)",
+] }
 
 [[bin]]
 name = "submerge_checker"
@@ -37,4 +40,8 @@ doc = false
 
 [[bin]]
 name = "delta_round_trip"
+doc = false
+
+[[bin]]
+name = "commit_update"
 doc = false

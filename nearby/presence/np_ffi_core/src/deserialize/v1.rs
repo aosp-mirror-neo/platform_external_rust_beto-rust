@@ -751,6 +751,13 @@ pub enum V1DataElementDeserializationResultKind {
     /// There was a Connectivity Info DE, but
     /// one of the components was malformed.
     ConnectivityInfoMalformedComponent = 10,
+    /// There was a Media Deduplication ID DE, but its contents
+    /// were the wrong length for such an ID.
+    MediaDeduplicationIdWrongLength = 11,
+    /// There was a Capabilities DE, but the payload was malformed.
+    CapabilitiesMalformed = 12,
+    /// There was a Requirements DE, but the payload was malformed.
+    RequirementsMalformed = 13,
 }
 
 /// Representation of the result of attempting to deserialize
@@ -780,6 +787,9 @@ pub enum V1DataElementDeserializationResult {
     /// There was a Connectivity Info DE, but the component
     /// of the specified index within the DE was malformed.
     ConnectivityInfoMalformedComponent(u8),
+    MediaDeduplicationIdWrongLength,
+    CapabilitiesMalformed,
+    RequirementsMalformed,
 }
 
 impl FfiEnum for V1DataElementDeserializationResult {
@@ -808,6 +818,15 @@ impl FfiEnum for V1DataElementDeserializationResult {
             }
             Self::ConnectivityInfoMalformedComponent(_) => {
                 V1DataElementDeserializationResultKind::ConnectivityInfoMalformedComponent
+            }
+            Self::MediaDeduplicationIdWrongLength => {
+                V1DataElementDeserializationResultKind::MediaDeduplicationIdWrongLength
+            }
+            Self::CapabilitiesMalformed => {
+                V1DataElementDeserializationResultKind::CapabilitiesMalformed
+            }
+            Self::RequirementsMalformed => {
+                V1DataElementDeserializationResultKind::RequirementsMalformed
             }
         }
     }
@@ -908,6 +927,24 @@ impl GenericV1DataElement {
             ))) => V1DataElementDeserializationResult::ConnectivityInfoMalformedComponent(component_index),
             Ok(DeserializedGoogleDE::ConnectivityInfo(Err(_)))
                 => V1DataElementDeserializationResult::ConnectivityInfoMalformed,
+            Ok(DeserializedGoogleDE::MediaDeduplicationId(Ok(media_deduplication_id))) => {
+                V1DataElementDeserializationResult::Success(V1DataElement::MediaDeduplicationId(media_deduplication_id.into()))
+            }
+            Ok(DeserializedGoogleDE::MediaDeduplicationId(Err(
+                np_adv::extended::data_elements::MediaDeduplicationIdDeserializationError::WrongLength,
+            ))) => V1DataElementDeserializationResult::MediaDeduplicationIdWrongLength,
+            Ok(DeserializedGoogleDE::Capabilities(Ok(capabilities))) => {
+                V1DataElementDeserializationResult::Success(V1DataElement::Capabilities(
+                    capabilities.into(),
+                ))
+            }
+            Ok(DeserializedGoogleDE::Capabilities(Err(_))) => V1DataElementDeserializationResult::CapabilitiesMalformed,
+            Ok(DeserializedGoogleDE::Requirements(Ok(capabilities))) => {
+                V1DataElementDeserializationResult::Success(V1DataElement::Requirements(
+                    capabilities.into(),
+                ))
+            }
+            Ok(DeserializedGoogleDE::Requirements(Err(_))) => V1DataElementDeserializationResult::RequirementsMalformed,
             Err(_) => V1DataElementDeserializationResult::Success(V1DataElement::Generic(self)),
         })
     }
@@ -915,6 +952,14 @@ impl GenericV1DataElement {
 
 impl<'a> From<np_adv::extended::data_elements::CastIdDataElement<'a>> for CastId {
     fn from(de: np_adv::extended::data_elements::CastIdDataElement<'a>) -> Self {
+        Self { bytes: *de.get_id_as_bytes() }
+    }
+}
+
+impl<'a> From<np_adv::extended::data_elements::MediaDeduplicationIdDataElement<'a>>
+    for MediaDeduplicationId
+{
+    fn from(de: np_adv::extended::data_elements::MediaDeduplicationIdDataElement<'a>) -> Self {
         Self { bytes: *de.get_id_as_bytes() }
     }
 }
@@ -983,5 +1028,19 @@ impl From<Option<core::net::IpAddr>> for OptionalIpAddress {
             Some(core::net::IpAddr::V4(x)) => Self::IPv4(x.octets().into()),
             Some(core::net::IpAddr::V6(x)) => Self::IPv6(x.octets().into()),
         }
+    }
+}
+
+impl From<np_adv::extended::data_elements::CapabilitiesDataElement> for Capabilities {
+    fn from(de: np_adv::extended::data_elements::CapabilitiesDataElement) -> Self {
+        let capabilities = de.into();
+        Self { capabilities }
+    }
+}
+
+impl From<np_adv::extended::data_elements::RequirementsDataElement> for Requirements {
+    fn from(de: np_adv::extended::data_elements::RequirementsDataElement) -> Self {
+        let requirements = de.into();
+        Self { requirements }
     }
 }

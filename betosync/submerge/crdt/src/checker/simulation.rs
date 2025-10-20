@@ -68,9 +68,53 @@ pub trait Operation<S, N: Ord + Eq> {
 /// * `N`: The Node ID. The default is [`TriState`], which means the system has at most 3 nodes.
 ///
 /// # Example
-#[doc = "```rust"]
-#[doc = include_str!("../../examples/simulation_integer_max/rustdoc.inc.rs")]
-#[doc = "```"]
+/// ```
+/// use arbitrary::Arbitrary;
+/// use crdt::{
+///     checker::{
+///         simulation::{Operation, Simulation, SimulationContext},
+///         test_fakes::TriState,
+///     },
+///     delta::{AsDeltaMut, AsDeltaRef, DeltaMut},
+///     CrdtState, MergeError,
+/// };
+///
+/// /// Our trivial example CRDT.
+/// #[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord, Arbitrary)]
+/// pub struct IntegerMaxCrdt(u8);
+///
+/// /// Merges by taking the max of the two values.
+/// impl CrdtState for IntegerMaxCrdt {
+///     fn merge(a: &Self, b: &Self) -> Result<Self, MergeError> {
+///         Ok(a.max(b).clone())
+///     }
+/// }
+///
+/// /// Define the operations that can be performed on the CRDT.
+/// #[derive(Debug, Clone, Arbitrary)]
+/// pub enum IntegerMaxOp {
+///     /// Only operation supported in this simulation is setting the integer value
+///     SetInteger { value: u8 },
+///     // Operations outside of the CRDT, like setting the wall clock can also be defined here.
+/// }
+///
+/// impl Operation<IntegerMaxCrdt, TriState> for IntegerMaxOp {
+///     fn apply(self, mut state: DeltaMut<IntegerMaxCrdt>, _ctx: &SimulationContext<TriState>) {
+///         match self {
+///             IntegerMaxOp::SetInteger { value } => {
+///                 if value > state.as_ref().merge().unwrap().0 {
+///                     state.delta_mut().0 = value;
+///                 }
+///             }
+///         }
+///     }
+/// }
+///
+/// #[derive_fuzztest::fuzztest]
+/// fn simulator(sim: Simulation<IntegerMaxCrdt, IntegerMaxOp>) {
+///     let _ = sim.run();
+/// }
+/// ```
 #[derive(Debug, Clone, Arbitrary)]
 pub struct Simulation<S, OP, N = TriState>
 where
@@ -101,7 +145,8 @@ where
                     let mut delta = DeltaOwned::new(&current_state);
                     op.apply(delta.as_mut(), &context);
                     let delta_component = delta.into_delta();
-                    current_state = CrdtState::merge(&current_state, &delta_component);
+                    current_state = CrdtState::merge(&current_state, &delta_component)
+                        .expect("merge must not fail");
                     update_messages.push(delta_component);
                 }
                 SimulationOperation::ContextOp(op) => {
@@ -128,10 +173,14 @@ where
         let delivered_messages = self.delivery_scenario.scramble(&sent_messages)?;
         let state1 = sent_messages
             .into_iter()
-            .fold(self.init_state.clone(), |a, b| CrdtState::merge(&a, &b));
+            .fold(self.init_state.clone(), |a, b| {
+                CrdtState::merge(&a, &b).expect("merge must not fail")
+            });
         let state2 = delivered_messages
             .into_iter()
-            .fold(self.init_state.clone(), |a, b| CrdtState::merge(&a, &b));
+            .fold(self.init_state.clone(), |a, b| {
+                CrdtState::merge(&a, &b).expect("merge must not fail")
+            });
 
         assert_eq!(state1, state2);
         assert_eq!(state1, final_state);

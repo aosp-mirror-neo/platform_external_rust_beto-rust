@@ -58,6 +58,13 @@ pub fn transaction_exception(msg: impl Into<String>) -> jni::errors::Exception {
     }
 }
 
+pub fn merge_exception(msg: impl Into<String>) -> jni::errors::Exception {
+    jni::errors::Exception {
+        class: "com/google/android/submerge/MergeException".into(),
+        msg: msg.into(),
+    }
+}
+
 static TRANSACTION_EXCEPTION_CLASS: ClassDesc =
     ClassDesc::new("com/google/android/submerge/TransactionException");
 

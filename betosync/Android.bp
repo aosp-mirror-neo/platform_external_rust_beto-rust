@@ -111,6 +111,7 @@ rust_ffi_shared {
     ],
     rlibs: [
         "libsubmerge",
+        "libsubmerge_internal_proto",
         "libcrdt",
         "libdistributed_time",
         "libarbitrary",

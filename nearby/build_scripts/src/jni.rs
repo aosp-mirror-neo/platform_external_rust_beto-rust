@@ -36,19 +36,3 @@ pub fn run_np_java_ffi_tests(root: &path::Path) -> anyhow::Result<()> {
     run_cmd_shell(&np_java_path, "./gradlew :proguardedTest --info --rerun")?;
     Ok(())
 }
-
-pub fn run_dct_java_ffi_tests(root: &path::Path) -> anyhow::Result<()> {
-    run_cmd_shell(root, "cargo build -p dct_java_ffi")?;
-    let dct_java_path = root.to_path_buf().join("presence/dct_java_ffi");
-    run_cmd_shell(&dct_java_path, "./gradlew :test --info --rerun")?;
-    Ok(())
-}
-
-pub fn run_dct_ios_java_ffi_tests(root: &path::Path) -> anyhow::Result<()> {
-    run_cmd_shell(root, "cargo build -p dct_ios_java_ffi")?;
-    let dct_java_path = root.to_path_buf().join("presence/dct_ios_java_ffi");
-    run_cmd_shell(&dct_java_path, "./gradlew :test --info --rerun")?;
-    run_cmd_shell(&dct_java_path, "./gradlew :proguardedTest --info --rerun")?;
-    Ok(())
-}
-

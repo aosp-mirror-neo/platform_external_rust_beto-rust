@@ -62,6 +62,7 @@ pub const LICENSE_CHECKER: LicenseChecker = LicenseChecker {
         "**/*.a",
         "**/*.so",
         "**/*.dylib",
+        "**/MANIFEST.MF",
     ],
 };
 

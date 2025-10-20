@@ -17,6 +17,9 @@
 package com.google.android.submerge;
 
 import androidx.annotation.Nullable;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * A distributed map type.
@@ -91,6 +94,11 @@ public class SubmergeMap<T> extends SubmergeDataType<T> {
     nativeRemoveChild(this.getHandle(), key);
   }
 
+  /** Returns all available keys in this map that has a child. */
+  public Set<String> keySet() {
+    return new HashSet<>(Arrays.asList(nativeKeySet(this.getHandle())));
+  }
+
   @Override
   public synchronized String toString() {
     return "SubmergeMap {" + super.toString() + "}";
@@ -109,4 +117,6 @@ public class SubmergeMap<T> extends SubmergeDataType<T> {
 
   private static native void nativeRemoveChild(@SubmergeDataTypeHandleId long handle, String key)
       throws TimestampOverflowException;
+
+  private static native String[] nativeKeySet(@SubmergeDataTypeHandleId long handle);
 }

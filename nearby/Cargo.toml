@@ -52,7 +52,11 @@ unsafe_op_in_unsafe_fn = "deny"
 unused_extern_crates = "deny"
 unused_import_braces = "deny"
 unused_results = "deny"
-unexpected_cfgs = { level = "warn", check-cfg = ['cfg(fuzzing)', 'cfg(blaze)'] }
+unexpected_cfgs = { level = "warn", check-cfg = [
+    'cfg(fuzzing)',
+    'cfg(rust_analyzer)',
+    'cfg(blaze)',
+] }
 
 [workspace.lints.clippy]
 expect_used = "deny"
@@ -70,6 +74,7 @@ credential_proto = { path = "identity/credential_proto" }
 identity_common = { path = "identity/common" }
 identity_manager = { path = "identity/identity_manager" }
 identity_provider = { path = "identity/identity_provider" }
+keystore = { path = "identity/keystore" }
 crypto_provider = { path = "crypto/crypto_provider", default-features = false }
 crypto_provider_default = { path = "crypto/crypto_provider_default", default-features = false }
 crypto_provider_boringssl = { path = "crypto/crypto_provider_boringssl" }
@@ -156,6 +161,7 @@ blake2 = "0.10.6"
 hashbrown = "0.15"
 hdrhistogram = "7.5.4"
 regex = "1.10.2"
+crossbeam = "0.8.4"
 tokio = { version = "1.35.0", features = [
     "macros",
     "rt",
@@ -181,6 +187,7 @@ cbindgen = "0.27.0"
 syn = { version = "2.0", features = ["full"] }
 proc-macro2 = "1.0"
 quote = "1.0"
+byteorder = "1.5.0"
 itertools = { version = "0.13.0", default-features = false }
 quickcheck = "1.0.3"
 proptest = "1.4.0"
@@ -192,7 +199,7 @@ async-trait = "0.1.83"
 directories = "5.0.1"
 uuid = { version = "1.11.0", features = ["v4"] }
 mockall = "0.13.1"
-uniffi = "0.29.2"
+uniffi = "0.29.3"
 async-stream = "0.3.6"
 prost = "0.14.1"
 ascii85 = "0.2.1"

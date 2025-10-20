@@ -55,15 +55,14 @@ pub mod utils;
 /// This example implements a last-writer-wins register that requires globally unique timestamps.
 ///
 /// ```
-/// use crdt::CrdtState;
-/// use crdt::checker::MergeInvariantTest;
+/// use crdt::{checker::MergeInvariantTest, CrdtState, MergeError};
 ///
 /// #[derive(Debug, Clone, PartialEq, Eq)]
 /// pub struct LwwValue { timestamp: u64, value: String }
 ///
 /// impl CrdtState for LwwValue {
-///     fn merge(a: &Self, b: &Self) -> Self {
-///         std::cmp::max_by_key(a, b, |v| v.timestamp).clone()
+///     fn merge(a: &Self, b: &Self) -> Result<Self, MergeError> {
+///         Ok(std::cmp::max_by_key(a, b, |v| v.timestamp).clone())
 ///     }
 ///
 ///     #[cfg(any(test, feature = "checker"))]
@@ -98,20 +97,26 @@ impl<S: CrdtState + Eq + Debug> MergeInvariantTest<S> {
         match self {
             Self::Associativity(s1, s2, s3) => {
                 assert_eq!(
-                    S::merge(&S::merge(&s1, &s2), &s3),
-                    S::merge(&s1, &S::merge(&s2, &s3)),
+                    S::merge(&S::merge(&s1, &s2).expect("merge must not fail"), &s3)
+                        .expect("merge must not fail"),
+                    S::merge(&s1, &S::merge(&s2, &s3).expect("merge must not fail"))
+                        .expect("merge must not fail"),
                     "Associativity violated:\ns1={s1:#?}\ns2={s2:#?}\ns3={s3:#?}",
                 )
             }
             Self::Commutativity(s1, s2) => {
                 assert_eq!(
-                    S::merge(&s1, &s2),
-                    S::merge(&s2, &s1),
+                    S::merge(&s1, &s2).expect("merge must not fail"),
+                    S::merge(&s2, &s1).expect("merge must not fail"),
                     "Commutativity violated:\ns1={s1:#?}\ns2={s2:#?}"
                 )
             }
             Self::Idempotence(s1) => {
-                assert_eq!(S::merge(&s1, &s1), s1, "Idempotence violated:\ns1={s1:#?}")
+                assert_eq!(
+                    S::merge(&s1, &s1).expect("merge must not fail"),
+                    s1,
+                    "Idempotence violated:\ns1={s1:#?}"
+                )
             }
         }
     }

@@ -1173,6 +1173,7 @@ dependencies = [
  "pourover",
  "protobuf",
  "submerge",
+ "submerge_internal_proto",
  "thiserror",
 ]
 
