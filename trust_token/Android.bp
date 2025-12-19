@@ -1,0 +1,53 @@
+package {
+    // See: http://go/android-license-faq
+    // A large-scale-change added 'default_applicable_licenses' to import
+    // all of the 'license_kinds' from "external_rust_beto-rust_license"
+    // to get the below license kinds:
+    //   legacy_unencumbered
+    //   SPDX-license-identifier-Apache-2.0
+    //   SPDX-license-identifier-Unlicense
+    default_visibility: [
+        ":__subpackages__",
+        "//frameworks/base/services/core/java/com/android/server/security/talisman:__subpackages__",
+        "//frameworks/base/services/tests/security/talisman:__subpackages__",
+        "//frameworks/base/services/core:__pkg__",
+        "//frameworks/base/services:__pkg__",
+    ],
+    default_applicable_licenses: ["external_rust_beto-rust_license"],
+}
+
+rust_library {
+    name: "libtrust_token",
+    crate_name: "trust_token",
+    defaults: ["beto_rust_defaults"],
+    srcs: ["lib/src/lib.rs"],
+    features: ["std"],
+    rustlibs: [
+        "libcoset",
+        "libbase64_rust",
+        "libcrypto_provider",
+        "libthiserror",
+    ],
+}
+
+rust_ffi_shared {
+    name: "libtrust_token_jni",
+    crate_name: "trust_token_jni",
+    defaults: ["beto_rust_defaults"],
+    srcs: ["jni/src/lib.rs"],
+    rustlibs: [
+        "libcoset",
+        "libcrypto_provider_default",
+        "libhandle_map",
+        "libjni",
+        "libtrust_token",
+        "libpourover",
+    ],
+    prefer_rlib: true,
+}
+
+java_library {
+    name: "trust_token",
+    srcs: ["jni/java/lib/src/main/**/*.java"],
+    required: ["libtrust_token_jni"],
+}
