@@ -102,14 +102,14 @@ fn insert_conn_gen_handle(item: ConnectionBox) -> u64 {
 #[no_mangle]
 pub unsafe extern "C" fn rust_dealloc_ffi_byte_array(arr: RustFFIByteArray) {
     if let Some(vec) = arr.into_vec() {
-        core::mem::drop(vec);
+        drop(vec);
     }
 }
 
 // Common functions
 #[no_mangle]
 pub extern "C" fn is_handshake_complete(handle: u64) -> bool {
-    HANDLE_MAPPING.lock().get(&handle).map_or(false, |ctx| ctx.is_handshake_complete())
+    HANDLE_MAPPING.lock().get(&handle).is_some_and(|ctx| ctx.is_handshake_complete())
 }
 
 #[no_mangle]
@@ -135,7 +135,7 @@ pub unsafe extern "C" fn parse_handshake_message(
     if let Err(error) = result {
         match error {
             HandleMessageError::InvalidState | HandleMessageError::BadMessage => {
-                log::error!("{:?}", error);
+                log::error!("{error:?}");
             }
             HandleMessageError::ErrorMessage(message) => {
                 return CMessageParseResult {

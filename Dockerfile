@@ -37,7 +37,7 @@ ENV CXX=/usr/bin/clang++
 # install cargo with default settings
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 ENV PATH="/root/.cargo/bin:${PATH}"
-RUN rustup toolchain install 1.79.0 --component llvm-tools-preview
+RUN rustup toolchain install 1.88.0 --component llvm-tools-preview
 RUN rustup toolchain install nightly-2024-09-03 --component rust-src --force
 RUN rustup target add wasm32-unknown-unknown # used by np_web
 RUN rustup target add thumbv7m-none-eabi

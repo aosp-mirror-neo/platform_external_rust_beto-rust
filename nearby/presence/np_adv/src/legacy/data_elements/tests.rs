@@ -99,6 +99,8 @@ pub(in crate::legacy) mod macros {
             match de {
                 DeserializedDataElement::Actions(_) => DataElementType::Actions,
                 DeserializedDataElement::TxPower(_) => DataElementType::TxPower,
+                DeserializedDataElement::Psm(_) => DataElementType::Psm,
+                DeserializedDataElement::DeviceInfo(_) => DataElementType::DeviceInfo,
             }
         );
         de

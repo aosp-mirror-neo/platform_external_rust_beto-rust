@@ -16,19 +16,22 @@
 extern crate alloc;
 
 use crate::credential::matched::{
-    EmptyMatchedCredential, KeySeedMatchedCredential, ReferencedMatchedCredential,
+    EmptyMatchedCredential, KeySeedMatchedCredential, MatchedCredentialWithId,
+    ReferencedMatchedCredential,
 };
 use crate::credential::v1::MicSectionVerificationMaterial;
 use crate::credential::{
     book::{
-        init_cache_from_source, CachedCredentialSource, PossiblyCachedDiscoveryCryptoMaterialKind,
+        init_cache_from_source, CachedCredentialSource, CredentialBook, CredentialBookBuilder,
+        PossiblyCachedDiscoveryCryptoMaterialKind,
     },
     source::{CredentialSource, SliceCredentialSource},
     v0::{V0DiscoveryCredential, V0},
     v1::{V1BroadcastCredential, V1DiscoveryCredential, V1DiscoveryCryptoMaterial, V1},
-    MatchableCredential,
+    MatchableCredential, MatchedCredential,
 };
 use crate::extended::{V1IdentityToken, V1_IDENTITY_TOKEN_LEN};
+use alloc::vec;
 use alloc::vec::Vec;
 use crypto_provider_default::CryptoProviderImpl;
 
@@ -116,6 +119,50 @@ fn cached_credential_source_has_requested_cache_size() {
     }
 }
 
+#[test]
+fn precalculated_owned_book_with_id_iterates_correctly() {
+    let v0_creds: [MatchableCredential<V0, MatchedCredentialWithId<Vec<u8>>>; 2] =
+        [0, 1].map(|i| {
+            let match_data = MatchedCredentialWithId::new(vec![i], i as i64);
+            MatchableCredential {
+                discovery_credential: get_zeroed_v0_discovery_credential(),
+                match_data,
+            }
+        });
+    let v1_creds: [MatchableCredential<V1, MatchedCredentialWithId<Vec<u8>>>; 3] =
+        [2, 3, 4].map(|i| {
+            let match_data = MatchedCredentialWithId::new(vec![i], i as i64);
+            MatchableCredential {
+                discovery_credential: get_constant_packed_v1_discovery_credential(i),
+                match_data,
+            }
+        });
+
+    let v0_expected: Vec<_> = v0_creds
+        .iter()
+        .map(|c| (c.match_data.id(), c.match_data.fetch_encrypted_metadata().unwrap()))
+        .collect();
+
+    let v1_expected: Vec<_> = v1_creds
+        .iter()
+        .map(|c| (c.match_data.id(), c.match_data.fetch_encrypted_metadata().unwrap()))
+        .collect();
+
+    let book = CredentialBookBuilder::build_precalculated_owned_book_with_id::<CryptoProviderImpl>(
+        v0_creds, v1_creds,
+    );
+
+    let v0_from_book: Vec<_> =
+        book.v0_iter().map(|(_, m)| (m.id(), m.fetch_encrypted_metadata().unwrap())).collect();
+
+    assert_eq!(v0_from_book, v0_expected);
+
+    let v1_from_book: Vec<_> =
+        book.v1_iter().map(|(_, m)| (m.id(), m.fetch_encrypted_metadata().unwrap())).collect();
+
+    assert_eq!(v1_from_book, v1_expected);
+}
+
 mod coverage_gaming {
     use crate::credential::MetadataDecryptionError;
     use alloc::format;
@@ -123,6 +170,6 @@ mod coverage_gaming {
     #[test]
     fn metadata_decryption_error_debug() {
         let err = MetadataDecryptionError;
-        let _ = format!("{:?}", err);
+        let _ = format!("{err:?}");
     }
 }

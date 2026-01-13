@@ -462,6 +462,7 @@ mod proto {
 
     #[cfg(test)]
     #[derive_fuzztest::proptest]
+    #[allow(clippy::unwrap_used)]
     fn map_roundtrip(
         map: LwwMap<String, TypedCrdt<Vec<u8>, String>, HybridLogicalTimestamp<String>, String>,
     ) {

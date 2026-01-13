@@ -53,8 +53,7 @@ pub fn build_boringssl(root: &Path) -> anyhow::Result<()> {
     run_cmd_shell_with_color::<YellowStderr>(
         &build_dir,
         format!(
-            "cmake -G Ninja .. -DRUST_BINDINGS={} -DCMAKE_POSITION_INDEPENDENT_CODE=true",
-            target
+            "cmake -G Ninja .. -DRUST_BINDINGS={target} -DCMAKE_POSITION_INDEPENDENT_CODE=true"
         ),
     )?;
     run_cmd_shell(&build_dir, "ninja")?;

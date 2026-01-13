@@ -137,7 +137,7 @@ mod tests {
         #[test]
         fn plaintext_flavor() {
             // debug
-            let _ = format!("{:?}", Plaintext);
+            let _ = format!("{Plaintext:?}");
             // eq and clone
             assert_eq!(Plaintext, Plaintext.clone())
         }
@@ -145,7 +145,7 @@ mod tests {
         #[test]
         fn ciphertext_flavor() {
             // debug
-            let _ = format!("{:?}", Ciphertext);
+            let _ = format!("{Ciphertext:?}");
             // eq and clone
             assert_eq!(Ciphertext, Ciphertext.clone())
         }

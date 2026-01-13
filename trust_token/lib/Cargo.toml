@@ -1,0 +1,33 @@
+[package]
+name = "trust_token"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[lib]
+
+[lints]
+workspace = true
+
+[dependencies]
+base64.workspace = true
+coset.workspace = true
+crypto_provider.workspace = true
+crypto_provider_default = { workspace = true, features = [
+  "rustcrypto",
+], optional = true }
+thiserror.workspace = true
+
+[dev-dependencies]
+crypto_provider = { workspace = true }
+crypto_provider_default = { workspace = true, features = ["rustcrypto", "std"] }
+rand.workspace = true
+rand_core_06.workspace = true
+hex.workspace = true
+
+[features]
+default = ["std"]
+create = []
+std = []
+testing = ["dep:crypto_provider_default"]

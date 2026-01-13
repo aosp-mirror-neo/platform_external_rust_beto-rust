@@ -166,6 +166,22 @@ pub fn runtime_exception(msg: impl ToString) -> jni::errors::Exception {
     }
 }
 
+/// Creates an IllegalArgumentException with the given message.
+pub fn illegal_argument_exception(msg: impl ToString) -> jni::errors::Exception {
+    jni::errors::Exception {
+        class: "java/lang/IllegalArgumentException".into(),
+        msg: msg.to_string(),
+    }
+}
+
+/// Creates an IllegalStateException with the given message.
+pub fn illegal_state_exception(msg: impl ToString) -> jni::errors::Exception {
+    jni::errors::Exception {
+        class: "java/lang/IllegalStateException".into(),
+        msg: msg.to_string(),
+    }
+}
+
 /// Runs the given `func` and turns any [`ThrowableJniError`] into Java exceptions.
 ///
 /// A convenience function that takes a closure `func`, runs it immediately, and calls

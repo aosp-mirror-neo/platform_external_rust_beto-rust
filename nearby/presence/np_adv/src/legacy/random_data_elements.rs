@@ -16,26 +16,26 @@
 
 extern crate std;
 
-use crate::legacy::data_elements::actions::tests::{
-    set_ciphertexttext_action, set_plaintext_action,
-};
+use crate::legacy::data_elements::actions::tests::set_action;
+use crate::legacy::data_elements::device_info::DeviceInfoDataElement;
+use crate::legacy::data_elements::psm::PsmDataElement;
 use crate::{
     legacy::{
         data_elements::{actions::*, de_type::DataElementType, tx_power::TxPowerDataElement, *},
         deserialize::DeserializedDataElement,
-        Ciphertext, PacketFlavor, PacketFlavorEnum, Plaintext,
+        Ciphertext, PacketFlavor, Plaintext,
     },
-    shared_data::TxPower,
+    shared_data::{DeviceInfo, DeviceType, TxPower},
 };
+use alloc::vec;
+use rand::prelude::IteratorRandom;
 use rand_ext::rand::{distributions, prelude::SliceRandom as _};
 use std::prelude::rust_2021::*;
 use strum::IntoEnumIterator;
 
 impl distributions::Distribution<ActionsDataElement<Plaintext>> for distributions::Standard {
     fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> ActionsDataElement<Plaintext> {
-        let mut available_actions = ActionType::iter()
-            .filter(|at| at.supports_flavor(PacketFlavorEnum::Plaintext))
-            .collect::<Vec<_>>();
+        let mut available_actions = actions::tests::supported_action_types();
         available_actions.shuffle(rng);
 
         // choose some of the available actions.
@@ -48,7 +48,7 @@ impl distributions::Distribution<ActionsDataElement<Plaintext>> for distribution
             // generating boolean actions with `true` since we already did our random selection
             // of which actions to use above
 
-            set_plaintext_action(*a, true, &mut bits);
+            set_action(*a, &mut bits);
         }
 
         ActionsDataElement::from(bits)
@@ -57,9 +57,7 @@ impl distributions::Distribution<ActionsDataElement<Plaintext>> for distribution
 
 impl distributions::Distribution<ActionsDataElement<Ciphertext>> for distributions::Standard {
     fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> ActionsDataElement<Ciphertext> {
-        let mut available_actions = ActionType::iter()
-            .filter(|at| at.supports_flavor(PacketFlavorEnum::Ciphertext))
-            .collect::<Vec<_>>();
+        let mut available_actions = actions::tests::supported_action_types();
         available_actions.shuffle(rng);
 
         // choose some of the available actions
@@ -71,7 +69,7 @@ impl distributions::Distribution<ActionsDataElement<Ciphertext>> for distributio
         for a in selected_actions {
             // generating boolean actions with `true` since we already did our random selection
             // of which actions to use above
-            set_ciphertexttext_action(*a, true, &mut bits);
+            set_action(*a, &mut bits);
         }
 
         ActionsDataElement::from(bits)
@@ -89,6 +87,25 @@ impl distributions::Distribution<TxPowerDataElement> for distributions::Standard
     fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> TxPowerDataElement {
         let tx_power: TxPower = self.sample(rng);
         TxPowerDataElement::from(tx_power)
+    }
+}
+
+impl distributions::Distribution<PsmDataElement> for distributions::Standard {
+    fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> PsmDataElement {
+        let psm: u16 = self.sample(rng);
+        PsmDataElement { value: psm }
+    }
+}
+
+impl distributions::Distribution<DeviceInfoDataElement> for distributions::Standard {
+    fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> DeviceInfoDataElement {
+        let device_type = DeviceType::iter().choose(rng).unwrap();
+        let name_len = rng.gen_range(5..=9);
+        let mut device_name = vec![0; name_len];
+        rng.fill(&mut device_name[..]);
+        let device_info =
+            DeviceInfo::try_from((device_type, false, device_name.as_slice())).unwrap();
+        DeviceInfoDataElement { device_info }
     }
 }
 
@@ -117,6 +134,8 @@ where
     match de_type {
         DataElementType::TxPower => rand_de(DeserializedDataElement::TxPower, rng),
         DataElementType::Actions => rand_de(DeserializedDataElement::Actions, rng),
+        DataElementType::Psm => rand_de(DeserializedDataElement::Psm, rng),
+        DataElementType::DeviceInfo => rand_de(DeserializedDataElement::DeviceInfo, rng),
     }
 }
 
@@ -132,5 +151,7 @@ where
     match de_type {
         DataElementType::TxPower => rand_de(DeserializedDataElement::TxPower, rng),
         DataElementType::Actions => rand_de(DeserializedDataElement::Actions, rng),
+        DataElementType::Psm => rand_de(DeserializedDataElement::Psm, rng),
+        DataElementType::DeviceInfo => rand_de(DeserializedDataElement::DeviceInfo, rng),
     }
 }

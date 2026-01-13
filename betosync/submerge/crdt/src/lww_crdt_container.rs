@@ -753,6 +753,7 @@ mod proto {
 
     #[cfg(test)]
     #[derive_fuzztest::proptest]
+    #[allow(clippy::unwrap_used)]
     fn container_roundtrip(
         container: LwwCrdtContainer<
             TypedCrdt<Vec<u8>, String>,

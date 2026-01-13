@@ -153,6 +153,7 @@ pub struct DeType {
 
 impl DeType {
     /// A `const` equivalent to `From<u32>` since trait methods can't yet be const.
+    #[allow(clippy::panic)]
     pub const fn const_from(value: u32) -> Self {
         if value == FORBIDDEN_DE_TYPE_CODE {
             panic!("Invalid DeType.");

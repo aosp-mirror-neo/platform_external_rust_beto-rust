@@ -509,6 +509,7 @@ mod proto {
 
     #[cfg(test)]
     #[derive_fuzztest::proptest]
+    #[allow(clippy::unwrap_used)]
     fn set_roundtrip(set: Set<Vec<u8>>) {
         let mut node_ids = NodeMapping::default();
         assert_eq!(

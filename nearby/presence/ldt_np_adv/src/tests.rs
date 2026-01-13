@@ -274,7 +274,7 @@ mod coverage_gaming {
     fn legacy_identity_token() {
         let token = V0IdentityToken::from([0; V0_IDENTITY_TOKEN_LEN]);
         // debug
-        let _ = format!("{:?}", token);
+        let _ = format!("{token:?}");
         // hash
         let _ = collections::HashSet::new().insert(&token);
         // bytes

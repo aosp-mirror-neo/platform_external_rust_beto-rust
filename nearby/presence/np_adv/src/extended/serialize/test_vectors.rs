@@ -127,13 +127,13 @@ fn gen_mic_encrypted_test_vectors() {
             (0..num_des)
                 .map(|de_index| {
                     let de_len = test_vector_seed_hkdf
-                        .derive_range_element(&format!("de len {}", de_index), 0..=30);
+                        .derive_range_element(&format!("de len {de_index}"), 0..=30);
                     let data = test_vector_seed_hkdf
-                        .derive_vec(&format!("de data {}", de_index), de_len.try_into().unwrap());
+                        .derive_vec(&format!("de data {de_index}"), de_len.try_into().unwrap());
                     DummyDataElement {
                         de_type: DeType::try_from(
                             u32::try_from(test_vector_seed_hkdf.derive_range_element(
-                                &format!("de type {}", de_index),
+                                &format!("de type {de_index}"),
                                 0_u64..=1_000,
                             ))
                             .unwrap(),

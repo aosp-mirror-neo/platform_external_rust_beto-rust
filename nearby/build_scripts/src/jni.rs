@@ -32,6 +32,9 @@ pub fn run_ukey2_jni_tests(root: &path::Path) -> anyhow::Result<()> {
 pub fn run_np_java_ffi_tests(root: &path::Path) -> anyhow::Result<()> {
     run_cmd_shell(root, "cargo build -p np_java_ffi -F np_ffi_core/rustcrypto -F testing")?;
     let np_java_path = root.to_path_buf().join("presence/np_java_ffi");
+    // This needs to run once a while to upgrade the gradle to the latest.
+    // Particularly, when these tests fail, uncomment and upgrade.
+    // run_cmd_shell(&np_java_path, "./gradlew wrapper --gradle-version latest")?;
     run_cmd_shell(&np_java_path, "./gradlew :test --info --rerun")?;
     run_cmd_shell(&np_java_path, "./gradlew :proguardedTest --info --rerun")?;
     Ok(())

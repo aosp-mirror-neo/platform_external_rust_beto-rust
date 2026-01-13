@@ -221,6 +221,10 @@ fn translate_deserialized_de<'local>(
         V1DataElement::Requirements(requirements) => {
             Requirements::construct(env, requirements).map(|x| Some(x.0))
         }
+        V1DataElement::DeviceInfo(_) => {
+            // TODO: implement device info.
+            Ok(Some(JObject::null()))
+        }
     };
     match result {
         Ok(Some(result)) => result,
@@ -314,6 +318,9 @@ extern "system" fn try_deserialize_generic_de<'local>(
         }
         V1DataElementDeserializationResult::RequirementsMalformed => {
             let _ = RequirementsMalformedException::throw_new(&mut env);
+        }
+        V1DataElementDeserializationResult::DeviceInfoMalformed => {
+            // TODO: implement handling of device info malformed.
         }
     }
     // Catch-all return value for thrown errors.

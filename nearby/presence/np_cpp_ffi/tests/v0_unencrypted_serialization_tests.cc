@@ -28,24 +28,6 @@ TEST_F(NpCppTest, TxPowerMustBeInRange) {
   ASSERT_FALSE(out_of_range_result.ok());
 }
 
-TEST_F(NpCppTest, V0UnencryptedActionFlavorMustMatch) {
-  auto actions = nearby_protocol::V0Actions::BuildNewZeroed(
-      nearby_protocol::AdvertisementBuilderKind::Public);
-
-  // Try to set an encrypted-only action.
-  auto mismatch_result =
-      actions.TrySetAction(nearby_protocol::ActionType::InstantTethering, true);
-  ASSERT_FALSE(mismatch_result.ok());
-  // Verify that nothing changed about the actions.
-  ASSERT_EQ(actions.GetAsU32(), 0u);
-
-  // Try again, but with a plaintext-compatible action.
-  auto success_result =
-      actions.TrySetAction(nearby_protocol::ActionType::NearbyShare, true);
-  ASSERT_TRUE(success_result.ok());
-  ASSERT_TRUE(actions.HasAction(nearby_protocol::ActionType::NearbyShare));
-}
-
 // Corresponds to V0DeserializeSingleDataElementTxPower
 TEST_F(NpCppTest, V0SerializeSingleDataElementTxPower) {
   auto adv_builder = nearby_protocol::V0AdvertisementBuilder::CreatePublic();
@@ -94,10 +76,10 @@ TEST_F(NpCppTest, V0SerializeLengthTwoActionsDataElement) {
       nearby_protocol::AdvertisementBuilderKind::Public);
 
   ASSERT_TRUE(
-      actions.TrySetAction(nearby_protocol::ActionType::NearbyShare, true)
+      actions.TrySetAction(nearby_protocol::ActionType::TryBuildFromU8(9).value(), true)
           .ok());
   ASSERT_TRUE(
-      actions.TrySetAction(nearby_protocol::ActionType::CrossDevSdk, true)
+      actions.TrySetAction(nearby_protocol::ActionType::TryBuildFromU8(1).value(), true)
           .ok());
 
   auto de = nearby_protocol::V0DataElement(actions);

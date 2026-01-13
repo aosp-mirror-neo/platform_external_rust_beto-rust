@@ -76,7 +76,7 @@ fn sha_cavp_vector_test<const N: usize>(
             } else if let Some(hex_str) = line.strip_prefix("MD = ") {
                 md = Some(Vec::<u8>::from_hex(hex_str).unwrap());
             } else {
-                panic!("Unexpected line in test file: `{}`", line);
+                panic!("Unexpected line in test file: `{line}`");
             }
         }
         if let (Some(len), Some(msg), Some(md)) = (len, msg, md) {

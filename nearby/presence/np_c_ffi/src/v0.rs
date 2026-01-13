@@ -139,3 +139,87 @@ pub extern "C" fn np_ffi_V0Actions_set_action(
 pub extern "C" fn np_ffi_V0Actions_as_u32(actions: V0Actions) -> u32 {
     actions.as_u32()
 }
+
+/// Casts a `V0DataElement` to the `Psm` variant, panicking in the
+/// case where the passed value is of a different enum variant.
+#[no_mangle]
+pub extern "C" fn np_ffi_V0DataElement_into_PSM(de: V0DataElement) -> Psm {
+    unwrap(de.into_psm(), PanicReason::EnumCastFailed)
+}
+
+/// Upcasts a Psm DE to a generic V0 data-element.
+#[no_mangle]
+pub extern "C" fn np_ffi_Psm_into_V0DataElement(psm: Psm) -> V0DataElement {
+    V0DataElement::Psm(psm)
+}
+
+/// Casts a `V0DataElement` to the `DeviceInfo` variant, panicking in the
+/// case where the passed value is of a different enum variant.
+#[no_mangle]
+pub extern "C" fn np_ffi_V0DataElement_into_DeviceInfo(de: V0DataElement) -> DeviceInfo {
+    unwrap(de.into_device_info(), PanicReason::EnumCastFailed)
+}
+
+/// Upcasts a DeviceInfo DE to a generic V0 data-element.
+#[no_mangle]
+pub extern "C" fn np_ffi_DeviceInfo_into_V0DataElement(device_info: DeviceInfo) -> V0DataElement {
+    V0DataElement::DeviceInfo(device_info)
+}
+
+/// Gets the value of the given PSM as a unsigned u16.
+#[no_mangle]
+pub extern "C" fn np_ffi_Psm_as_unsigned_u16(psm: Psm) -> u16 {
+    psm.as_u16()
+}
+
+/// Attempts to construct a new PSM from
+/// the given u16 value.
+#[no_mangle]
+pub extern "C" fn np_ffi_Psm_build_from_u16(psm: u16) -> BuildPsmResult {
+    Psm::build_from_unsigned_bytes(psm)
+}
+
+/// Gets the tag of a `BuildTxPowerResult` tagged-union.
+#[no_mangle]
+pub extern "C" fn np_ffi_BuildPsmResult_kind(result: BuildPsmResult) -> BuildPsmResultKind {
+    result.kind()
+}
+
+/// Casts a `BuildPsmResult` to the `Success` variant, panicking in the
+/// case where the passed value is of a different enum variant.
+#[no_mangle]
+pub extern "C" fn np_ffi_BuildPsmResult_into_SUCCESS(result: BuildPsmResult) -> Psm {
+    unwrap(result.into_success(), PanicReason::EnumCastFailed)
+}
+
+/// Gets the tag of a `BuildActionTypeResult` tagged-union.
+#[no_mangle]
+pub extern "C" fn np_ffi_BuildActionTypeResult_kind(
+    result: BuildActionTypeResult,
+) -> BuildActionTypeResultKind {
+    result.kind()
+}
+
+/// Casts a `BuildActionTypeResult` to the `Success` variant, panicking in the
+/// case where the passed value is of a different enum variant.
+#[no_mangle]
+pub extern "C" fn np_ffi_BuildActionTypeResult_into_SUCCESS(
+    result: BuildActionTypeResult,
+) -> ActionType {
+    unwrap(result.into_success(), PanicReason::EnumCastFailed)
+}
+
+/// Attempts to construct a new ActionType from
+/// the given signed-byte value.
+#[no_mangle]
+pub extern "C" fn np_ffi_ActionType_build_from_unsigned_byte(
+    action_type: u8,
+) -> BuildActionTypeResult {
+    ActionType::build_from_unsigned_byte(action_type)
+}
+
+/// Gets the value of the given ActionType as an unsigned byte.
+#[no_mangle]
+pub extern "C" fn np_ffi_ActionType_as_unsigned_byte(action_type: ActionType) -> u8 {
+    action_type.as_u8()
+}

@@ -43,6 +43,7 @@ impl<T, const N: usize> ArrayView<T, N> {
     }
     /// A version of [`ArrayView#try_from_array`] which panics if `len > buffer.len()`,
     /// suitable for usage in `const` contexts.
+    #[allow(clippy::panic)]
     pub const fn const_from_array(array: [T; N], len: usize) -> ArrayView<T, N> {
         if N < len {
             panic!("Invalid const ArrayView");

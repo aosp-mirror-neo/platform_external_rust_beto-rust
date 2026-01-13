@@ -80,7 +80,7 @@ impl LicenseChecker {
                 "Google LLC".to_string(),
             )),
         )? {
-            println!("Added header: {:?}", p);
+            println!("Added header: {p:?}");
         }
 
         Ok(())

@@ -758,6 +758,70 @@ impl TxPower {
     }
 }
 
+/// The result of attempting to serialize capabilities
+/// represented as a bitmap into a DE.
+#[repr(C)]
+#[allow(missing_docs)]
+pub enum SerializeDeviceInfoResult {
+    Success(GenericV1DataElement),
+    DeviceInfoMalformed,
+}
+
+impl FfiEnum for SerializeDeviceInfoResult {
+    type Kind = SerializeDeviceInfoResultKind;
+    fn kind(&self) -> Self::Kind {
+        match self {
+            Self::Success(_) => SerializeDeviceInfoResultKind::Success,
+            Self::DeviceInfoMalformed => SerializeDeviceInfoResultKind::DeviceInfoMalformed,
+        }
+    }
+}
+
+impl SerializeDeviceInfoResult {
+    declare_enum_cast! {into_success, Success, GenericV1DataElement }
+}
+
+/// Discriminant for `SerializeCapabilitiesBitmapResult`
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[repr(u8)]
+pub enum SerializeDeviceInfoResultKind {
+    /// The attempt succeeded. The wrapped data element
+    /// may be obtained via
+    /// `SerializeCapabilitiesBitmapResult#into_success`.
+    Success = 0,
+    /// The attempt failed because reserved bits were set.
+    DeviceInfoMalformed = 1,
+}
+
+impl DeviceInfo {
+    /// Attempts to serialize this Device Info to a generic V1 data element.
+    pub fn try_serialize_v1(&self) -> SerializeDeviceInfoResult {
+        let result: Result<GenericV1DataElement, ()> = (|| {
+            let device_type =
+                np_adv::shared_data::DeviceType::from_repr(self.device_type).ok_or(())?;
+
+            let name_slice = match &self.device_name {
+                OptionalByteBuffer::Present(buffer) => buffer.as_slice().map_err(|_| ())?,
+                OptionalByteBuffer::NotSpecified => &[],
+            };
+
+            let device_info = np_adv::shared_data::DeviceInfo::try_from((
+                device_type,
+                self.is_name_truncated,
+                name_slice,
+            ))
+            .map_err(|_| ())?;
+            let de = np_adv::extended::data_elements::DeviceInfoDataElement::from(device_info);
+            Ok(GenericV1DataElement::from_write_de(&de))
+        })();
+
+        match result {
+            Ok(de) => SerializeDeviceInfoResult::Success(de),
+            Err(_) => SerializeDeviceInfoResult::DeviceInfoMalformed,
+        }
+    }
+}
+
 impl ContextSyncSeqNum {
     /// Attempts to serialize this Context Sync sequence number to a generic
     /// V1 data element.
@@ -1024,6 +1088,30 @@ mod tests {
         let requirements = Requirements { requirements: 0b0001_0001 };
         let result = requirements.try_serialize();
         assert_eq!(result.kind(), SerializeRequirementsBitmapResultKind::ReservedBitsSet);
+    }
+
+    #[test]
+    fn test_serialize_valid_device_info() {
+        let device_name = OptionalByteBuffer::Present(ByteBuffer { len: 9, bytes: [1u8; 9] });
+        let device_info = DeviceInfo { device_type: 1, is_name_truncated: false, device_name };
+        let result = device_info.try_serialize_v1();
+        assert_eq!(result.kind(), SerializeDeviceInfoResultKind::Success);
+    }
+
+    #[test]
+    fn test_serialize_device_info_name_too_short() {
+        let mut name_bytes = [0u8; 9];
+        let name_slice = b"abcd"; // 4 bytes, which is less than the minimum of 5.
+        #[allow(clippy::indexing_slicing)]
+        name_bytes[..name_slice.len()].copy_from_slice(name_slice);
+
+        let device_name = OptionalByteBuffer::Present(ByteBuffer {
+            len: name_slice.len() as u8,
+            bytes: name_bytes,
+        });
+        let device_info = DeviceInfo { device_type: 1, is_name_truncated: false, device_name };
+        let result = device_info.try_serialize_v1();
+        assert_eq!(result.kind(), SerializeDeviceInfoResultKind::DeviceInfoMalformed);
     }
 
     #[cfg(not(feature = "nocrypto"))]

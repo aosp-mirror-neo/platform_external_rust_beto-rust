@@ -197,6 +197,64 @@ fn serialize_device_type() {
 }
 
 #[test]
+fn deserialize_device_info() {
+    // Success case, with a recognized device type.
+    let device_type = crate::shared_data::DeviceType::TV;
+    let device_name = b"my-tv";
+    let mut device_info_bytes = Vec::new();
+    device_info_bytes.push(device_type as u8);
+    device_info_bytes.extend_from_slice(device_name);
+
+    let de = DataElement::new(DeviceInfoDataElement::DE_TYPE, &device_info_bytes, None);
+    let de = DeserializedGoogleDE::try_deserialize(de).expect("Should recognize a device info DE.");
+    let DeserializedGoogleDE::DeviceInfo(de) = de else {
+        panic!("Device info data elements don't deserialize to device info?");
+    };
+    let de = de.expect("Well formed device info DEs should always deserialize.");
+    assert_eq!(de.device_info.device_type(), device_type);
+    assert!(!de.device_info.name_truncated());
+    assert_eq!(de.device_info.device_name(), device_name);
+
+    // Failure case: wrong length
+    let de = DataElement::new(DeviceInfoDataElement::DE_TYPE, &device_info_bytes[..5], None);
+    let de = DeserializedGoogleDE::try_deserialize(de)
+        .expect("Should recognize even a malformatted device info DE.");
+    let DeserializedGoogleDE::DeviceInfo(de) = de else {
+        panic!("Device info data elements don't deserialize to device info?");
+    };
+    let err = de.expect_err("Device infos that are too short should not deserialize.");
+    assert_eq!(DeviceInfoDeserializationError::WrongLength, err);
+}
+
+#[test]
+fn serialize_device_info() {
+    let device_info = DeviceInfo::try_from((
+        crate::shared_data::DeviceType::Laptop,
+        true,
+        "my-laptop".as_bytes(),
+    ))
+    .unwrap();
+    let de = DeviceInfoDataElement::from(device_info);
+    let mut sink: ArrayVec<[u8; 10]> = ArrayVec::new();
+    de.write_de_contents(Unsalted, &mut sink).expect("Should be able to write a device info.");
+    assert_eq!(
+        sink.as_slice(),
+        &[
+            crate::shared_data::DeviceType::Laptop as u8 | 0b10000000,
+            b'm',
+            b'y',
+            b'-',
+            b'l',
+            b'a',
+            b'p',
+            b't',
+            b'o',
+            b'p'
+        ]
+    );
+}
+
+#[test]
 fn serialize_tx_power_de() {
     let mut adv_builder = AdvBuilder::new();
     let mut section_builder = adv_builder.section_builder(UnencryptedSectionEncoder).unwrap();
@@ -470,7 +528,7 @@ fn ble_connectivity_info_no_disallowed_bitmasks() {
     // four bits are explicitly disallowed.
     for disallowed_bitmask in 1u8..=15u8 {
         let _ = BleConnectivityInfo::parse_from_payload(&[disallowed_bitmask])
-            .expect_err(&format!("Bitmask {} should be disallowed", disallowed_bitmask));
+            .expect_err(&format!("Bitmask {disallowed_bitmask} should be disallowed"));
     }
 }
 
@@ -480,7 +538,7 @@ fn wifi_lan_connectivity_info_no_disallowed_bitmasks() {
     // four bits are explicitly disallowed.
     for disallowed_bitmask in 1u8..=15u8 {
         let _ = WifiLanConnectivityInfo::parse_from_payload(&[disallowed_bitmask])
-            .expect_err(&format!("Bitmask {} should be disallowed", disallowed_bitmask));
+            .expect_err(&format!("Bitmask {disallowed_bitmask} should be disallowed"));
     }
 }
 
@@ -614,7 +672,7 @@ mod coverage_gaming {
     #[test]
     fn generic_de_error_derives() {
         let err = GenericDataElementError::DataTooLong;
-        let _ = format!("{:?}", err);
+        let _ = format!("{err:?}");
         assert_eq!(err, err);
     }
 
@@ -622,6 +680,6 @@ mod coverage_gaming {
     fn generic_data_element_debug() {
         let generic =
             GenericDataElement::try_from(DeType::from(1000_u16), &[10, 11, 12, 13]).unwrap();
-        let _ = format!("{:?}", generic);
+        let _ = format!("{generic:?}");
     }
 }

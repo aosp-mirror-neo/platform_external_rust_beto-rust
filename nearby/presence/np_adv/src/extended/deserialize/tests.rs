@@ -96,21 +96,21 @@ mod coverage_gaming {
             [0u8; 16].into(),
             &[],
         );
-        let _ = format!("{:?}", d);
+        let _ = format!("{d:?}");
     }
 
     #[test]
     fn section_deserialize_error_derives() {
         let e = SectionDeserializeError::IncorrectCredential;
         assert_eq!(e, e);
-        let _ = format!("{:?}", e);
+        let _ = format!("{e:?}");
     }
 
     #[test]
     fn adv_contents_derives() {
         let c: V1AdvertisementContents<'_, EmptyMatchedCredential> =
             V1AdvertisementContents::new(ArrayVecOption::default(), 0);
-        let _ = format!("{:?}", c);
+        let _ = format!("{c:?}");
         assert_eq!(c, c);
     }
 
@@ -119,7 +119,7 @@ mod coverage_gaming {
         let d: V1DeserializedSection<'_, EmptyMatchedCredential> =
             V1DeserializedSection::Plaintext(PlaintextSection::new(&[]));
         assert_eq!(d, d);
-        let _ = format!("{:?}", d);
+        let _ = format!("{d:?}");
     }
 
     #[test]

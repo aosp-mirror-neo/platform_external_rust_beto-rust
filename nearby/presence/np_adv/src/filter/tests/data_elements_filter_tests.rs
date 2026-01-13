@@ -16,8 +16,7 @@ use super::super::*;
 use crate::{
     legacy::{
         data_elements::{
-            actions::{ActionBits, ActiveUnlock},
-            tx_power::TxPowerDataElement,
+            actions::tests::ACTIVE_UNLOCK, actions::ActionBits, tx_power::TxPowerDataElement,
         },
         Ciphertext, Plaintext,
     },
@@ -45,8 +44,7 @@ fn match_not_contains_tx_power() {
 
 #[test]
 fn match_not_contains_actions() {
-    let filter = V0ActionsFilter::new_from_slice(&[actions::ActionType::ActiveUnlock; 1])
-        .expect("1 is a valid length");
+    let filter = V0ActionsFilter::new_from_slice(&[ACTIVE_UNLOCK; 1]).expect("1 is a valid length");
     let filter = V0DataElementsFilter { contains_tx_power: None, actions_filter: Some(filter) };
     let tx_power = TxPower::try_from(5).expect("within range");
     let result = filter.match_v0_legible_adv(|| {
@@ -58,13 +56,12 @@ fn match_not_contains_actions() {
 
 #[test]
 fn match_contains_actions() {
-    let filter = V0ActionsFilter::new_from_slice(&[actions::ActionType::ActiveUnlock; 1])
-        .expect("1 is a valid length");
+    let filter = V0ActionsFilter::new_from_slice(&[ACTIVE_UNLOCK; 1]).expect("1 is a valid length");
     let filter = V0DataElementsFilter { contains_tx_power: None, actions_filter: Some(filter) };
     let tx_power = TxPower::try_from(5).expect("within range");
 
     let mut action_bits = ActionBits::<Ciphertext>::default();
-    action_bits.set_action(ActiveUnlock::from(true));
+    action_bits.set_action(ACTIVE_UNLOCK);
 
     let result = filter.match_v0_legible_adv(|| {
         [
@@ -78,14 +75,13 @@ fn match_contains_actions() {
 
 #[test]
 fn match_contains_both() {
-    let filter = V0ActionsFilter::new_from_slice(&[actions::ActionType::ActiveUnlock; 1])
-        .expect("1 is a valid length");
+    let filter = V0ActionsFilter::new_from_slice(&[ACTIVE_UNLOCK; 1]).expect("1 is a valid length");
     let filter =
         V0DataElementsFilter { contains_tx_power: Some(true), actions_filter: Some(filter) };
     let tx_power = TxPower::try_from(5).expect("within range");
 
     let mut action_bits = ActionBits::<Ciphertext>::default();
-    action_bits.set_action(ActiveUnlock::from(true));
+    action_bits.set_action(ACTIVE_UNLOCK);
 
     let result = filter.match_v0_legible_adv(|| {
         [
@@ -99,8 +95,7 @@ fn match_contains_both() {
 
 #[test]
 fn match_contains_either() {
-    let filter = V0ActionsFilter::new_from_slice(&[actions::ActionType::ActiveUnlock; 1])
-        .expect("1 is a valid length");
+    let filter = V0ActionsFilter::new_from_slice(&[ACTIVE_UNLOCK; 1]).expect("1 is a valid length");
     let filter =
         V0DataElementsFilter { contains_tx_power: Some(true), actions_filter: Some(filter) };
     let tx_power = TxPower::try_from(5).expect("within range");

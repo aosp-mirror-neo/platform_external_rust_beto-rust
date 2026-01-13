@@ -439,6 +439,7 @@ mod proto {
 
     #[cfg(test)]
     #[derive_fuzztest::proptest]
+    #[allow(clippy::unwrap_used)]
     fn vector_data_roundtrip(vector_data: VectorData<String, Vec<u8>>) {
         let mut node_ids = NodeMapping::default();
         assert_eq!(

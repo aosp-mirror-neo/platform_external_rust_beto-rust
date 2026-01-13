@@ -137,13 +137,13 @@ TEST_F(NpCppTest, V0LengthTwoActionsDataElement) {
   auto actions = de.AsActions();
   ASSERT_EQ(actions.GetAsU32(), 0x40400000U);
 
-  ASSERT_TRUE(actions.HasAction(nearby_protocol::ActionType::CrossDevSdk));
-  ASSERT_TRUE(actions.HasAction(nearby_protocol::ActionType::NearbyShare));
+  ASSERT_TRUE(actions.HasAction(nearby_protocol::ActionType::TryBuildFromU8(1).value()));
+  ASSERT_TRUE(actions.HasAction(nearby_protocol::ActionType::TryBuildFromU8(9).value()));
 
-  ASSERT_FALSE(actions.HasAction(nearby_protocol::ActionType::ActiveUnlock));
+  ASSERT_FALSE(actions.HasAction(nearby_protocol::ActionType::TryBuildFromU8(8).value()));
   ASSERT_FALSE(
-      actions.HasAction(nearby_protocol::ActionType::InstantTethering));
-  ASSERT_FALSE(actions.HasAction(nearby_protocol::ActionType::PhoneHub));
+      actions.HasAction(nearby_protocol::ActionType::TryBuildFromU8(10).value()));
+  ASSERT_FALSE(actions.HasAction(nearby_protocol::ActionType::TryBuildFromU8(11).value()));
 }
 
 TEST_F(NpCppTest, V0MultipleDataElements) {

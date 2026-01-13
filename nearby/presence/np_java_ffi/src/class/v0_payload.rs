@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::class::v0_data_element::{TxPower, V0Actions};
+use crate::class::v0_data_element::{Psm, TxPower, V0Actions};
 use handle_map::{Handle, HandleLike};
 use jni::{
     objects::{JClass, JObject},
@@ -85,12 +85,13 @@ extern "system" fn nativeGetDataElement<'local>(
 
     use np_ffi_core::{
         deserialize::v0::GetV0DEResult::{Error, Success},
-        v0::V0DataElement::{Actions, TxPower as TxPow},
+        v0::V0DataElement::{Actions, DeviceInfo, Psm as Ps, TxPower as TxPow},
     };
     let ret = match v0_payload.get_de(index) {
         Success(TxPow(tx_power)) => {
             TxPower::construct(&mut env, jint::from(tx_power.as_i8())).map(|obj| obj.0)
         }
+        Success(Ps(psm)) => Psm::construct(&mut env, jint::from(psm.as_u16())).map(|obj| obj.0),
         Success(Actions(actions)) => {
             let identity_kind = match &actions {
                 CoreV0Actions::Plaintext(_) => DeserializedV0IdentityKind::Plaintext,
@@ -98,6 +99,10 @@ extern "system" fn nativeGetDataElement<'local>(
             };
 
             V0Actions::construct(&mut env, identity_kind, actions.as_u32() as jint).map(|obj| obj.0)
+        }
+        Success(DeviceInfo(_)) => {
+            // TODO: implement device info data element for Java binding.
+            return JObject::null();
         }
         Error => {
             return JObject::null();

@@ -30,21 +30,21 @@ use crate::{
 };
 use rand::seq::SliceRandom;
 use rand::Rng;
-use std::collections;
 use std::panic;
 use std::prelude::rust_2021::*;
 
+pub(crate) const CALL_TRANSFER: ActionType = ActionType(4);
+pub(crate) const ACTIVE_UNLOCK: ActionType = ActionType(8);
+pub(crate) const NEARBY_SHARE: ActionType = ActionType(9);
+pub(crate) const INSTANT_TETHERING: ActionType = ActionType(10);
+pub(crate) const PHONE_HUB: ActionType = ActionType(11);
+
 #[test]
 fn setting_action_only_changes_that_actions_bits() {
-    fn do_test<F: PacketFlavor>(
-        set_ones: impl Fn(ActionType, &mut ActionBits<F>),
-        set_zeros: impl Fn(ActionType, &mut ActionBits<F>),
-    ) {
-        for t in supported_action_types(F::ENUM_VARIANT) {
-            let other_types = supported_action_types(F::ENUM_VARIANT)
-                .into_iter()
-                .filter(|t2| *t2 != t)
-                .collect::<Vec<_>>();
+    fn do_test<F: PacketFlavor>(set_ones: impl Fn(ActionType, &mut ActionBits<F>)) {
+        for t in supported_action_types() {
+            let other_types =
+                supported_action_types().into_iter().filter(|t2| *t2 != t).collect::<Vec<_>>();
 
             let mut actions = ActionBits::<F>::default();
             set_ones(t, &mut actions);
@@ -59,35 +59,17 @@ fn setting_action_only_changes_that_actions_bits() {
             for &t2 in &other_types {
                 assert_eq!(0, actions.bits_for_type(t2))
             }
-
-            // now check that unsetting works
-            actions.bits = u32::MAX;
-            set_zeros(t, &mut actions);
-
-            assert_eq!(!t.all_bits(), actions.as_u32());
-            assert_eq!(0, actions.bits_for_type(t));
-            assert!(!actions.has_action(t));
-            // other types are set
-            for &t2 in &other_types {
-                assert_eq!(t2.all_bits() >> (31 - t2.high_bit_index()), actions.bits_for_type(t2));
-            }
         }
     }
 
-    do_test(
-        |t, bits| set_plaintext_action(t, true, bits),
-        |t, bits| set_plaintext_action(t, false, bits),
-    );
-    do_test(
-        |t, bits| set_ciphertexttext_action(t, true, bits),
-        |t, bits| set_ciphertexttext_action(t, false, bits),
-    );
+    do_test(|t, bits: &mut ActionBits<Plaintext>| set_action(t, bits));
+    do_test(|t, bits: &mut ActionBits<Ciphertext>| set_action(t, bits));
 }
 
 #[test]
 fn random_combos_of_actions_have_correct_bits_set() {
     fn do_test<F: PacketFlavor>(set_ones: impl Fn(ActionType, &mut ActionBits<F>)) {
-        let all_types = supported_action_types(F::ENUM_VARIANT);
+        let all_types = supported_action_types();
         let mut rng = rand::thread_rng();
 
         for _ in 0..1000 {
@@ -112,8 +94,8 @@ fn random_combos_of_actions_have_correct_bits_set() {
         }
     }
 
-    do_test::<Plaintext>(|t, bits| set_plaintext_action(t, true, bits));
-    do_test::<Ciphertext>(|t, bits| set_ciphertexttext_action(t, true, bits));
+    do_test::<Plaintext>(set_action);
+    do_test::<Ciphertext>(set_action);
 }
 
 #[test]
@@ -154,7 +136,7 @@ fn bytes_used_works() {
     // Special-case: All-zeroes should lead to a single byte being used.
     assert_eq!(1, actions.bytes_used());
 
-    actions.set_action(NearbyShare::from(true));
+    actions.set_action(NEARBY_SHARE);
     assert_eq!(2, actions.bytes_used());
 
     actions.set_action(LastBit::from(true));
@@ -201,11 +183,12 @@ fn write_de_all_plaintext_actions() {
     let mut action = all_plaintext_actions_set();
     action.set_action(LastBit::from(true));
 
-    // byte 0: cross dev sdk = 1
-    // byte 1: nearby share
-    // byte 2: last bit
+    // byte 0: actions 0 through 7
+    // byte 1: action 8 through 15
+    // byte 2: actions 16 through 23
+    // byte 2: actions 24 through 31
     assert_eq!(
-        &[actions_de_header_byte(3), 0x40, 0x40, 0x01],
+        &[actions_de_header_byte(4), 0xFF, 0xFF, 0xFF, 0xFF],
         serialize(&ActionsDataElement::<Plaintext>::from(action)).as_slice()
     );
 }
@@ -215,11 +198,12 @@ fn write_de_all_encrypted_actions() {
     let mut action = all_ciphertext_actions_set();
     action.set_action(LastBit::from(true));
 
-    // byte 1: cross dev sdk = 1, call transfer = 4
-    // byte 2: active unlock, nearby share, instant tethering, phone hub,
-    // byte 3: last bit
+    // byte 0: actions 0 through 7
+    // byte 1: action 8 through 15
+    // byte 2: actions 16 through 23
+    // byte 2: actions 24 through 31
     assert_eq!(
-        &[actions_de_header_byte(3), 0x48, 0xF0, 0x01],
+        &[actions_de_header_byte(4), 0xFF, 0xFF, 0xFF, 0xFF],
         serialize(&ActionsDataElement::<Ciphertext>::from(action)).as_slice()
     );
 }
@@ -231,7 +215,7 @@ fn roundtrip_de_random_action_combos() {
         F: PacketFlavor,
         ActionsDataElement<F>: DeserializeDataElement,
     {
-        let all_types = supported_action_types(F::ENUM_VARIANT);
+        let all_types = supported_action_types();
         let mut rng = rand::thread_rng();
 
         for _ in 0..1000 {
@@ -253,79 +237,17 @@ fn roundtrip_de_random_action_combos() {
         }
     }
 
-    do_test::<Plaintext>(|t, bits| set_plaintext_action(t, true, bits));
-    do_test::<Ciphertext>(|t, bits| set_ciphertexttext_action(t, true, bits));
-}
-
-#[test]
-fn action_element_bits_dont_overlap() {
-    let type_to_bits =
-        ActionType::iter().map(|t| (t, t.all_bits())).collect::<collections::HashMap<_, _>>();
-
-    for t in ActionType::iter() {
-        let bits = type_to_bits.get(&t).unwrap();
-
-        for (_, other_bits) in type_to_bits.iter().filter(|(other_type, _)| t != **other_type) {
-            assert_eq!(0, bits & other_bits, "type {t:?}");
-        }
-    }
+    do_test::<Plaintext>(set_action);
+    do_test::<Ciphertext>(set_action);
 }
 
 #[test]
 fn action_type_all_bits_masks() {
-    assert_eq!(0x08000000, ActionType::CallTransfer.all_bits());
-    assert_eq!(0x00800000, ActionType::ActiveUnlock.all_bits());
-    assert_eq!(0x00400000, ActionType::NearbyShare.all_bits());
-    assert_eq!(0x00200000, ActionType::InstantTethering.all_bits());
-    assert_eq!(0x00100000, ActionType::PhoneHub.all_bits());
-}
-
-#[test]
-fn action_type_all_bits_in_per_type_masks() {
-    for t in supported_action_types(PacketFlavorEnum::Plaintext) {
-        assert_eq!(t.all_bits(), t.all_bits() & *ALL_PLAINTEXT_ELEMENT_BITS);
-    }
-    for t in supported_action_types(PacketFlavorEnum::Ciphertext) {
-        assert_eq!(t.all_bits(), t.all_bits() & *ALL_CIPHERTEXT_ELEMENT_BITS);
-    }
-}
-
-#[test]
-fn action_bits_try_from_flavor_mismatch_plaintext() {
-    assert_eq!(
-        FlavorNotSupported { flavor: PacketFlavorEnum::Plaintext },
-        ActionBits::<Plaintext>::try_from(ActionType::CallTransfer.all_bits()).unwrap_err()
-    );
-}
-
-#[test]
-fn actions_de_deser_plaintext_with_ciphertext_action() {
-    assert_eq!(
-        DataElementDeserializeError::FlavorNotSupported {
-            de_type: ActionsDataElement::<Plaintext>::DE_TYPE_CODE,
-            flavor: PacketFlavorEnum::Plaintext,
-        },
-        <ActionsDataElement<Plaintext> as DeserializeDataElement>::deserialize::<Plaintext>(&[
-            // active unlock bit set
-            0x00, 0x80, 0x00,
-        ])
-        .unwrap_err()
-    );
-}
-
-#[test]
-fn actions_de_deser_ciphertext_with_plaintext_action() {
-    assert_eq!(
-        DataElementDeserializeError::FlavorNotSupported {
-            de_type: ActionsDataElement::<Plaintext>::DE_TYPE_CODE,
-            flavor: PacketFlavorEnum::Ciphertext,
-        },
-        <ActionsDataElement<Ciphertext> as DeserializeDataElement>::deserialize::<Ciphertext>(&[
-            // Finder bit set
-            0x00, 0x00, 0x80,
-        ])
-        .unwrap_err()
-    );
+    assert_eq!(0x08000000, CALL_TRANSFER.all_bits());
+    assert_eq!(0x00800000, ACTIVE_UNLOCK.all_bits());
+    assert_eq!(0x00400000, NEARBY_SHARE.all_bits());
+    assert_eq!(0x00200000, INSTANT_TETHERING.all_bits());
+    assert_eq!(0x00100000, PHONE_HUB.all_bits());
 }
 
 #[test]
@@ -438,22 +360,22 @@ fn actions_de_contents_normal_actions_roundtrip_ldt() {
 #[test]
 fn has_action_plaintext_works() {
     let mut action_bits = ActionBits::<Plaintext>::default();
-    action_bits.set_action(NearbyShare::from(true));
+    action_bits.set_action(NEARBY_SHARE);
     let action_de = ActionsDataElement::from(action_bits);
-    assert!(action_de.action.has_action(ActionType::NearbyShare));
-    assert!(!action_de.action.has_action(ActionType::ActiveUnlock));
-    assert!(!action_de.action.has_action(ActionType::PhoneHub));
+    assert!(action_de.action.has_action(NEARBY_SHARE));
+    assert!(!action_de.action.has_action(ACTIVE_UNLOCK));
+    assert!(!action_de.action.has_action(PHONE_HUB));
 }
 
 #[test]
 fn has_action_encrypted_works() {
     let mut action_bits = ActionBits::<Ciphertext>::default();
-    action_bits.set_action(NearbyShare::from(true));
-    action_bits.set_action(ActiveUnlock::from(true));
+    action_bits.set_action(NEARBY_SHARE);
+    action_bits.set_action(ACTIVE_UNLOCK);
     let action_de = ActionsDataElement::from(action_bits);
-    assert!(action_de.action.has_action(ActionType::NearbyShare));
-    assert!(action_de.action.has_action(ActionType::ActiveUnlock));
-    assert!(!action_de.action.has_action(ActionType::PhoneHub));
+    assert!(action_de.action.has_action(NEARBY_SHARE));
+    assert!(action_de.action.has_action(ACTIVE_UNLOCK));
+    assert!(!action_de.action.has_action(PHONE_HUB));
 }
 
 #[test]
@@ -498,6 +420,9 @@ fn encoded_length_must_be_in_range() {
 }
 
 mod coverage_gaming {
+    use crate::legacy::data_elements::actions::tests::{
+        ACTIVE_UNLOCK, CALL_TRANSFER, INSTANT_TETHERING, NEARBY_SHARE, PHONE_HUB,
+    };
     use crate::legacy::data_elements::actions::*;
     use crate::legacy::Plaintext;
     use alloc::format;
@@ -505,7 +430,7 @@ mod coverage_gaming {
     #[test]
     fn actions_de_debug() {
         let actions = ActionsDataElement::<Plaintext>::from(ActionBits::default());
-        let _ = format!("{:?}", actions);
+        let _ = format!("{actions:?}");
     }
 
     #[test]
@@ -515,16 +440,16 @@ mod coverage_gaming {
 
     #[test]
     fn action_type_clone_debug() {
-        let _ = format!("{:?}", ActionType::CallTransfer.clone());
+        let _ = format!("{:?}", CALL_TRANSFER.clone());
     }
 
     #[test]
     fn actions_debug() {
-        let _ = format!("{:?}", CallTransfer::from(true));
-        let _ = format!("{:?}", ActiveUnlock::from(true));
-        let _ = format!("{:?}", NearbyShare::from(true));
-        let _ = format!("{:?}", InstantTethering::from(true));
-        let _ = format!("{:?}", PhoneHub::from(true));
+        let _ = format!("{CALL_TRANSFER:?}");
+        let _ = format!("{ACTIVE_UNLOCK:?}");
+        let _ = format!("{NEARBY_SHARE:?}");
+        let _ = format!("{INSTANT_TETHERING:?}");
+        let _ = format!("{PHONE_HUB:?}");
     }
 }
 
@@ -541,21 +466,14 @@ impl From<bool> for FirstBit {
 }
 
 impl ActionElement for FirstBit {
-    const HIGH_BIT_INDEX: u32 = 0;
-    // don't want to add a variant for this test only type
-    const ACTION_TYPE: ActionType = ActionType::ActiveUnlock;
-
-    fn supports_flavor(_flavor: PacketFlavorEnum) -> bool {
-        true
-    }
-
     fn bits(&self) -> u8 {
         self.enabled as u8
     }
-}
 
-macros::boolean_element_to_plaintext_element!(FirstBit);
-macros::boolean_element_to_encrypted_element!(FirstBit);
+    fn high_bit_index(&self) -> u32 {
+        0
+    }
+}
 
 // hypothetical action using the last bit
 #[derive(Debug)]
@@ -570,21 +488,14 @@ impl From<bool> for LastBit {
 }
 
 impl ActionElement for LastBit {
-    const HIGH_BIT_INDEX: u32 = 23;
-    // don't want to add a variant for this test only type
-    const ACTION_TYPE: ActionType = ActionType::ActiveUnlock;
-
-    fn supports_flavor(_flavor: PacketFlavorEnum) -> bool {
-        true
-    }
-
     fn bits(&self) -> u8 {
         self.enabled as u8
     }
-}
 
-macros::boolean_element_to_plaintext_element!(LastBit);
-macros::boolean_element_to_encrypted_element!(LastBit);
+    fn high_bit_index(&self) -> u32 {
+        23
+    }
+}
 
 // An action that only supports plaintext, to allow testing that error case
 pub(in crate::legacy) struct PlaintextOnly {
@@ -598,25 +509,14 @@ impl From<bool> for PlaintextOnly {
 }
 
 impl ActionElement for PlaintextOnly {
-    const HIGH_BIT_INDEX: u32 = 22;
-
-    const ACTION_TYPE: ActionType = ActionType::ActiveUnlock;
-
-    fn supports_flavor(flavor: PacketFlavorEnum) -> bool {
-        match flavor {
-            PacketFlavorEnum::Plaintext => true,
-            PacketFlavorEnum::Ciphertext => false,
-        }
-    }
-
     fn bits(&self) -> u8 {
         self.enabled as u8
     }
-}
 
-macros::boolean_element_to_plaintext_element!(PlaintextOnly);
-// sneakily allow serializing it, but deserializing will fail due to supports_flavor above
-macros::boolean_element_to_encrypted_element!(PlaintextOnly);
+    fn high_bit_index(&self) -> u32 {
+        22
+    }
+}
 
 fn assert_eq_hex(expected: u32, actual: u32) {
     assert_eq!(expected, actual, "{expected:#010X} != {actual:#010X}");
@@ -624,34 +524,24 @@ fn assert_eq_hex(expected: u32, actual: u32) {
 
 pub(crate) fn all_plaintext_actions_set() -> ActionBits<Plaintext> {
     let mut action = ActionBits::default();
-    action.set_action(CrossDevSdk::from(true));
-    action.set_action(NearbyShare::from(true));
-
-    assert!(supported_action_types(PacketFlavorEnum::Plaintext)
-        .into_iter()
-        .all(|t| t.all_bits() & action.bits != 0));
+    for a in supported_action_types() {
+        action.set_action(a);
+    }
 
     action
 }
 
 pub(crate) fn all_ciphertext_actions_set() -> ActionBits<Ciphertext> {
     let mut action = ActionBits::default();
-    action.set_action(CrossDevSdk::from(true));
-    action.set_action(CallTransfer::from(true));
-    action.set_action(ActiveUnlock::from(true));
-    action.set_action(NearbyShare::from(true));
-    action.set_action(InstantTethering::from(true));
-    action.set_action(PhoneHub::from(true));
-
-    assert!(supported_action_types(PacketFlavorEnum::Ciphertext)
-        .into_iter()
-        .all(|t| t.all_bits() & action.bits != 0));
+    for a in supported_action_types() {
+        action.set_action(a);
+    }
 
     action
 }
 
-fn supported_action_types(flavor: PacketFlavorEnum) -> Vec<ActionType> {
-    ActionType::iter().filter(|t| t.supports_flavor(flavor)).collect()
+pub(crate) fn supported_action_types() -> Vec<ActionType> {
+    (0..ActionType::MAX_ACTION_ID + 1).map(ActionType).collect()
 }
 
 /// Encode a DE header byte with the provided type and actual len, transforming into an encoded
@@ -663,28 +553,6 @@ fn actions_de_header_byte(actual_len: u8) -> u8 {
     )
 }
 
-pub(crate) fn set_plaintext_action(t: ActionType, value: bool, bits: &mut ActionBits<Plaintext>) {
-    match t {
-        ActionType::CrossDevSdk => bits.set_action(CrossDevSdk::from(value)),
-        ActionType::NearbyShare => bits.set_action(NearbyShare::from(value)),
-        ActionType::CallTransfer
-        | ActionType::PhoneHub
-        | ActionType::ActiveUnlock
-        | ActionType::InstantTethering => panic!(),
-    }
-}
-
-pub(crate) fn set_ciphertexttext_action(
-    t: ActionType,
-    value: bool,
-    bits: &mut ActionBits<Ciphertext>,
-) {
-    match t {
-        ActionType::CrossDevSdk => bits.set_action(CrossDevSdk::from(value)),
-        ActionType::CallTransfer => bits.set_action(CallTransfer::from(value)),
-        ActionType::ActiveUnlock => bits.set_action(ActiveUnlock::from(value)),
-        ActionType::NearbyShare => bits.set_action(NearbyShare::from(value)),
-        ActionType::InstantTethering => bits.set_action(InstantTethering::from(value)),
-        ActionType::PhoneHub => bits.set_action(PhoneHub::from(value)),
-    }
+pub(crate) fn set_action<T: PacketFlavor>(t: ActionType, bits: &mut ActionBits<T>) {
+    bits.set_action(t);
 }

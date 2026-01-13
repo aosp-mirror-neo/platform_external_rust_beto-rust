@@ -40,7 +40,7 @@ pub(crate) fn build_fuzztest_unit_tests(root: &path::Path) -> anyhow::Result<()>
     for target in ["deserialization_fuzzer", "ldt_fuzzer"] {
         run_cmd_shell_with_color::<YellowStderr>(
             &build_dir,
-            format!("cmake --build . --target {}", target),
+            format!("cmake --build . --target {target}"),
         )?;
     }
 

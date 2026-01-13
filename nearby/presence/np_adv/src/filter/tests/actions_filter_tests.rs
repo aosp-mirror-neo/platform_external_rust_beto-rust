@@ -15,14 +15,15 @@
 #![allow(clippy::unwrap_used)]
 
 use super::super::*;
-use crate::legacy::data_elements::actions::{ActionBits, InstantTethering, NearbyShare};
+use crate::legacy::data_elements::actions::tests::{
+    ACTIVE_UNLOCK, CALL_TRANSFER, INSTANT_TETHERING, NEARBY_SHARE, PHONE_HUB,
+};
+use crate::legacy::data_elements::actions::ActionBits;
 use crate::legacy::{Ciphertext, Plaintext};
-use alloc::vec::Vec;
-use strum::IntoEnumIterator;
 
 #[test]
 fn new_v0_actions_invalid_length() {
-    let actions = [actions::ActionType::ActiveUnlock; 8];
+    let actions = [ACTIVE_UNLOCK; 8];
     let result = V0ActionsFilter::new_from_slice(&actions);
     assert!(result.is_err());
     assert_eq!(result.err().unwrap(), InvalidLength)
@@ -30,7 +31,7 @@ fn new_v0_actions_invalid_length() {
 
 #[test]
 fn new_v0_actions() {
-    let actions = [actions::ActionType::ActiveUnlock; 5];
+    let actions = [ACTIVE_UNLOCK; 5];
     let result = V0ActionsFilter::new_from_slice(&actions);
     assert!(result.is_ok());
 }
@@ -46,8 +47,7 @@ fn test_actions_filter_single_action_not_present() {
     // default is all 0 bits
     let action_bits = ActionBits::<Plaintext>::default();
 
-    let filter = V0ActionsFilter::new_from_slice(&[actions::ActionType::ActiveUnlock; 1])
-        .expect("1 is a valid length");
+    let filter = V0ActionsFilter::new_from_slice(&[ACTIVE_UNLOCK; 1]).expect("1 is a valid length");
 
     assert_eq!(filter.match_v0_actions(&action_bits.into()), Err(NoMatch))
 }
@@ -57,8 +57,7 @@ fn test_actions_filter_all_actions_not_present() {
     // default is all 0 bits
     let action_bits = ActionBits::<Plaintext>::default();
 
-    let filter = V0ActionsFilter::new_from_slice(&actions::ActionType::iter().collect::<Vec<_>>())
-        .expect("5 is a valid length");
+    let filter = V0ActionsFilter::new_from_slice(&[ACTIVE_UNLOCK; 1]).expect("5 is a valid length");
 
     assert_eq!(filter.match_v0_actions(&action_bits.into()), Err(NoMatch))
 }
@@ -67,9 +66,9 @@ fn test_actions_filter_all_actions_not_present() {
 fn test_actions_filter_single_action_present() {
     // default is all 0 bits
     let mut action_bits = ActionBits::<Plaintext>::default();
-    action_bits.set_action(NearbyShare::from(true));
+    action_bits.set_action(NEARBY_SHARE);
 
-    let filter = V0ActionsFilter::new_from_slice(&actions::ActionType::iter().collect::<Vec<_>>())
+    let filter = V0ActionsFilter::new_from_slice(&[ACTIVE_UNLOCK, NEARBY_SHARE])
         .expect("5 is a valid length");
 
     assert_eq!(filter.match_v0_actions(&action_bits.into()), Ok(()))
@@ -79,13 +78,13 @@ fn test_actions_filter_single_action_present() {
 fn test_actions_filter_desired_action_not_present() {
     // default is all 0 bits
     let mut action_bits = ActionBits::<Plaintext>::default();
-    action_bits.set_action(NearbyShare::from(true));
+    action_bits.set_action(NEARBY_SHARE);
 
     let filter = V0ActionsFilter::new_from_slice(&[
-        actions::ActionType::CallTransfer,
-        actions::ActionType::ActiveUnlock,
-        actions::ActionType::InstantTethering,
-        actions::ActionType::PhoneHub,
+        CALL_TRANSFER,
+        ACTIVE_UNLOCK,
+        INSTANT_TETHERING,
+        PHONE_HUB,
     ])
     .expect("4 is a valid length");
 
@@ -96,11 +95,11 @@ fn test_actions_filter_desired_action_not_present() {
 fn test_multiple_actions_set() {
     // default is all 0 bits
     let mut action_bits = ActionBits::<Ciphertext>::default();
-    action_bits.set_action(NearbyShare::from(true));
-    action_bits.set_action(InstantTethering::from(true));
+    action_bits.set_action(NEARBY_SHARE);
+    action_bits.set_action(INSTANT_TETHERING);
 
-    let filter = V0ActionsFilter::new_from_slice(&[actions::ActionType::InstantTethering])
-        .expect("1 is a valid length");
+    let filter =
+        V0ActionsFilter::new_from_slice(&[INSTANT_TETHERING]).expect("1 is a valid length");
 
     assert_eq!(filter.match_v0_actions(&action_bits.into()), Ok(()))
 }
@@ -109,19 +108,11 @@ fn test_multiple_actions_set() {
 fn test_multiple_actions_set_both_present() {
     // default is all 0 bits
     let mut action_bits = ActionBits::<Ciphertext>::default();
-    action_bits.set_action(NearbyShare::from(true));
-    action_bits.set_action(InstantTethering::from(true));
+    action_bits.set_action(NEARBY_SHARE);
+    action_bits.set_action(INSTANT_TETHERING);
 
-    let filter = V0ActionsFilter::new_from_slice(&[
-        actions::ActionType::InstantTethering,
-        actions::ActionType::NearbyShare,
-    ])
-    .expect("7 is a valid length");
+    let filter = V0ActionsFilter::new_from_slice(&[INSTANT_TETHERING, NEARBY_SHARE])
+        .expect("7 is a valid length");
 
     assert_eq!(filter.match_v0_actions(&action_bits.into()), Ok(()))
-}
-
-#[test]
-fn num_actions_is_correct() {
-    assert_eq!(actions::ActionType::iter().count(), NUM_ACTIONS);
 }

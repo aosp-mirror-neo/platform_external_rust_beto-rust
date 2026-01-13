@@ -294,12 +294,12 @@ mod coverage_gaming {
     #[test]
     fn data_element_debug_and_clone() {
         let de = DataElement::new(0_u8.into(), &[], None);
-        let _ = format!("{:?}", de);
+        let _ = format!("{de:?}");
         let _ = de.clone();
         let (_, header) = DeHeader::parse(&[0x11, 0xFF]).unwrap();
-        let _ = format!("{:?}", header);
+        let _ = format!("{header:?}");
         let _ = header.clone();
         let (_, pde) = ProtoDataElement::parse(&[0x11, 0xFF]).unwrap();
-        let _ = format!("{:?}", pde);
+        let _ = format!("{pde:?}");
     }
 }

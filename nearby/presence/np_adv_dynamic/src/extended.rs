@@ -43,7 +43,7 @@ impl Display for BoxedAddSectionError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             BoxedAddSectionError::Underlying(u) => {
-                write!(f, "{0}", u)
+                write!(f, "{u}")
             }
         }
     }
