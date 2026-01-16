@@ -35,9 +35,7 @@ use core::ops::Range;
 use core::{marker, ops};
 use nom::{bytes, combinator, error};
 use sink::Sink;
-use strum::IntoEnumIterator as _;
 
-mod macros;
 #[cfg(test)]
 pub(crate) mod tests;
 
@@ -52,7 +50,7 @@ pub struct ActionsDataElement<F: PacketFlavor> {
 }
 
 /// Max length of an actions DE contents
-pub(crate) const ACTIONS_MAX_LEN: usize = 3;
+pub(crate) const ACTIONS_MAX_LEN: usize = 4;
 /// Range of valid actual lengths
 pub(crate) const ACTIONS_VALID_ACTUAL_LEN: ops::RangeInclusive<usize> = 1..=ACTIONS_MAX_LEN;
 
@@ -75,14 +73,9 @@ where
         ))(de_contents)
         .map_err(|_| DataElementDeserializeError::DeserializeError { de_type: Self::DE_TYPE_CODE })
         .map(|(_remaining, actions)| actions)
-        .and_then(|action_bits_num| {
-            let action = ActionBits::try_from(action_bits_num).map_err(|e| {
-                DataElementDeserializeError::FlavorNotSupported {
-                    de_type: Self::DE_TYPE_CODE,
-                    flavor: e.flavor,
-                }
-            })?;
-            Ok(Self { action })
+        .map(|action_bits_num| {
+            let action = ActionBits::from(action_bits_num);
+            Self { action }
         })
     }
 }
@@ -166,6 +159,11 @@ impl<F: PacketFlavor> ActionBits<F> {
     pub fn has_action(&self, action_type: ActionType) -> bool {
         self.bits_for_type(action_type) != 0
     }
+
+    /// Return a list of all ActionType contained within the ActionBits.
+    pub fn actions(&self) -> impl Iterator<Item = ActionType> + use<'_, F> {
+        (0..ActionType::MAX_ACTION_ID).map(ActionType).filter(|action| self.has_action(*action))
+    }
 }
 
 impl<F: PacketFlavor> Default for ActionBits<F> {
@@ -183,46 +181,20 @@ pub struct FlavorNotSupported {
     flavor: PacketFlavorEnum,
 }
 
-lazy_static::lazy_static! {
-    /// All bits for plaintext action types: 1 where a plaintext action could have a bit, 0 elsewhere.
-    static ref ALL_PLAINTEXT_ELEMENT_BITS: u32 = ActionType::iter()
-        .filter(|t| t.supports_flavor(PacketFlavorEnum::Plaintext))
-        .map(|t| t.all_bits())
-        .fold(0_u32, |accum, bits| accum | bits);
-}
-
-lazy_static::lazy_static! {
-    /// All bits for ciphertext action types: 1 where a ciphertext action could have a bit, 0 elsewhere.
-    static ref ALL_CIPHERTEXT_ELEMENT_BITS: u32 = ActionType::iter()
-        .filter(|t| t.supports_flavor(PacketFlavorEnum::Ciphertext))
-        .map(|t| t.all_bits())
-        .fold(0_u32, |accum, bits| accum | bits);
-}
-
 impl<F: PacketFlavor> ActionBits<F> {
     /// Tries to create ActionBits from a u32, returning error in the event a specific bit is set for
     /// an unsupported flavor
-    pub fn try_from(value: u32) -> Result<Self, FlavorNotSupported> {
-        let ok_bits: u32 = match F::ENUM_VARIANT {
-            PacketFlavorEnum::Plaintext => *ALL_PLAINTEXT_ELEMENT_BITS,
-            PacketFlavorEnum::Ciphertext => *ALL_CIPHERTEXT_ELEMENT_BITS,
-        };
-
-        // no bits set beyond what's allowed for this flavor
-        if value | ok_bits == ok_bits {
-            Ok(Self { bits: value, flavor: marker::PhantomData })
-        } else {
-            Err(FlavorNotSupported { flavor: F::ENUM_VARIANT })
-        }
+    pub fn from(value: u32) -> Self {
+        Self { bits: value, flavor: marker::PhantomData }
     }
 
     /// Set the bits for the provided element.
     /// Bits outside the range set by the action will be unaffected.
-    pub fn set_action<E: ActionElementFlavor<F>>(&mut self, action_element: E) {
+    pub fn set_action<E: ActionElement>(&mut self, action_element: E) {
         let bits = action_element.bits();
 
         // validate that the element is not horribly broken
-        debug_assert!(E::HIGH_BIT_INDEX < 32);
+        debug_assert!(action_element.high_bit_index() < 32);
         // must not have bits set past the low `len` bits
         debug_assert_eq!(0, bits >> 1);
 
@@ -230,16 +202,16 @@ impl<F: PacketFlavor> ActionBits<F> {
         let byte_extended = bits as u32;
         // Shift so that the high bit is at the desired index.
         // Won't overflow since length > 0.
-        let bits_in_position = byte_extended << (31 - E::HIGH_BIT_INDEX);
+        let bits_in_position = byte_extended << (31 - action_element.high_bit_index());
 
         // We want to effectively clear out the bits already in place, so we don't want to just |=.
         // Instead, we construct a u32 with all 1s above and below the relevant bits and &=, so that
         // if the new bits are 0, the stored bits will be cleared.
 
         // avoid overflow when index = 0 -- need zero 1 bits to the left in that case
-        let left_1s = u32::MAX.checked_shl(32 - E::HIGH_BIT_INDEX).unwrap_or(0);
+        let left_1s = u32::MAX.checked_shl(32 - action_element.high_bit_index()).unwrap_or(0);
         // avoid underflow when index + len = 32 -- zero 1 bits to the right
-        let right_1s = u32::MAX.checked_shr(E::HIGH_BIT_INDEX + 1).unwrap_or(0);
+        let right_1s = u32::MAX.checked_shr(action_element.high_bit_index() + 1).unwrap_or(0);
         let mask = left_1s | right_1s;
         let bits_for_other_actions = self.bits & mask;
         self.bits = bits_for_other_actions | bits_in_position;
@@ -250,7 +222,7 @@ impl<F: PacketFlavor> ActionBits<F> {
     /// an actions field of all zeroes is required by the spec to occupy exactly one byte.
     fn bytes_used(&self) -> usize {
         let bits_used = 32 - self.bits.trailing_zeros();
-        let raw_count = (bits_used as usize + 7) / 8;
+        let raw_count = (bits_used as usize).div_ceil(8);
         if raw_count == 0 {
             1 // Uncommon case - should only be hit for all-zero action bits
         } else {
@@ -271,21 +243,10 @@ impl<F: PacketFlavor> ActionBits<F> {
 pub trait ActionElement {
     /// The assigned offset for this type from the high bit in the eventual bit sequence of all
     /// actions.
-    ///
-    /// Each implementation must have a non-conflicting index defined by
-    /// [Self::HIGH_BIT_INDEX]
-    const HIGH_BIT_INDEX: u32;
-
-    /// Forces implementations to have a matching enum variant so the enum can be kept up to date.
-    const ACTION_TYPE: ActionType;
-
-    /// Returns whether this action supports the provided `flavor`.
-    ///
-    /// Must match the implementations of [ActionElementFlavor].
-    fn supports_flavor(flavor: PacketFlavorEnum) -> bool;
+    fn high_bit_index(&self) -> u32;
 
     /// Returns the low bit that should be included in the final bit vector
-    /// starting at [Self::HIGH_BIT_INDEX].
+    /// starting at [Self::high_bit_index()].
     fn bits(&self) -> u8;
 }
 
@@ -293,23 +254,18 @@ pub trait ActionElement {
 pub trait ActionElementFlavor<F: PacketFlavor>: ActionElement {}
 
 /// Provides a way to iterate over all action types.
-#[derive(Clone, Copy, strum_macros::EnumIter, PartialEq, Eq, Hash, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 #[allow(missing_docs)]
-pub enum ActionType {
-    CrossDevSdk,
-    CallTransfer,
-    ActiveUnlock,
-    NearbyShare,
-    InstantTethering,
-    PhoneHub,
-}
+pub struct ActionType(pub u8);
 
 impl ActionType {
+    const MAX_ACTION_ID: u8 = 31;
+
+    #[cfg(test)]
     /// A u32 with all possible bits for this action type set
     const fn all_bits(&self) -> u32 {
         (u32::MAX << (31_u32)) >> self.high_bit_index()
     }
-
     /// Get the range of the bits occupied used by this bit index. For example, if the action type
     /// uses the 5th and 6th bits, the returned range will be (5..7).
     /// (0 is the index of the most significant bit).
@@ -320,32 +276,16 @@ impl ActionType {
     }
 
     const fn high_bit_index(&self) -> u32 {
-        match self {
-            ActionType::CrossDevSdk => CrossDevSdk::HIGH_BIT_INDEX,
-            ActionType::CallTransfer => CallTransfer::HIGH_BIT_INDEX,
-            ActionType::ActiveUnlock => ActiveUnlock::HIGH_BIT_INDEX,
-            ActionType::NearbyShare => NearbyShare::HIGH_BIT_INDEX,
-            ActionType::InstantTethering => InstantTethering::HIGH_BIT_INDEX,
-            ActionType::PhoneHub => PhoneHub::HIGH_BIT_INDEX,
-        }
-    }
-
-    pub(crate) fn supports_flavor(&self, flavor: PacketFlavorEnum) -> bool {
-        match self {
-            ActionType::CrossDevSdk => CrossDevSdk::supports_flavor(flavor),
-            ActionType::CallTransfer => CallTransfer::supports_flavor(flavor),
-            ActionType::ActiveUnlock => ActiveUnlock::supports_flavor(flavor),
-            ActionType::NearbyShare => NearbyShare::supports_flavor(flavor),
-            ActionType::InstantTethering => InstantTethering::supports_flavor(flavor),
-            ActionType::PhoneHub => PhoneHub::supports_flavor(flavor),
-        }
+        self.0 as u32
     }
 }
 
-// enabling an element for public adv requires privacy approval due to fingerprinting risk
-macros::boolean_element!(CrossDevSdk, 1, plaintext_and_ciphertext);
-macros::boolean_element!(CallTransfer, 4, ciphertext_only);
-macros::boolean_element!(ActiveUnlock, 8, ciphertext_only);
-macros::boolean_element!(NearbyShare, 9, plaintext_and_ciphertext);
-macros::boolean_element!(InstantTethering, 10, ciphertext_only);
-macros::boolean_element!(PhoneHub, 11, ciphertext_only);
+impl ActionElement for ActionType {
+    fn high_bit_index(&self) -> u32 {
+        self.high_bit_index()
+    }
+
+    fn bits(&self) -> u8 {
+        true as u8
+    }
+}

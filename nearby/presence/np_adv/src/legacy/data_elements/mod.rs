@@ -29,6 +29,8 @@ use sink::Sink;
 
 pub mod actions;
 pub mod de_type;
+pub mod device_info;
+pub mod psm;
 pub mod tx_power;
 
 #[cfg(test)]

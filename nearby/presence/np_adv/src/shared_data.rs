@@ -14,6 +14,10 @@
 
 //! Data types shared between V0 and V1 advertisements
 
+use sink::Sink;
+use strum_macros::FromRepr;
+use tinyvec::ArrayVec;
+
 /// Power in dBm, calibrated as per
 /// [Eddystone](https://github.com/google/eddystone/tree/master/eddystone-uid#tx-power)
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -76,6 +80,101 @@ impl TryFrom<u8> for ContextSyncSeqNum {
 #[derive(Debug, PartialEq, Eq)]
 pub struct ContextSyncSeqNumOutOfRange;
 
+/// A description of what kind of device is broadcasting.
+#[repr(u8)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, FromRepr, strum_macros::EnumIter)]
+pub enum DeviceType {
+    /// The type of device doing the broadcasting is completely unknown.
+    Unknown = 0,
+    /// The broadcasting device is a mobile phone.
+    Phone = 1,
+    /// The broadcasting device is a tablet.
+    Tablet = 2,
+    /// The broadcasting device is a (non-TV) display.
+    Display = 3,
+    /// The broadcasting device is a (non-CrOS) laptop.
+    Laptop = 4,
+    /// The broadcasting device is a TV.
+    TV = 5,
+    /// The broadcasting device is a watch.
+    Watch = 6,
+    /// The broadcasting device is a Chromebook.
+    ChromeOS = 7,
+    /// The broadcasting device is some kind of foldable.
+    Foldable = 8,
+    /// The broadcasting device is a car.
+    Automotive = 9,
+    /// The broadscasting device is a speaker.
+    Speaker = 10,
+}
+
+impl TryFrom<u8> for DeviceType {
+    type Error = ();
+
+    // We implement try_from to maintain the standard Rust idiom for fallible conversions.
+    // This is the expected API for any crate consuming DeviceType directly.
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        DeviceType::from_repr(value).ok_or(())
+    }
+}
+
+/// The minimum length of a device name in a `DeviceInfo` data element.
+pub const MIN_DEVICE_NAME_LEN: usize = 5;
+/// The maximum length of a device name in a `DeviceInfo` data element.
+pub const MAX_DEVICE_NAME_LEN: usize = 9;
+
+/// Device information including a device type and a device name.
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct DeviceInfo {
+    device_type: DeviceType,
+    name_truncated: bool,
+    device_name: ArrayVec<[u8; MAX_DEVICE_NAME_LEN]>,
+}
+
+impl DeviceInfo {
+    /// The device type.
+    pub fn device_type(&self) -> DeviceType {
+        self.device_type
+    }
+
+    /// Whether or not the device name was truncated.
+    pub fn name_truncated(&self) -> bool {
+        self.name_truncated
+    }
+
+    /// The device name.
+    pub fn device_name(&self) -> &[u8] {
+        &self.device_name
+    }
+}
+
+/// Errors that can occur when creating a `DeviceInfo`.
+#[derive(Debug, PartialEq, Eq)]
+pub enum DeviceInfoMalformed {
+    /// The device name is too short.
+    NameTooShort,
+    /// The device name is too long.
+    NameTooLong,
+}
+
+impl<'a> TryFrom<(DeviceType, bool, &'a [u8])> for DeviceInfo {
+    type Error = DeviceInfoMalformed;
+
+    fn try_from(
+        (device_type, name_truncated, device_name): (DeviceType, bool, &'a [u8]),
+    ) -> Result<Self, Self::Error> {
+        if device_name.len() < MIN_DEVICE_NAME_LEN {
+            Err(DeviceInfoMalformed::NameTooShort)
+        } else if device_name.len() > MAX_DEVICE_NAME_LEN {
+            Err(DeviceInfoMalformed::NameTooLong)
+        } else {
+            let mut array_vec = ArrayVec::new();
+            array_vec.try_extend_from_slice(device_name).ok_or(DeviceInfoMalformed::NameTooLong)?;
+            Ok(Self { device_type, name_truncated, device_name: array_vec })
+        }
+    }
+}
+
 #[allow(clippy::unwrap_used)]
 #[cfg(test)]
 mod tests {
@@ -101,5 +200,30 @@ mod tests {
     #[test]
     fn context_sync_seq_num_ok() {
         assert_eq!(0x0F, ContextSyncSeqNum::try_from(0x0F).unwrap().num);
+    }
+
+    #[test]
+    fn device_info_name_too_short() {
+        assert_eq!(
+            DeviceInfoMalformed::NameTooShort,
+            DeviceInfo::try_from((DeviceType::Phone, false, "abcd".as_bytes())).unwrap_err()
+        );
+    }
+
+    #[test]
+    fn device_info_name_too_long() {
+        assert_eq!(
+            DeviceInfoMalformed::NameTooLong,
+            DeviceInfo::try_from((DeviceType::Phone, false, "0123456789".as_bytes())).unwrap_err()
+        );
+    }
+
+    #[test]
+    fn device_info_ok() {
+        let device_info =
+            DeviceInfo::try_from((DeviceType::Phone, true, "abcde".as_bytes())).unwrap();
+        assert_eq!(device_info.device_type(), DeviceType::Phone);
+        assert!(device_info.name_truncated());
+        assert_eq!(device_info.device_name(), "abcde".as_bytes());
     }
 }

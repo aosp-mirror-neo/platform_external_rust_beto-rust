@@ -466,6 +466,7 @@ mod proto {
 
     #[cfg(test)]
     #[derive_fuzztest::proptest]
+    #[allow(clippy::unwrap_used)]
     fn register_roundtrip(register: Register<Vec<u8>, VectorClock<String>>) {
         let mut node_ids = NodeMapping::default();
         assert_eq!(

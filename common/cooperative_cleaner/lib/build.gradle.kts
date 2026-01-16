@@ -14,44 +14,45 @@
  * limitations under the License.
  */
 
-import net.ltgt.gradle.errorprone.errorprone;
+import net.ltgt.gradle.errorprone.errorprone
 
 plugins {
-  `java-library`
-  id("net.ltgt.errorprone") version "4.0.0"
+    `java-library`
+    id("net.ltgt.errorprone") version "4.3.0"
 }
 
 java {
-  // Gradle JUnit test finder doesn't support Java 21 class files.
-  sourceCompatibility = JavaVersion.VERSION_1_9
-  targetCompatibility = JavaVersion.VERSION_1_9
+    // Gradle JUnit test finder doesn't support Java 21 class files.
+    sourceCompatibility = JavaVersion.VERSION_1_9
+    targetCompatibility = JavaVersion.VERSION_1_9
 }
 
 repositories {
-  mavenCentral()
-  google()
+    mavenCentral()
+    google()
 }
 
 dependencies {
-  compileOnly("androidx.annotation:annotation:1.6.0")
-  implementation("com.google.errorprone:error_prone_core:2.28.0")
+    compileOnly("androidx.annotation:annotation:1.6.0")
+    errorprone("com.google.errorprone:error_prone_core:2.41.0")
+    implementation("org.checkerframework:checker-qual:3.51.0")
 
-  testImplementation("junit:junit:4.13")
-  testImplementation("com.google.truth:truth:1.1.4")
-  testImplementation("org.mockito:mockito-core:5.+")
+    testImplementation("junit:junit:4.13")
+    testImplementation("com.google.truth:truth:1.1.4")
+    testImplementation("org.mockito:mockito-core:5.+")
 }
 
 tasks.withType<JavaCompile>().configureEach {
-  options.errorprone {
-    error("CheckReturnValue")
-    error("UnnecessaryStaticImport")
-    error("WildcardImport")
-    error("RemoveUnusedImports")
-    error("ReturnMissingNullable")
-    error("FieldMissingNullable")
-    error("AnnotationPosition")
-    error("CheckedExceptionNotThrown")
-    error("NonFinalStaticField")
-    error("InvalidLink")
-  }
+    options.errorprone {
+        error("CheckReturnValue")
+        error("UnnecessaryStaticImport")
+        error("WildcardImport")
+        error("RemoveUnusedImports")
+        error("ReturnMissingNullable")
+        error("FieldMissingNullable")
+        error("AnnotationPosition")
+        error("CheckedExceptionNotThrown")
+        error("NonFinalStaticField")
+        error("InvalidLink")
+    }
 }

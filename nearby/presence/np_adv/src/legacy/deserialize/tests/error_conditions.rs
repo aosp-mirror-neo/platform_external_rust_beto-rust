@@ -15,13 +15,12 @@
 mod unencrypted {
 
     use crate::header::V0Encoding;
-    use crate::legacy::data_elements::actions::{ActionBits, ActionsDataElement, ActiveUnlock};
+    use crate::legacy::data_elements::actions::ActionsDataElement;
     use crate::legacy::data_elements::de_type::{DeEncodedLength, DeTypeCode};
     use crate::legacy::data_elements::tx_power::TxPowerDataElement;
     use crate::legacy::data_elements::{DataElementDeserializeError, DeserializeDataElement};
     use crate::legacy::deserialize::intermediate::IntermediateAdvContents;
-    use crate::legacy::serialize::tests::serialize;
-    use crate::legacy::{Ciphertext, PacketFlavorEnum, Plaintext};
+    use crate::legacy::Plaintext;
 
     #[test]
     fn iterate_tx_power_invalid_de_len_error() {
@@ -54,19 +53,6 @@ mod unencrypted {
             DataElementDeserializeError::InvalidDeLength {
                 de_type: ActionsDataElement::<Plaintext>::DE_TYPE_CODE,
                 len: DeEncodedLength::from(0),
-            },
-        );
-    }
-
-    #[test]
-    fn iterate_actions_ciphertext_only_bit_error() {
-        let mut bits = ActionBits::default();
-        bits.set_action(ActiveUnlock::from(true));
-        assert_deser_error(
-            serialize(&ActionsDataElement::<Ciphertext>::from(bits)).as_slice(),
-            DataElementDeserializeError::FlavorNotSupported {
-                de_type: ActionsDataElement::<Plaintext>::DE_TYPE_CODE,
-                flavor: PacketFlavorEnum::Plaintext,
             },
         );
     }
@@ -123,17 +109,12 @@ mod ldt {
     // see unencrypted tests above for basic things that are the same between unencrypted and ldt,
     // like how an invalid de type is handled
 
-    use crate::credential::matched::HasIdentityMatch;
     use crate::credential::v0::V0BroadcastCredential;
     use crate::header::V0Encoding;
-    use crate::legacy::data_elements::actions::tests::PlaintextOnly;
-    use crate::legacy::data_elements::actions::{ActionBits, ActionsDataElement};
     use crate::legacy::data_elements::tx_power::TxPowerDataElement;
-    use crate::legacy::data_elements::{DataElementDeserializeError, DeserializeDataElement};
     use crate::legacy::deserialize::intermediate::IntermediateAdvContents;
     use crate::legacy::deserialize::DecryptError;
     use crate::legacy::serialize::{AdvBuilder, LdtEncoder};
-    use crate::legacy::{Ciphertext, PacketFlavorEnum};
     use crate::shared_data::TxPower;
     use alloc::vec::Vec;
     use crypto_provider_default::CryptoProviderImpl;
@@ -141,45 +122,6 @@ mod ldt {
         build_np_adv_decrypter, AuthenticatedNpLdtDecryptCipher, V0IdentityToken, V0Salt,
         V0_IDENTITY_TOKEN_LEN,
     };
-
-    #[test]
-    fn iterate_actions_invalid_flavor_error() {
-        let mut bits = ActionBits::default();
-        bits.set_action(PlaintextOnly::from(true));
-
-        let key_seed = [0; 32];
-        let identity_token = V0IdentityToken::from([0x33; V0_IDENTITY_TOKEN_LEN]);
-        let salt = V0Salt::from([0x01, 0x02]);
-        let broadcast_cred = V0BroadcastCredential::new(key_seed, identity_token);
-        let mut builder =
-            AdvBuilder::new(LdtEncoder::<CryptoProviderImpl>::new(salt, &broadcast_cred));
-
-        builder.add_data_element(ActionsDataElement::from(bits)).unwrap();
-
-        let adv = builder.into_advertisement().unwrap();
-
-        let mut contents =
-            IntermediateAdvContents::deserialize(V0Encoding::Ldt, &adv.as_slice()[1..]).unwrap();
-        let ldt = contents.as_ldt().unwrap();
-        let hkdf = np_hkdf::NpKeySeedHkdf::<CryptoProviderImpl>::new(&key_seed);
-        let identity_token_hmac: [u8; 32] = hkdf
-            .v0_identity_token_hmac_key()
-            .calculate_hmac::<CryptoProviderImpl>(identity_token.as_slice());
-        let decrypter =
-            ldt_np_adv::build_np_adv_decrypter_from_key_seed(&hkdf, identity_token_hmac);
-        let decrypted = ldt.try_decrypt(&decrypter).unwrap();
-
-        assert_eq!(salt, decrypted.salt());
-        assert_eq!(identity_token, decrypted.identity_token());
-
-        assert_eq!(
-            DataElementDeserializeError::FlavorNotSupported {
-                de_type: ActionsDataElement::<Ciphertext>::DE_TYPE_CODE,
-                flavor: PacketFlavorEnum::Ciphertext,
-            },
-            decrypted.data_elements().next().unwrap().unwrap_err()
-        )
-    }
 
     #[test]
     fn decrypter_wrong_identity_token_hmac_no_match() {

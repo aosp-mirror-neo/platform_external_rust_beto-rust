@@ -57,6 +57,8 @@ define_data_element_deserializer! {
         /// A media deduplication ID
         MediaDeduplicationId: MediaDeduplicationIdDataElement<'adv>,
     } owns {
+        /// Device Info
+        DeviceInfo: DeviceInfoDataElement,
         /// A transmission power
         TxPower: TxPowerDataElement,
         /// A context sync sequence number
@@ -464,6 +466,80 @@ impl WriteDataElement for DeviceTypeDataElement {
     type Salt = Unsalted;
     fn write_de_contents<S: Sink<u8>>(&self, _salt: Self::Salt, sink: &mut S) -> Option<()> {
         sink.try_push(self.0)
+    }
+}
+
+/// Device information of the broadcasting device.
+#[derive(Debug)]
+pub struct DeviceInfoDataElement {
+    /// Data element representing the device information of the broadcasting device,
+    /// including the [`DeviceType`], and device name, as well as a boolean flag
+    /// representing whether the device name is truncated.
+    pub device_info: DeviceInfo,
+}
+
+impl From<DeviceInfo> for DeviceInfoDataElement {
+    fn from(device_info: DeviceInfo) -> Self {
+        Self { device_info }
+    }
+}
+
+impl From<DeviceInfoDataElement> for DeviceInfo {
+    fn from(de: DeviceInfoDataElement) -> Self {
+        de.device_info
+    }
+}
+
+/// Errors raised when attempting to deserialize a device info DE.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum DeviceInfoDeserializationError {
+    /// The DE payload was of the wrong length.
+    WrongLength,
+    /// The device type is unknown
+    UnknownDeviceType,
+}
+
+impl HasDEType for DeviceInfoDataElement {
+    const DE_TYPE: DeType = DeType::const_from(0x03);
+}
+
+impl<'adv> DeserializedDataElement<'adv> for DeviceInfoDataElement {
+    type DeserializationError = DeviceInfoDeserializationError;
+    fn try_deserialize(
+        _maybe_salt: Option<&DeSalt>,
+        contents: &'adv [u8],
+    ) -> Result<Self, Self::DeserializationError> {
+        // Contents should be min 5 byte (device name) + 1 byte (device type | name truncated ).
+        if contents.len() < crate::shared_data::MIN_DEVICE_NAME_LEN + 1 {
+            return Err(DeviceInfoDeserializationError::WrongLength);
+        }
+
+        let type_and_trunc = contents[0];
+        let device_type = crate::shared_data::DeviceType::from_repr(type_and_trunc & 0b01111111)
+            .ok_or(DeviceInfoDeserializationError::UnknownDeviceType)?;
+        let name_truncated = (type_and_trunc & 0b10000000) != 0;
+        let device_name = &contents[1..];
+
+        let device_info = DeviceInfo::try_from((device_type, name_truncated, device_name))
+            .map_err(|_| {
+                // This is not ideal, but we don't have a specific error for this.
+                // The length is already checked, so this should not happen.
+                DeviceInfoDeserializationError::WrongLength
+            })?;
+
+        Ok(device_info.into())
+    }
+}
+
+impl WriteDataElement for DeviceInfoDataElement {
+    type Salt = Unsalted;
+    fn write_de_contents<S: Sink<u8>>(&self, _salt: Self::Salt, sink: &mut S) -> Option<()> {
+        let mut type_and_trunc = self.device_info.device_type() as u8;
+        if self.device_info.name_truncated() {
+            type_and_trunc |= 0b10000000;
+        }
+        sink.try_push(type_and_trunc)?;
+        sink.try_extend_from_slice(self.device_info.device_name())
     }
 }
 

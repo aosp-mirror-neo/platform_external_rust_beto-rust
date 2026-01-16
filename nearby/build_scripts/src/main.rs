@@ -68,6 +68,9 @@ fn main() -> anyhow::Result<()> {
             license_subcommand.run(&LICENSE_CHECKER, root_dir)?
         }
         Subcommand::CheckUkey2Ffi(ref options) => ffi::check_ukey2_cmake(root_dir, options, false)?,
+        Subcommand::CheckQuickShareFfi(ref options) => {
+            ffi::check_quick_share_ffi(root_dir, options)?
+        }
         Subcommand::RunUkey2JniTests => jni::run_ukey2_jni_tests(root_dir)?,
         Subcommand::RunNpJavaFfiTests => jni::run_np_java_ffi_tests(root_dir)?,
         Subcommand::RunDctJavaFfiTests => jni::run_dct_java_ffi_tests(root_dir)?,
@@ -124,7 +127,7 @@ fn check_format(root: &path::Path, options: &FormatterOptions) -> anyhow::Result
 
         let root_str =
             glob::Pattern::escape(root.to_str().expect("Non-unicode paths are not supported"));
-        let search = format!("{}/**/*.java", root_str);
+        let search = format!("{root_str}/**/*.java");
         let java_files: Vec<_> = glob::glob(&search)
             .unwrap()
             .filter_map(Result::ok)
@@ -158,13 +161,17 @@ pub fn check_workspace(root: &path::Path, options: &CheckOptions) -> anyhow::Res
 
     for cargo_cmd in [
         // make sure everything compiles
-        &format!("cargo check --workspace --all-targets --quiet --features={}", workspace_features.join(",")),
+        &format!(
+            "cargo check --workspace --all-targets --quiet --features={}",
+            workspace_features.join(",")
+        ),
         "cargo check -p np_adv -Falloc,devtools --example generate_test_data",
+        "cargo check -p up_adv -Falloc,devtools --example generate_test_data",
         // run all the tests
         &options.cargo_options.test(
-            "check_workspace", 
+            "check_workspace",
             format!("--workspace --quiet --features={}", workspace_features.join(",")),
-            None
+            None,
         ),
         // Test ukey2 builds with different crypto providers
         &options.cargo_options.test(
@@ -305,6 +312,8 @@ enum Subcommand {
     License(LicenseSubcommand),
     /// Builds and runs tests for the UKEY2 FFI
     CheckUkey2Ffi(CargoOptions),
+    /// Builds the Quick Share FFI crate.
+    CheckQuickShareFfi(CargoOptions),
     /// Runs the kotlin tests of the LDT Jni API
     RunLdtKotlinTests,
     /// Checks the build of the ukey2_jni wrapper and runs tests
@@ -339,6 +348,11 @@ pub struct CargoOptions {
     locked: bool,
     #[arg(long, help = "gather coverage metrics")]
     coverage: bool,
+    #[arg(
+        long,
+        help = "platforms to run on, other than the default. platforms specified here should have already been installed via rustup."
+    )]
+    platforms: Vec<String>,
 }
 
 #[derive(PartialEq, Eq)]

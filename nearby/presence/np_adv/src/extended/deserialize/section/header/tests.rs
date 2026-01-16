@@ -104,6 +104,6 @@ mod coverage_gaming {
             salt: [0; 2].into(),
             token: CiphertextExtendedIdentityToken([0; 16]),
         };
-        let _ = format!("{:?}", header);
+        let _ = format!("{header:?}");
     }
 }

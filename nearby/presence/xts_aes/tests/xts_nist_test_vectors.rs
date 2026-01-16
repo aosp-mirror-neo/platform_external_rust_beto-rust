@@ -199,6 +199,8 @@ impl<I: Iterator<Item = String>> Iterator for TestVectorFileIterator<I> {
 
     fn next(&mut self) -> Option<Self::Item> {
         let mut map = hash_map::HashMap::new();
+        let encrypt_decrypt_regex = regex::Regex::new("^\\[(.*)\\]$").unwrap();
+        let key_value_regex = regex::Regex::new("^(.*) = (.*)$").unwrap();
         while let Some(line) = self.delegate.next().map(|l| l.trim().to_owned()) {
             if line.starts_with('#') {
                 continue;
@@ -217,14 +219,14 @@ impl<I: Iterator<Item = String>> Iterator for TestVectorFileIterator<I> {
             }
 
             // look for `[ENCRYPT]` / `[DECRYPT]`
-            if let Some(captures) = regex::Regex::new("^\\[(.*)\\]$").unwrap().captures(&line) {
+            if let Some(captures) = encrypt_decrypt_regex.captures(&line) {
                 return Some(ParseUnit::SectionHeader(
                     captures.get(1).unwrap().as_str().to_owned(),
                 ));
             }
 
             // `key = value` in a test case chunk
-            if let Some(captures) = regex::Regex::new("^(.*) = (.*)$").unwrap().captures(&line) {
+            if let Some(captures) = key_value_regex.captures(&line) {
                 let _ = map.insert(
                     captures.get(1).unwrap().as_str().to_owned(),
                     captures.get(2).unwrap().as_str().to_owned(),

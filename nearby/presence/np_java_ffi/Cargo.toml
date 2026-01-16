@@ -12,6 +12,8 @@ workspace = true
 # The testing feature enables test-only APIs that implement native methods in
 # the test/ library.
 testing = ["np_ffi_core/testing"]
+rustcrypto = ["np_ffi_core/rustcrypto"]
+boringssl = ["np_ffi_core/boringssl"]
 
 [dependencies]
 array_view.workspace = true

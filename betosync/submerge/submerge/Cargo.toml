@@ -13,7 +13,6 @@ distributed_time.workspace = true
 submerge_internal_proto = { workspace = true, optional = true }
 
 arbitrary.workspace = true
-bincode = { workspace = true, optional = true }
 derive-where.workspace = true
 log.workspace = true
 protobuf = { workspace = true, optional = true }
@@ -22,7 +21,7 @@ thiserror.workspace = true
 
 [features]
 default = []
-checker = ["crdt/checker", "dep:bincode"]
+checker = ["crdt/checker"]
 proto = ["dep:protobuf", "dep:submerge_internal_proto", "crdt/proto", "distributed_time/proto"]
 enable-required-features = ["checker", "proto"]
 
@@ -30,17 +29,12 @@ enable-required-features = ["checker", "proto"]
 workspace = true
 
 [dev-dependencies]
-bincode.workspace = true
 crdt = { workspace = true, features = ["checker"] }
 derive_fuzztest.workspace = true
 hex.workspace = true
 protobuf.workspace = true
 serde_json.workspace = true
 serde.workspace = true
-
-[[test]]
-name = "bincode_size"
-required-features = ["checker"]
 
 [[test]]
 name = "proto_size"

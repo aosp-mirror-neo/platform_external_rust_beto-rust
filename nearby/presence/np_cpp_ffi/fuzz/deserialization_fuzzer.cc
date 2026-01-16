@@ -284,6 +284,13 @@ void HandleDataElement(nearby_protocol::V0DataElement de) {
       [[maybe_unused]] auto actions = de.AsActions();
       break;
     }
+    case nearby_protocol::V0DataElementKind::Psm: {
+      [[maybe_unused]] auto psm = de.AsPsm();
+      break;
+    }
+    case nearby_protocol::V0DataElementKind::DeviceInfo: {
+      break;
+    }
   }
 }
 

@@ -13,6 +13,7 @@ nearby/connections/ukey2/ukey2_c_ffi/cpp/bin/
 nearby/presence/ldt_np_jni/java/LdtNpJni/build/
 nearby/presence/ldt_np_jni/java/LdtNpJni/bin/
 **/auth_token.txt
+**/.DS_Store
 /bazel-*
 /.clwb/.bazelproject
 /common/1p_internal/ph_client_sys/portable_ph_fake/cmake-build-debug/

@@ -758,6 +758,8 @@ pub enum V1DataElementDeserializationResultKind {
     CapabilitiesMalformed = 12,
     /// There was a Requirements DE, but the payload was malformed.
     RequirementsMalformed = 13,
+    /// There was a DeviceInfo DE, but the payload was malformed.
+    DeviceInfoMalformed = 14,
 }
 
 /// Representation of the result of attempting to deserialize
@@ -790,6 +792,7 @@ pub enum V1DataElementDeserializationResult {
     MediaDeduplicationIdWrongLength,
     CapabilitiesMalformed,
     RequirementsMalformed,
+    DeviceInfoMalformed,
 }
 
 impl FfiEnum for V1DataElementDeserializationResult {
@@ -827,6 +830,9 @@ impl FfiEnum for V1DataElementDeserializationResult {
             }
             Self::RequirementsMalformed => {
                 V1DataElementDeserializationResultKind::RequirementsMalformed
+            }
+            Self::DeviceInfoMalformed => {
+                V1DataElementDeserializationResultKind::DeviceInfoMalformed
             }
         }
     }
@@ -945,6 +951,12 @@ impl GenericV1DataElement {
                 ))
             }
             Ok(DeserializedGoogleDE::Requirements(Err(_))) => V1DataElementDeserializationResult::RequirementsMalformed,
+            Ok(DeserializedGoogleDE::DeviceInfo(Ok(device_info))) => {
+                V1DataElementDeserializationResult::Success(V1DataElement::DeviceInfo(
+                    device_info.into(),
+                ))
+            }
+            Ok(DeserializedGoogleDE::DeviceInfo(Err(_))) => V1DataElementDeserializationResult::DeviceInfoMalformed,
             Err(_) => V1DataElementDeserializationResult::Success(V1DataElement::Generic(self)),
         })
     }
@@ -1042,5 +1054,25 @@ impl From<np_adv::extended::data_elements::RequirementsDataElement> for Requirem
     fn from(de: np_adv::extended::data_elements::RequirementsDataElement) -> Self {
         let requirements = de.into();
         Self { requirements }
+    }
+}
+
+impl From<np_adv::extended::data_elements::DeviceInfoDataElement> for DeviceInfo {
+    fn from(de: np_adv::extended::data_elements::DeviceInfoDataElement) -> Self {
+        let name_slice = de.device_info.device_name();
+        let mut name_bytes = [0; 9];
+        let len = name_slice.len().min(name_bytes.len());
+        #[allow(clippy::expect_used)]
+        name_bytes
+            .get_mut(..len)
+            .expect("slice length is within bounds")
+            .copy_from_slice(name_slice.get(..len).expect("slice length is within bounds"));
+        let device_name =
+            OptionalByteBuffer::Present(ByteBuffer { len: len as u8, bytes: name_bytes });
+        Self {
+            device_type: de.device_info.device_type() as u8,
+            is_name_truncated: de.device_info.name_truncated(),
+            device_name,
+        }
     }
 }

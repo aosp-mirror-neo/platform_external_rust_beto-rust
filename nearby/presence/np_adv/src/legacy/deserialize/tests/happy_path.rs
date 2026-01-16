@@ -23,7 +23,7 @@ mod unencrypted {
         header::V0Encoding,
         legacy::{
             data_elements::{
-                actions::{ActionBits, ActionsDataElement, NearbyShare},
+                actions::{tests::NEARBY_SHARE, ActionBits, ActionsDataElement},
                 de_type::DataElementType,
                 tests::test_des::{
                     random_test_de, TestDataElement, TestDataElementType, TestDeDeserializer,
@@ -37,8 +37,10 @@ mod unencrypted {
             },
             random_data_elements::random_de_plaintext,
             serialize::{
-                tests::helpers::{LongDataElement, ShortDataElement},
-                tests::supports_flavor,
+                tests::{
+                    helpers::{LongDataElement, ShortDataElement},
+                    supports_flavor,
+                },
                 AddDataElementError, AdvBuilder, SerializedAdv, UnencryptedEncoder,
             },
             PacketFlavorEnum, Plaintext, BLE_4_ADV_SVC_MAX_CONTENT_LEN, NP_MAX_DE_CONTENT_LEN,
@@ -120,7 +122,7 @@ mod unencrypted {
     fn typical_tx_power_and_actions() {
         let tx = TxPowerDataElement::from(TxPower::try_from(7).unwrap());
         let mut action_bits = ActionBits::default();
-        action_bits.set_action(NearbyShare::from(true));
+        action_bits.set_action(NEARBY_SHARE);
         let actions = ActionsDataElement::from(action_bits);
 
         let tx_boxed: Box<dyn SerializeDataElement<Plaintext>> = Box::new(tx.clone());
@@ -154,6 +156,8 @@ mod unencrypted {
             |builder, de| match de {
                 DeserializedDataElement::Actions(a) => builder.add_data_element(a),
                 DeserializedDataElement::TxPower(tx) => builder.add_data_element(tx),
+                DeserializedDataElement::Psm(d) => builder.add_data_element(d),
+                DeserializedDataElement::DeviceInfo(d) => builder.add_data_element(d),
             },
         )
     }
@@ -253,14 +257,14 @@ mod unencrypted {
 
 mod ldt {
     use crate::credential::matched::HasIdentityMatch;
-    use crate::legacy::data_elements::actions::CallTransfer;
+    use crate::legacy::data_elements::actions::tests::{CALL_TRANSFER, NEARBY_SHARE};
     use crate::legacy::data_elements::de_type::MAX_DE_ENCODED_LEN;
     use crate::{
         credential::v0::V0BroadcastCredential,
         header::V0Encoding,
         legacy::{
             data_elements::{
-                actions::{ActionBits, ActionsDataElement, NearbyShare},
+                actions::{ActionBits, ActionsDataElement},
                 de_type::DataElementType,
                 tests::test_des::TestDataElementType,
                 tests::test_des::{TestDataElement, TestDeDeserializer},
@@ -344,8 +348,8 @@ mod ldt {
     fn typical_tx_power_and_actions() {
         let tx = TxPowerDataElement::from(TxPower::try_from(7).unwrap());
         let mut action_bits = ActionBits::default();
-        action_bits.set_action(NearbyShare::from(true));
-        action_bits.set_action(CallTransfer::from(true));
+        action_bits.set_action(NEARBY_SHARE);
+        action_bits.set_action(CALL_TRANSFER);
         let actions = ActionsDataElement::from(action_bits);
         let tx_boxed: Box<dyn SerializeDataElement<Ciphertext>> = Box::new(tx.clone());
         let actions_boxed: Box<dyn SerializeDataElement<Ciphertext>> = Box::new(actions.clone());
@@ -371,10 +375,14 @@ mod ldt {
             |builder, de| match de {
                 DeserializedDataElement::Actions(a) => builder.add_data_element(a),
                 DeserializedDataElement::TxPower(tx) => builder.add_data_element(tx),
+                DeserializedDataElement::Psm(d) => builder.add_data_element(d),
+                DeserializedDataElement::DeviceInfo(d) => builder.add_data_element(d),
             },
             |de| match de {
                 DeserializedDataElement::Actions(a) => serialized_len(a),
                 DeserializedDataElement::TxPower(tx) => serialized_len(tx),
+                DeserializedDataElement::Psm(d) => serialized_len(d),
+                DeserializedDataElement::DeviceInfo(d) => serialized_len(d),
             },
         )
     }
@@ -530,7 +538,7 @@ mod coverage_gaming {
     #[test]
     fn iac_debug_eq_test_helpers() {
         let iac = IntermediateAdvContents::deserialize(V0Encoding::Unencrypted, &[0xFF]).unwrap();
-        let _ = format!("{:?}", iac);
+        let _ = format!("{iac:?}");
         assert_eq!(iac, iac);
     }
 
@@ -562,7 +570,7 @@ mod coverage_gaming {
             contents: &[],
         };
 
-        let _ = format!("{:?}", rde);
+        let _ = format!("{rde:?}");
         assert_eq!(rde, rde);
     }
 
@@ -576,6 +584,6 @@ mod coverage_gaming {
     #[test]
     fn ldt_adv_contents_debug() {
         let lac = LdtAdvContents::new([0; 2].into(), &[0; 16]).unwrap();
-        let _ = format!("{:?}", lac);
+        let _ = format!("{lac:?}");
     }
 }

@@ -103,7 +103,7 @@ fn expected_header_len(hdr: DeHeader) -> u8 {
         1
     } else {
         // at least one type byte to handle the type = 0 case
-        1_u8 + cmp::max(1, (32 - hdr.de_type.as_u32().leading_zeros() as u8 + 6) / 7)
+        1_u8 + cmp::max(1, (32 - hdr.de_type.as_u32().leading_zeros() as u8).div_ceil(7))
     }
 }
 

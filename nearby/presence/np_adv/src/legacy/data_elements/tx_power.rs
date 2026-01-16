@@ -181,7 +181,7 @@ mod tests {
         fn tx_power_de() {
             let de = TxPowerDataElement::from(TxPower::try_from(3).unwrap());
             // debug
-            let _ = format!("{:?}", de);
+            let _ = format!("{de:?}");
             // trivial accessor
             assert_eq!(3, de.tx_power_value());
         }

@@ -44,6 +44,8 @@ pub(crate) mod intermediate;
 use crate::credential::matched::HasIdentityMatch;
 use crate::legacy::data_elements::actions::ActionsDataElement;
 use crate::legacy::data_elements::de_type::{DataElementType, DeActualLength};
+use crate::legacy::data_elements::device_info::DeviceInfoDataElement;
+use crate::legacy::data_elements::psm::PsmDataElement;
 use crate::legacy::data_elements::DataElementDeserializeError::DuplicateDeTypes;
 use crate::legacy::Plaintext;
 /// exposed because the unencrypted case isn't just for intermediate: no further processing is needed
@@ -228,6 +230,8 @@ pub(crate) enum DecryptError {
 pub enum DeserializedDataElement<F: PacketFlavor> {
     Actions(actions::ActionsDataElement<F>),
     TxPower(TxPowerDataElement),
+    Psm(PsmDataElement),
+    DeviceInfo(DeviceInfoDataElement),
 }
 
 impl<F: PacketFlavor> Deserialized for DeserializedDataElement<F> {
@@ -241,6 +245,14 @@ impl<F: PacketFlavor> Deserialized for DeserializedDataElement<F> {
                 DeTypeCode::try_from(TxPowerDataElement::DE_TYPE_CODE.as_u8())
                     .expect("TxPower type code is valid so this will always succeed")
             }
+            DeserializedDataElement::Psm(_) => {
+                DeTypeCode::try_from(PsmDataElement::DE_TYPE_CODE.as_u8())
+                    .expect("Psm type code is valid so this will always succeed")
+            }
+            DeserializedDataElement::DeviceInfo(_) => {
+                DeTypeCode::try_from(DeviceInfoDataElement::DE_TYPE_CODE.as_u8())
+                    .expect("DeviceInfo type code is valid so this will always succeed")
+            }
         }
     }
 }
@@ -252,6 +264,8 @@ impl<F: PacketFlavor> DeserializedDataElement<F> {
         match self {
             DeserializedDataElement::Actions(_) => ActionsDataElement::<F>::DE_TYPE_CODE.as_u8(),
             DeserializedDataElement::TxPower(_) => TxPowerDataElement::DE_TYPE_CODE.as_u8(),
+            DeserializedDataElement::Psm(_) => PsmDataElement::DE_TYPE_CODE.as_u8(),
+            DeserializedDataElement::DeviceInfo(_) => DeviceInfoDataElement::DE_TYPE_CODE.as_u8(),
         }
     }
 
@@ -269,6 +283,12 @@ impl<F: PacketFlavor> DeserializedDataElement<F> {
             DeserializedDataElement::Actions(a) => a.serialize_contents(&mut sink),
             DeserializedDataElement::TxPower(t) => {
                 SerializeDataElement::<F>::serialize_contents(t, &mut sink)
+            }
+            DeserializedDataElement::Psm(h) => {
+                SerializeDataElement::<F>::serialize_contents(h, &mut sink)
+            }
+            DeserializedDataElement::DeviceInfo(d) => {
+                SerializeDataElement::<F>::serialize_contents(d, &mut sink)
             }
         }
         .unwrap();
@@ -392,6 +412,17 @@ impl DataElementDeserializer for StandardDeserializer {
                     .map_err(|e| e.into())
                     .map(|l| (DataElementType::Actions, l))
             }
+            PsmDataElement::DE_TYPE_CODE => {
+                <PsmDataElement as DeserializeDataElement>::LengthMapper::map_encoded_len_to_actual_len(encoded_len)
+                    .map_err(|e| e.into())
+                    .map(|l| (DataElementType::Psm, l))
+
+            }
+            DeviceInfoDataElement::DE_TYPE_CODE => {
+                <DeviceInfoDataElement as DeserializeDataElement>::LengthMapper::map_encoded_len_to_actual_len(encoded_len)
+                    .map_err(|e| e.into())
+                    .map(|l| (DataElementType::DeviceInfo, l))
+            }
             _ => Err(LengthError::InvalidType),
         }
     }
@@ -406,6 +437,11 @@ impl DataElementDeserializer for StandardDeserializer {
             }
             DataElementType::TxPower => TxPowerDataElement::deserialize::<F>(raw_de.contents)
                 .map(DeserializedDataElement::TxPower),
+            DataElementType::Psm => {
+                PsmDataElement::deserialize::<F>(raw_de.contents).map(DeserializedDataElement::Psm)
+            }
+            DataElementType::DeviceInfo => DeviceInfoDataElement::deserialize::<F>(raw_de.contents)
+                .map(DeserializedDataElement::DeviceInfo),
         }
     }
 }

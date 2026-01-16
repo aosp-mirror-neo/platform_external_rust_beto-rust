@@ -15,14 +15,15 @@
 //! Common externally-acessible V0 constructs for both of the
 //! serialization+deserialization flows.
 
-use crate::common::{InvalidStackDataStructure, TxPower};
+use crate::common::{
+    ByteBuffer, DeviceInfo, InvalidStackDataStructure, OptionalByteBuffer, Psm, TxPower,
+};
 use crate::serialize::v0::AdvertisementBuilderKind;
 use crate::utils::FfiEnum;
 use np_adv::{
     legacy::data_elements::actions::ActionsDataElement,
     legacy::{data_elements as np_adv_de, Ciphertext, PacketFlavorEnum, Plaintext},
 };
-use strum::IntoEnumIterator;
 
 /// Discriminant for `V0DataElement`.
 #[repr(u8)]
@@ -35,6 +36,14 @@ pub enum V0DataElementKind {
     /// The associated payload may be obtained via
     /// `V0DataElement#into_actions`.
     Actions = 2,
+    /// The PSM data-element.
+    /// The associated payload may be obtained via
+    /// `V0DataElement#into_psm`.
+    Psm = 3,
+    /// The DeviceInfo data-element.
+    /// The associated payload may be obtained via
+    /// 'V0DataElement#into_device_info`.
+    DeviceInfo = 4,
 }
 
 /// Representation of a V0 data element.
@@ -44,6 +53,8 @@ pub enum V0DataElementKind {
 pub enum V0DataElement {
     TxPower(TxPower),
     Actions(V0Actions),
+    Psm(Psm),
+    DeviceInfo(DeviceInfo),
 }
 
 impl TryFrom<V0DataElement> for np_adv_dynamic::legacy::ToBoxedSerializeDataElement {
@@ -52,6 +63,8 @@ impl TryFrom<V0DataElement> for np_adv_dynamic::legacy::ToBoxedSerializeDataElem
         match de {
             V0DataElement::TxPower(x) => x.try_into(),
             V0DataElement::Actions(x) => x.try_into(),
+            V0DataElement::Psm(x) => x.try_into(),
+            V0DataElement::DeviceInfo(x) => x.try_into(),
         }
     }
 }
@@ -64,6 +77,8 @@ impl<F: np_adv::legacy::PacketFlavor> From<np_adv::legacy::deserialize::Deserial
         match de {
             DeserializedDataElement::Actions(x) => V0DataElement::Actions(x.into()),
             DeserializedDataElement::TxPower(x) => V0DataElement::TxPower(x.into()),
+            DeserializedDataElement::Psm(x) => V0DataElement::Psm(x.into()),
+            DeserializedDataElement::DeviceInfo(x) => V0DataElement::DeviceInfo(x.into()),
         }
     }
 }
@@ -74,6 +89,8 @@ impl FfiEnum for V0DataElement {
         match self {
             V0DataElement::Actions(_) => V0DataElementKind::Actions,
             V0DataElement::TxPower(_) => V0DataElementKind::TxPower,
+            V0DataElement::Psm(_) => V0DataElementKind::Psm,
+            V0DataElement::DeviceInfo(_) => V0DataElementKind::DeviceInfo,
         }
     }
 }
@@ -81,11 +98,39 @@ impl FfiEnum for V0DataElement {
 impl V0DataElement {
     declare_enum_cast! {into_tx_power, TxPower, TxPower}
     declare_enum_cast! {into_actions, Actions, V0Actions}
+    declare_enum_cast! {into_psm, Psm, Psm}
+    declare_enum_cast! {into_device_info, DeviceInfo, DeviceInfo}
 }
 
 impl From<np_adv_de::tx_power::TxPowerDataElement> for TxPower {
     fn from(de: np_adv_de::tx_power::TxPowerDataElement) -> Self {
         Self { tx_power: de.tx_power_value() }
+    }
+}
+
+impl From<np_adv_de::psm::PsmDataElement> for Psm {
+    fn from(de: np_adv_de::psm::PsmDataElement) -> Self {
+        Self { value: de.value }
+    }
+}
+
+impl From<np_adv_de::device_info::DeviceInfoDataElement> for DeviceInfo {
+    fn from(de: np_adv_de::device_info::DeviceInfoDataElement) -> Self {
+        let name_slice = de.device_info.device_name();
+        let mut name_bytes = [0; 9];
+        let len = name_slice.len().min(name_bytes.len());
+        #[allow(clippy::expect_used)]
+        name_bytes
+            .get_mut(..len)
+            .expect("slice length is within bounds")
+            .copy_from_slice(name_slice.get(..len).expect("slice length is within bounds"));
+        let device_name =
+            OptionalByteBuffer::Present(ByteBuffer { len: len as u8, bytes: name_bytes });
+        Self {
+            device_type: de.device_info.device_type() as u8,
+            is_name_truncated: de.device_info.name_truncated(),
+            device_name,
+        }
     }
 }
 
@@ -137,18 +182,12 @@ impl From<u32> for V0ActionBits {
     }
 }
 
-#[derive(Clone, Copy, strum_macros::EnumIter)]
+#[derive(Clone, Copy)]
 #[allow(missing_docs)]
-#[repr(u8)]
-/// The possible boolean action types which can be present in an Actions data element
-pub enum ActionType {
-    CrossDevSdk = 1,
-    CallTransfer = 4,
-    ActiveUnlock = 8,
-    NearbyShare = 9,
-    InstantTethering = 10,
-    PhoneHub = 11,
-}
+#[repr(C)]
+/// Action data element
+pub struct ActionType(u8);
+const MAX_V0_ACTION_ID: u8 = 31;
 
 #[derive(Clone, Copy, Debug)]
 /// The given int is out of range for conversion.
@@ -160,11 +199,49 @@ impl From<core::num::TryFromIntError> for TryFromIntError {
     }
 }
 
+/// Discriminant for `BuildActionTypeResult`.
+#[repr(u8)]
+#[derive(Clone, Copy)]
+pub enum BuildActionTypeResultKind {
+    /// The action type was outside the
+    /// allowed 0 to 31 range.
+    OutOfRange = 0,
+    /// The transmission power was in range,
+    /// and so a `TxPower` struct was constructed.
+    Success = 1,
+}
+
+/// Result type for attempting to construct a
+/// ActionType from an usigned byte.
+#[repr(C)]
+#[allow(missing_docs)]
+pub enum BuildActionTypeResult {
+    OutOfRange,
+    Success(ActionType),
+}
+
+impl FfiEnum for BuildActionTypeResult {
+    type Kind = BuildActionTypeResultKind;
+    fn kind(&self) -> Self::Kind {
+        match self {
+            Self::OutOfRange => BuildActionTypeResultKind::OutOfRange,
+            Self::Success(_) => BuildActionTypeResultKind::Success,
+        }
+    }
+}
+
+impl BuildActionTypeResult {
+    declare_enum_cast! {into_success, Success, ActionType}
+}
+
 impl TryFrom<u8> for ActionType {
     type Error = TryFromIntError;
     fn try_from(n: u8) -> Result<Self, Self::Error> {
-        // cast is safe since it's a repr(u8) unit enum
-        Self::iter().find(|t| *t as u8 == n).ok_or(TryFromIntError)
+        if n > MAX_V0_ACTION_ID {
+            Err(TryFromIntError)
+        } else {
+            Ok(ActionType(n))
+        }
     }
 }
 
@@ -174,51 +251,33 @@ impl ActionType {
         value: bool,
     ) -> np_adv_dynamic::legacy::ToBoxedActionElement {
         use np_adv_dynamic::legacy::ToBoxedActionElement;
-        match self {
-            Self::CrossDevSdk => ToBoxedActionElement::CrossDevSdk(value),
-            Self::CallTransfer => ToBoxedActionElement::CallTransfer(value),
-            Self::ActiveUnlock => ToBoxedActionElement::ActiveUnlock(value),
-            Self::NearbyShare => ToBoxedActionElement::NearbyShare(value),
-            Self::InstantTethering => ToBoxedActionElement::InstantTethering(value),
-            Self::PhoneHub => ToBoxedActionElement::PhoneHub(value),
+        ToBoxedActionElement { action: self.0, value }
+    }
+
+    /// Constructs a new ActionType from the given unsigned byte value.
+    pub fn build_from_unsigned_byte(action_type: u8) -> BuildActionTypeResult {
+        match action_type.try_into() {
+            Ok(action_type) => BuildActionTypeResult::Success(action_type),
+            Err(_) => BuildActionTypeResult::OutOfRange,
         }
+    }
+
+    /// Returns the ActionType value.
+    pub fn as_u8(&self) -> u8 {
+        self.0
     }
 }
 
 impl From<ActionType> for np_adv::legacy::data_elements::actions::ActionType {
     fn from(value: ActionType) -> Self {
-        match value {
-            ActionType::CrossDevSdk => {
-                np_adv::legacy::data_elements::actions::ActionType::CrossDevSdk
-            }
-            ActionType::CallTransfer => {
-                np_adv::legacy::data_elements::actions::ActionType::CallTransfer
-            }
-            ActionType::ActiveUnlock => {
-                np_adv::legacy::data_elements::actions::ActionType::ActiveUnlock
-            }
-            ActionType::NearbyShare => {
-                np_adv::legacy::data_elements::actions::ActionType::NearbyShare
-            }
-            ActionType::InstantTethering => {
-                np_adv::legacy::data_elements::actions::ActionType::InstantTethering
-            }
-            ActionType::PhoneHub => np_adv::legacy::data_elements::actions::ActionType::PhoneHub,
-        }
+        np_adv::legacy::data_elements::actions::ActionType(value.0)
     }
 }
 
 // ensure bidirectional mapping
 impl From<np_adv::legacy::data_elements::actions::ActionType> for ActionType {
     fn from(value: np_adv_de::actions::ActionType) -> Self {
-        match value {
-            np_adv_de::actions::ActionType::CrossDevSdk => ActionType::CrossDevSdk,
-            np_adv_de::actions::ActionType::CallTransfer => ActionType::CallTransfer,
-            np_adv_de::actions::ActionType::ActiveUnlock => ActionType::ActiveUnlock,
-            np_adv_de::actions::ActionType::NearbyShare => ActionType::NearbyShare,
-            np_adv_de::actions::ActionType::InstantTethering => ActionType::InstantTethering,
-            np_adv_de::actions::ActionType::PhoneHub => ActionType::PhoneHub,
-        }
+        ActionType(value.0)
     }
 }
 
@@ -239,19 +298,15 @@ impl TryFrom<V0Actions> for np_adv_dynamic::legacy::BoxedActionBits {
     fn try_from(actions: V0Actions) -> Result<Self, InvalidStackDataStructure> {
         match actions {
             V0Actions::Plaintext(action_bits) => {
-                let bits =
-                    np_adv::legacy::data_elements::actions::ActionBits::<Plaintext>::try_from(
-                        action_bits.bitfield,
-                    )
-                    .map_err(|_| InvalidStackDataStructure)?;
+                let bits = np_adv::legacy::data_elements::actions::ActionBits::<Plaintext>::from(
+                    action_bits.bitfield,
+                );
                 Ok(bits.into())
             }
             V0Actions::Encrypted(action_bits) => {
-                let bits =
-                    np_adv::legacy::data_elements::actions::ActionBits::<Ciphertext>::try_from(
-                        action_bits.bitfield,
-                    )
-                    .map_err(|_| InvalidStackDataStructure)?;
+                let bits = np_adv::legacy::data_elements::actions::ActionBits::<Ciphertext>::from(
+                    action_bits.bitfield,
+                );
                 Ok(bits.into())
             }
         }

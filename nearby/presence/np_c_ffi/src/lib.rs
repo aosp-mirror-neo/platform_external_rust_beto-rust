@@ -92,9 +92,9 @@ impl PanicHandler {
     }
 
     fn system_handler(panic_reason: PanicReason) -> ! {
-        std::eprintln!("NP FFI Panicked: {:?}", panic_reason);
+        std::eprintln!("NP FFI Panicked: {panic_reason:?}");
         let backtrace = std::backtrace::Backtrace::capture();
-        std::eprintln!("Stack trace: {}", backtrace);
+        std::eprintln!("Stack trace: {backtrace}");
         std::process::abort()
     }
 }

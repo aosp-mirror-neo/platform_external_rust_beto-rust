@@ -19,6 +19,7 @@ package com.google.android.nearby.presence.rust;
 import com.google.android.cooperativecleaner.CooperativeCleaner;
 import com.google.android.nearby.presence.rust.SerializationException.InsufficientSpaceException;
 import com.google.android.nearby.presence.rust.SerializationException.InvalidDataElementException;
+import com.google.android.nearby.presence.rust.V0DataElement.Psm;
 import com.google.android.nearby.presence.rust.V0DataElement.TxPower;
 import com.google.android.nearby.presence.rust.V0DataElement.V0Actions;
 import com.google.android.nearby.presence.rust.credential.V0BroadcastCredential;
@@ -118,6 +119,15 @@ public final class V0AdvertisementBuilder implements AutoCloseable {
       }
 
       @Override
+      public void visitPsm(Psm psm) {
+        try {
+          nativeAddPsmDataElement(psm);
+        } catch (InsufficientSpaceException ise) {
+          throw new SmuggledInsufficientSpaceException(ise);
+        }
+      }
+
+      @Override
       public void visitV0Actions(V0Actions actions) {
         try {
           nativeAddV0ActionsDataElement(actions);
@@ -165,6 +175,8 @@ public final class V0AdvertisementBuilder implements AutoCloseable {
 
     private native void nativeAddTxPowerDataElement(TxPower txPower)
         throws InsufficientSpaceException;
+
+    private native void nativeAddPsmDataElement(Psm psm) throws InsufficientSpaceException;
 
     private native void nativeAddV0ActionsDataElement(V0Actions v0Actions)
         throws InsufficientSpaceException;

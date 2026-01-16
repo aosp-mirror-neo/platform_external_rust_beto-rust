@@ -56,6 +56,6 @@ pub fn seeded_rng() -> rand_pcg::Pcg64 {
     let mut seed: <rand_pcg::Pcg64 as rand::SeedableRng>::Seed = Default::default();
     rand::thread_rng().fill(&mut seed);
     // print it out so if a test fails, the seed will be visible for further investigation
-    info!("seed: {:?}", seed);
+    info!("seed: {seed:?}");
     rand_pcg::Pcg64::from_seed(seed)
 }

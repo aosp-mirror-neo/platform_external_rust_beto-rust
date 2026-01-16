@@ -19,7 +19,7 @@ use jni::{
 };
 use np_ffi_core::deserialize::{v0::DeserializedV0IdentityKind, v1::DeserializedV1IdentityKind};
 use pourover::desc::{ClassDesc, StaticFieldDesc};
-use std::sync::RwLock;
+use std::sync::OnceLock;
 
 use crate::class::V0AdvertisementError;
 
@@ -68,50 +68,46 @@ impl IdentityKind {
     fn no_matching_credentials<'local>(env: &mut JNIEnv<'local>) -> jni::errors::Result<jint> {
         static NO_MATCHING_CREDENTIALS: StaticFieldDesc =
             IDENTITY_KIND_CLASS.static_field("NO_MATCHING_CREDENTIALS", "I");
-        static VALUE: RwLock<Option<jint>> = RwLock::new(None);
+        static VALUE: OnceLock<jint> = OnceLock::new();
         Self::lookup_static_value(env, &NO_MATCHING_CREDENTIALS, &VALUE)
     }
 
     /// Fetch the `PLAINTEXT` constant
     fn plaintext<'local>(env: &mut JNIEnv<'local>) -> jni::errors::Result<jint> {
         static PLAINTEXT: StaticFieldDesc = IDENTITY_KIND_CLASS.static_field("PLAINTEXT", "I");
-        static VALUE: RwLock<Option<jint>> = RwLock::new(None);
+        static VALUE: OnceLock<jint> = OnceLock::new();
         Self::lookup_static_value(env, &PLAINTEXT, &VALUE)
     }
 
     /// Fetch the `DECRYPTED` constant
     fn decrypted<'local>(env: &mut JNIEnv<'local>) -> jni::errors::Result<jint> {
         static DECRYPTED: StaticFieldDesc = IDENTITY_KIND_CLASS.static_field("DECRYPTED", "I");
-        static VALUE: RwLock<Option<jint>> = RwLock::new(None);
+        static VALUE: OnceLock<jint> = OnceLock::new();
         Self::lookup_static_value(env, &DECRYPTED, &VALUE)
     }
 
     /// Look up the given field and cache it in the given cache. The lookup will only be performed
-    /// once if successful. This uses `RwLock` instead of `OnceCell` since the fallible `OnceCell`
-    /// APIs are nightly only.
+    /// once if successful.
     fn lookup_static_value<'local>(
         env: &mut JNIEnv<'local>,
         field: &StaticFieldDesc,
-        cache: &RwLock<Option<jint>>,
+        cache: &OnceLock<jint>,
     ) -> jni::errors::Result<jint> {
         // Read from cache
-        if let Some(value) = *cache.read().unwrap_or_else(|poison| poison.into_inner()) {
-            return Ok(value);
-        }
-
-        // Get exclusive access to the cache for the lookup
-        let mut guard = cache.write().unwrap_or_else(|poison| poison.into_inner());
-
-        // In case of races, only lookup the value once
-        if let Some(value) = *guard {
-            return Ok(value);
+        if let Some(value) = cache.get() {
+            return Ok(*value);
         }
 
         let value = env
             .get_static_field_unchecked(field.cls(), field, JavaType::Primitive(Primitive::Int))
             .and_then(|ret| ret.i())?;
 
-        *guard = Some(value);
+        // In case of races, check if our setting is in error. If so, return the value in the cell.
+        if cache.set(value).is_err() {
+            // The OnceLock has a value, which is why the set failed.
+            #[allow(clippy::unwrap_used)]
+            return Ok(*cache.get().unwrap());
+        }
 
         Ok(value)
     }

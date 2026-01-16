@@ -199,6 +199,7 @@ mod proto {
 
     #[cfg(test)]
     #[derive_fuzztest::proptest]
+    #[allow(clippy::unwrap_used)]
     fn unnamed_hlc_round_trip(hlc: UnnamedHybridLogicalTimestamp) {
         let mut node_ids = NodeMapping::default();
         assert_eq!(
@@ -213,6 +214,7 @@ mod proto {
 
     #[cfg(test)]
     #[derive_fuzztest::proptest]
+    #[allow(clippy::unwrap_used)]
     fn hlc_round_trip(hlc: HybridLogicalTimestamp<String>) {
         let mut node_ids = NodeMapping::default();
         let (timestamp_proto, updater) = hlc.to_proto(&mut node_ids);

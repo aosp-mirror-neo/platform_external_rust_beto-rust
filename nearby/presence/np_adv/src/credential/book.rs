@@ -109,6 +109,22 @@ impl<M: MatchedCredential> CredentialBookBuilder<M> {
         let v1_source = PrecalculatedOwnedCredentialSource::<V1, M>::new::<P>(v1_iter);
         CredentialBookFromSources::new(v0_source, v1_source)
     }
+
+    #[cfg(feature = "alloc")]
+    /// Constructs a new credential-book which owns all of the given credentials,
+    /// and maintains pre-calculated cryptographic information about them
+    /// for speedy advertisement deserialization.
+    pub fn build_precalculated_owned_book_with_id<P: CryptoProvider>(
+        v0_iter: impl IntoIterator<Item = MatchableCredential<V0, M>>,
+        v1_iter: impl IntoIterator<Item = MatchableCredential<V1, M>>,
+    ) -> PrecalculatedOwnedCredentialBookWithId<M>
+    where
+        M: MatchedCredential + Clone,
+    {
+        let v0_source = PrecalculatedOwnedV0CredentialSourceWithId::<M>::new::<P>(v0_iter);
+        let v1_source = PrecalculatedOwnedV1CredentialSourceWithId::<M>::new::<P>(v1_iter);
+        CredentialBookFromSources::new(v0_source, v1_source)
+    }
 }
 
 // Now, for the implementation details. External implementors still need
@@ -545,3 +561,172 @@ pub type PrecalculatedOwnedCredentialBook<M> = CredentialBookFromSources<
     PrecalculatedOwnedCredentialSource<V0, M>,
     PrecalculatedOwnedCredentialSource<V1, M>,
 >;
+
+#[cfg(any(feature = "alloc", test))]
+/// A credential-book which owns all of its (non-matched) credential data,
+/// and maintains pre-calculated cryptographic information about all
+/// stored credentials for speedy advertisement deserialization.
+pub type PrecalculatedOwnedCredentialBookWithId<M> = CredentialBookFromSources<
+    PrecalculatedOwnedV0CredentialSourceWithId<M>,
+    PrecalculatedOwnedV1CredentialSourceWithId<M>,
+>;
+
+#[cfg(any(feature = "alloc", test))]
+/// A simple credentials source that holds owned, pre-calculated V0 crypto-materials.
+pub struct PrecalculatedOwnedV0CredentialSourceWithId<M: MatchedCredential> {
+    credentials:
+        Vec<
+            (
+                <precalculated_for_version::Marker as precalculated_for_version::MappingTrait<
+                    V0,
+                >>::Output,
+                M,
+            ),
+        >,
+}
+
+#[cfg(any(feature = "alloc", test))]
+impl<M: MatchedCredential + Clone> PrecalculatedOwnedV0CredentialSourceWithId<M> {
+    /// Pre-calculates crypto material for the given credentials and constructs a
+    /// new source which owns this crypto-material.
+    pub fn new<P: CryptoProvider>(
+        credential_iter: impl IntoIterator<Item = MatchableCredential<V0, M>>,
+    ) -> Self {
+        let credentials = credential_iter
+            .into_iter()
+            .map(|credential| {
+                (
+                    <precalculated_for_version::Marker as precalculated_for_version::MappingTrait<
+                        V0,
+                    >>::precalculate::<P>(&credential.discovery_credential),
+                    credential.match_data,
+                )
+            })
+            .collect();
+        Self { credentials }
+    }
+}
+
+#[cfg(any(feature = "alloc", test))]
+/// A simple credentials source that holds owned, pre-calculated V1 crypto-materials.
+pub struct PrecalculatedOwnedV1CredentialSourceWithId<M: MatchedCredential> {
+    credentials:
+        Vec<
+            (
+                <precalculated_for_version::Marker as precalculated_for_version::MappingTrait<
+                    V1,
+                >>::Output,
+                M,
+            ),
+        >,
+}
+
+#[cfg(any(feature = "alloc", test))]
+impl<M: MatchedCredential + Clone> PrecalculatedOwnedV1CredentialSourceWithId<M> {
+    /// Pre-calculates crypto material for the given credentials and constructs a
+    /// new source which owns this crypto-material.
+    pub fn new<P: CryptoProvider>(
+        credential_iter: impl IntoIterator<Item = MatchableCredential<V1, M>>,
+    ) -> Self {
+        let credentials = credential_iter
+            .into_iter()
+            .map(|credential| {
+                (
+                    <precalculated_for_version::Marker as precalculated_for_version::MappingTrait<
+                        V1,
+                    >>::precalculate::<P>(&credential.discovery_credential),
+                    credential.match_data,
+                )
+            })
+            .collect();
+        Self { credentials }
+    }
+}
+
+#[cfg(any(feature = "alloc", test))]
+/// Mapping function for the iterator to return a reference to the crypto material
+/// and a clone of the match data.
+fn crypto_and_cloned_match_data<C, M: MatchedCredential + Clone>(pair_ref: &(C, M)) -> (&C, M) {
+    let (c, m) = pair_ref;
+    (c, m.clone())
+}
+
+#[cfg(any(feature = "alloc", test))]
+impl<'a, M: MatchedCredential + Clone> CredentialSource<'a, V0>
+    for PrecalculatedOwnedV0CredentialSourceWithId<M>
+where
+    Self: 'a,
+{
+    type Matched = M;
+    type Crypto = &'a <precalculated_for_version::Marker as precalculated_for_version::MappingTrait<
+        V0,
+    >>::Output;
+    type Iterator = core::iter::Map<
+        core::slice::Iter<
+            'a,
+            (
+                <precalculated_for_version::Marker as precalculated_for_version::MappingTrait<
+                    V0,
+                >>::Output,
+                M,
+            ),
+        >,
+        fn(
+            &'a (
+                <precalculated_for_version::Marker as precalculated_for_version::MappingTrait<
+                    V0,
+                >>::Output,
+                M,
+            ),
+        ) -> (
+            &'a <precalculated_for_version::Marker as precalculated_for_version::MappingTrait<
+                V0,
+            >>::Output,
+            M,
+        ),
+    >;
+
+    fn iter(&'a self) -> Self::Iterator {
+        self.credentials.iter().map(crypto_and_cloned_match_data)
+    }
+}
+
+#[cfg(any(feature = "alloc", test))]
+impl<'a, M: MatchedCredential + Clone> CredentialSource<'a, V1>
+    for PrecalculatedOwnedV1CredentialSourceWithId<M>
+where
+    Self: 'a,
+{
+    type Matched = M;
+    type Crypto = &'a <precalculated_for_version::Marker as precalculated_for_version::MappingTrait<
+        V1,
+    >>::Output;
+    type Iterator = core::iter::Map<
+        core::slice::Iter<
+            'a,
+            (
+                <precalculated_for_version::Marker as precalculated_for_version::MappingTrait<
+                    V1,
+                >>::Output,
+                M,
+            ),
+        >,
+        fn(
+            &'a (
+                <precalculated_for_version::Marker as precalculated_for_version::MappingTrait<
+                    V1,
+                >>::Output,
+                M,
+            ),
+        ) -> (
+            &'a <precalculated_for_version::Marker as precalculated_for_version::MappingTrait<
+                V1,
+            >>::Output,
+            M,
+        ),
+    >;
+
+    fn iter(&'a self) -> Self::Iterator {
+        self.credentials.iter().map(crypto_and_cloned_match_data)
+    }
+}

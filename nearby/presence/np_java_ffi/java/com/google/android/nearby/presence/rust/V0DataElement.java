@@ -31,6 +31,8 @@ public abstract class V0DataElement {
   public interface Visitor {
     default void visitTxPower(TxPower txPower) {}
 
+    default void visitPsm(Psm psm) {}
+
     default void visitV0Actions(V0Actions v0Actions) {}
   }
 
@@ -62,6 +64,31 @@ public abstract class V0DataElement {
     @Override
     public void visit(Visitor v) {
       v.visitTxPower(this);
+    }
+  }
+
+  /** Contains the PSM information. See the spec for more information. */
+  @UsedByNative
+  public static final class Psm extends V0DataElement {
+    @UsedByNative private final int psm;
+
+    public Psm(NpAdv npAdv, int psm) {
+      this(psm);
+      npAdv.ensureLoaded();
+    }
+
+    @UsedByNative
+    private Psm(int psm) {
+      this.psm = psm;
+    }
+
+    public int getPsm() {
+      return psm;
+    }
+
+    @Override
+    public void visit(Visitor v) {
+      v.visitPsm(this);
     }
   }
 

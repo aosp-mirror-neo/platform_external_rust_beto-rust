@@ -54,11 +54,10 @@ where
                 if let Err(desc) = result {
                     panic!(
                         "\n\
-                         Failed test {}: {}\n\
-                         msg:\t{:?}\n\
-                         sig:\t{:?}\n\
-                         comment:\t{:?}\n",
-                        tc_id, desc, msg, sig, comment,
+                         Failed test {tc_id}: {desc}\n\
+                         msg:\t{msg:?}\n\
+                         sig:\t{sig:?}\n\
+                         comment:\t{comment:?}\n",
                     );
                 }
             } else {
@@ -107,10 +106,9 @@ where
         if let Err(desc) = result {
             panic!(
                 "\n\
-                         Failed test {}: {}\n\
-                         msg:\t{:?}\n\
-                         sig:\t{:?}\n\"",
-                tc_id, desc, msg, sig,
+                         Failed test {tc_id}: {desc}\n\
+                         msg:\t{msg:?}\n\
+                         sig:\t{sig:?}\n\"",
             );
         }
     }

@@ -501,14 +501,14 @@ mod coverage_gaming {
             contents: &[],
             contents_len: 0,
         };
-        let _ = format!("{:?}", sc);
+        let _ = format!("{sc:?}");
         assert_eq!(sc, sc);
     }
 
     #[test]
     fn intermediate_section() {
         let is = IntermediateSection::Plaintext(PlaintextSection::new(&[]));
-        let _ = format!("{:?}", is);
+        let _ = format!("{is:?}");
     }
     #[test]
     fn ciphertext_section() {
@@ -524,7 +524,7 @@ mod coverage_gaming {
             mic: [0x00; 16].into(),
         };
         let cs = CiphertextSection::MicEncrypted(ms);
-        let _ = format!("{:?}", cs);
+        let _ = format!("{cs:?}");
     }
 }
 

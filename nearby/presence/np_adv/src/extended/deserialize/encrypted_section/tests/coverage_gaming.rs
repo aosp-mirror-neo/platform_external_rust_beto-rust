@@ -26,18 +26,18 @@ fn section_identity_resolution_content_derives() {
     let token = CiphertextExtendedIdentityToken([0; 16]);
     let section = SectionIdentityResolutionContents { identity_token: token, nonce };
     assert_eq!(section, section);
-    let _ = format!("{:?}", section);
+    let _ = format!("{section:?}");
 }
 
 #[test]
 fn error_enum_debug_derives() {
     let mic_err = MicVerificationError::MicMismatch;
-    let _ = format!("{:?}", mic_err);
+    let _ = format!("{mic_err:?}");
 
     let deser_err = DeserializationError::ArenaOutOfSpace::<MicVerificationError>;
-    let _ = format!("{:?}", deser_err);
+    let _ = format!("{deser_err:?}");
 
     let err =
         IdentityResolutionOrDeserializationError::IdentityMatchingError::<MicVerificationError>;
-    let _ = format!("{:?}", err);
+    let _ = format!("{err:?}");
 }

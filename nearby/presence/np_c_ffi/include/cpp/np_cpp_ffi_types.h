@@ -38,16 +38,6 @@
 namespace np_ffi {
 namespace internal {
 
-/// The possible boolean action types which can be present in an Actions data element
-enum class ActionType : uint8_t {
-  CrossDevSdk = 1,
-  CallTransfer = 4,
-  ActiveUnlock = 8,
-  NearbyShare = 9,
-  InstantTethering = 10,
-  PhoneHub = 11,
-};
-
 /// Result type for trying to add a V0 credential to a credential-slab.
 enum class AddV0CredentialToSlabResult : uint8_t {
   /// We succeeded in adding the credential to the slab.
@@ -122,6 +112,25 @@ enum class AdvertisementBuilderKind : uint8_t {
   Public = 0,
   /// The builder is for an encrypted advertisement.
   Encrypted = 1,
+};
+
+/// Discriminant for `BuildActionTypeResult`.
+enum class BuildActionTypeResultKind : uint8_t {
+  /// The action type was outside the
+  /// allowed 0 to 31 range.
+  OutOfRange = 0,
+  /// The transmission power was in range,
+  /// and so a `TxPower` struct was constructed.
+  Success = 1,
+};
+
+/// Discriminant for `BuildPsmResult`.
+enum class BuildPsmResultKind : uint8_t {
+  /// The PSM should be within two bytes.
+  OutOfRange = 0,
+  /// The PSM was in range,
+  /// and so a `Psm` struct was constructed.
+  Success = 1,
 };
 
 /// Discriminant for `BuildTxPowerResult`.
@@ -384,6 +393,14 @@ enum class V0DataElementKind : uint8_t {
   /// The associated payload may be obtained via
   /// `V0DataElement#into_actions`.
   Actions = 2,
+  /// The PSM data-element.
+  /// The associated payload may be obtained via
+  /// `V0DataElement#into_psm`.
+  Psm = 3,
+  /// The DeviceInfo data-element.
+  /// The associated payload may be obtained via
+  /// 'V0DataElement#into_device_info`.
+  DeviceInfo = 4,
 };
 
 /// Discriminant for `V1DE16ByteSaltResult`.
@@ -617,7 +634,9 @@ union DeserializeAdvertisementResult {
 /// permitted to be between 0 and 255.
 template<uintptr_t N>
 struct ByteBuffer {
+  /// The number of bytes in the buffer.
   uint8_t len;
+  /// The bytes in the buffer.
   uint8_t bytes[N];
 };
 
@@ -662,11 +681,59 @@ struct V0Actions {
   };
 };
 
+/// Representation of a PSM for L2CAP,
+struct Psm {
+  uint16_t value;
+};
+
+/// A FFI safe wrapper of an optional byte buffer.
+template<uintptr_t N>
+struct OptionalByteBuffer {
+  enum class Tag {
+    /// The optional byte buffer isn't specified.
+    NotSpecified,
+    /// The optional byte buffer is present.
+    Present,
+  };
+
+  struct Present_Body {
+    ByteBuffer<N> _0;
+  };
+
+  Tag tag;
+  union {
+    Present_Body present;
+  };
+};
+
+/// Represents the contents of a Device Info DE containing the type and name of a device, as well as flag
+/// indicating whether the device name is truncated.
+///
+/// This representation is stable, and so you may directly
+/// reference this struct's fields if you wish.
+struct DeviceInfo {
+  /// The numerical value corresponding to a given
+  /// form factor, or "0" for the case where the
+  /// broadcasting device doesn't know what kind
+  /// of device type it is.
+  ///
+  /// Consult the Nearby spec for values
+  /// corresponding to particular form factors.
+  uint8_t device_type;
+  /// Boolean flag indicating whether the device name is truncated.
+  bool is_name_truncated;
+  /// An optional byte array representing the name of the broadcasting
+  /// device. The maximum size of this device name array is 9 bytes.
+  OptionalByteBuffer<9> device_name;
+};
+
 /// Representation of a V0 data element.
 struct V0DataElement {
   enum class Tag {
     TxPower,
     Actions,
+    Psm,
+    DeviceInfo,
   };
 
   struct TxPower_Body {
@@ -677,10 +744,20 @@ struct V0DataElement {
     V0Actions _0;
   };
 
+  struct Psm_Body {
+    Psm _0;
+  };
+
+  struct DeviceInfo_Body {
+    DeviceInfo _0;
+  };
+
   Tag tag;
   union {
     TxPower_Body tx_power;
     Actions_Body actions;
+    Psm_Body psm;
+    DeviceInfo_Body device_info;
   };
 };
 
@@ -1010,6 +1087,47 @@ struct SetV0ActionResult {
   union {
     Success_Body success;
     Error_Body error;
+  };
+};
+
+/// Action data element
+struct ActionType {
+  uint8_t _0;
+};
+
+/// Result type for attempting to construct a
+/// PSM from two bytes.
+struct BuildPsmResult {
+  enum class Tag {
+    OutOfRange,
+    Success,
+  };
+
+  struct Success_Body {
+    Psm _0;
+  };
+
+  Tag tag;
+  union {
+    Success_Body success;
+  };
+};
+
+/// Result type for attempting to construct a
+/// ActionType from an usigned byte.
+struct BuildActionTypeResult {
+  enum class Tag {
+    OutOfRange,
+    Success,
+  };
+
+  struct Success_Body {
+    ActionType _0;
+  };
+
+  Tag tag;
+  union {
+    Success_Body success;
   };
 };
 

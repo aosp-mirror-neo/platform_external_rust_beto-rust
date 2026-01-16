@@ -8,6 +8,8 @@ members = [
     "connections/ukey2/ukey2_jni",
     "connections/ukey2/ukey2_proto",
     "connections/ukey2/ukey2_shell",
+    "connections/nc_wire_proto",
+    "connections/nc_multiplex_proto",
     "crypto/crypto_provider",
     "crypto/crypto_provider_rustcrypto",
     "crypto/crypto_provider_stubs",
@@ -66,12 +68,18 @@ unwrap_used = "deny"
 
 [workspace.dependencies]
 # local crates
+connections_adv = { path = "connections/connections_adv/connections_adv" }
+mediums_adv = { path = "connections/connections_adv/mediums_adv" }
 array_ref = { path = "presence/array_ref" }
 array_view = { path = "presence/array_view" }
 ble = { path = "medium/ble" }
+mdns = {path = "medium/mdns"}
+ip_network = {path = "medium/ip_network"}
+wifi_direct = { path = "medium/wifi_direct" }
 common = { path = "common" }
 credential_proto = { path = "identity/credential_proto" }
 identity_common = { path = "identity/common" }
+identity_codec = { path = "identity/identity_codec" }
 identity_manager = { path = "identity/identity_manager" }
 identity_provider = { path = "identity/identity_provider" }
 keystore = { path = "identity/keystore" }
@@ -82,7 +90,11 @@ crypto_provider_rustcrypto = { path = "crypto/crypto_provider_rustcrypto" }
 crypto_provider_stubs = { path = "crypto/crypto_provider_stubs" }
 crypto_provider_test = { path = "crypto/crypto_provider_test" }
 device_info = { path = "device_info" }
+event_loop = { path = "presence/event_loop" }
+np_discovery = { path = "presence/engine/presence_rust" }
 nc = { path = "connections/nc" }
+nc_wire_proto = { path = "connections/nc_wire_proto" }
+nc_multiplex_proto = {path = "connections/nc_multiplex_proto"}
 rand_ext = { path = "presence/rand_ext" }
 test_helper = { path = "presence/test_helper" }
 ukey2_connections = { path = "connections/ukey2/ukey2_connections" }
@@ -102,6 +114,7 @@ sink = { path = "presence/sink" }
 test_vector_hkdf = { path = "presence/test_vector_hkdf" }
 
 # from utils workspace
+collection_history = { path = "../common/collection_history" }
 handle_map = { path = "../common/handle_map" }
 lock_adapter = { path = "../common/lock_adapter" }
 pourover = { path = "../common/pourover" }
@@ -113,7 +126,13 @@ flagging = { path = "../common/flagging" }
 ph_flag_source = { path = "../common/1p_internal/ph_flag_source", default-features = false }
 ph_client = { path = "../common/1p_internal/ph_client" }
 
+# analytics
+analytics_logger = { path = "../common/1p_internal/clearcut/analytics_logger" }
+clearcut_logger = { path = "../common/1p_internal/clearcut/internal/clearcut_logger" }
+
+
 # from crates.io
+boring = { version = "4.19.0" }
 rand = { version = "0.8.5", default-features = false }
 rand_core = { version = "0.6.4", features = ["getrandom"] }
 rand_pcg = "0.3.1"
@@ -124,6 +143,12 @@ cbc = { version = "0.1.2", features = ["block-padding"] }
 ctr = "0.9.2"
 hkdf = "0.12.3"
 hmac = "0.12.1"
+http-body = "1.0.0"
+http-body-util = "0.1.2"
+hyper = "1.6.0"
+hyper-boring = "4.19.0"
+hyper-util = "0.1.7"
+axum = "0.7.5"
 nom = { version = "7.1.3", default-features = false }
 ed25519-dalek = { version = "2.1.0", default-features = false }
 ed25519 = "2.2.3"
@@ -134,6 +159,7 @@ serde_json = { version = "1.0.108", features = [
     "alloc",
 ], default-features = false }
 base64 = "0.22.1"
+bytes = "1.6.0"
 x25519-dalek = { version = "2.0.0", default-features = false }
 subtle = { version = "2.5.0", default-features = false }
 rand_chacha = { version = "0.3.1", default-features = false }
@@ -144,6 +170,7 @@ protobuf-codegen = "=3.7.2"
 reqwest = { version = "0.11.22", default-features = false, features = [
     "blocking",
     "rustls-tls",
+    "json",
 ] }
 jni = "0.21.1"
 lock_api = "0.4.11"
@@ -151,6 +178,7 @@ spin = { version = "0.9.8", features = ["once", "lock_api", "rwlock"] }
 anyhow = "1.0.75"
 log = "0.4.20"
 env_logger = "0.11.7"
+gag = "1.0.0"
 oslog = "0.2.0"
 criterion = { version = "0.5.1", features = ["html_reports"] }
 clap = { version = "4.5.13", features = ["derive"] }
@@ -162,22 +190,26 @@ hashbrown = "0.15"
 hdrhistogram = "7.5.4"
 regex = "1.10.2"
 crossbeam = "0.8.4"
-tokio = { version = "1.35.0", features = [
+tokio = { version = "1.47.1", features = [
     "macros",
     "rt",
     "sync",
     "test-util",
     "time",
 ] }
+tokio-boring = "4.19.0"
 tokio-stream = { version = "0.1.17" }
+tokio-util = "0.7.16"
 xts-mode = "0.5.1"
 rstest = { version = "0.18.2", default-features = false }
+serial_test = "3.2.0"
 rstest_reuse = "0.6.0"
 wycheproof = "0.5.1"
 chrono = { version = "0.4.31", default-features = false, features = ["clock"] }
 tempfile = "3.8.1"
 thiserror = { version = "2.0.4", default-features = false }
 tinyvec = { version = "1.6.0", features = ["rustc_1_55"] }
+tracing = "0.1.40"
 mlua = "0.9.2"
 strum = { version = "0.27.1", default-features = false }
 strum_macros = { version = "0.27.1", default-features = false }
@@ -195,16 +227,16 @@ proptest-arbitrary-interop = { git = "https://github.com/brson/proptest-arbitrar
 libfuzzer-sys = "0.4.7"
 derive_fuzztest = "0.1.4"
 derive_fuzztest_macro = "0.1.4"
-async-trait = "0.1.83"
+async-trait = "0.1.89"
 directories = "5.0.1"
 uuid = { version = "1.11.0", features = ["v4"] }
 mockall = "0.13.1"
-uniffi = "0.29.3"
+uniffi = "0.30.0"
 async-stream = "0.3.6"
 prost = "0.14.1"
 ascii85 = "0.2.1"
 futures = "0.3.31"
-windows = { version = "0.61.1", features = [
+windows = { version = "0.62.2", features = [
     "Devices_Bluetooth",
     "Devices_Bluetooth_Advertisement",
     "Devices_Radios",
@@ -217,7 +249,8 @@ windows = { version = "0.61.1", features = [
     "Win32_System_LibraryLoader",
     "Win32_System_RemoteDesktop",
 ] }
-windows-core = "0.61.0"
+windows-core = "0.62.2"
+googletest = "0.14.2"
 
 dispatch2 = { version = "0.3.0" }
 objc2 = { version = "0.6.1" }
@@ -233,6 +266,8 @@ objc2-foundation = { version = "0.3.1", features = [
     "NSValue",
 ] }
 objc2-core-bluetooth = { version = "0.3.1" }
+android_logger = "0.15.1"
+num_enum = "0.7.5"
 
 [workspace.package]
 version = "0.1.0"

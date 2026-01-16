@@ -1,0 +1,29 @@
+[package]
+name = "trust_token_jni"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+coset.workspace = true
+crypto_provider_default.workspace = true
+handle_map.workspace = true
+lazy_static.workspace = true
+lock_adapter = { workspace = true, features = ["spin"] }
+jni.workspace = true
+pourover.workspace = true
+trust_token.workspace = true
+thiserror.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[features]
+default = ["std"]
+create = []
+std = []
+testing = []

@@ -40,6 +40,14 @@ pub(in crate::legacy) fn supports_flavor(t: DataElementType, flavor: PacketFlavo
             PacketFlavorEnum::Plaintext => true,
             PacketFlavorEnum::Ciphertext => true,
         },
+        DataElementType::Psm => match flavor {
+            PacketFlavorEnum::Plaintext => true,
+            PacketFlavorEnum::Ciphertext => true,
+        },
+        DataElementType::DeviceInfo => match flavor {
+            PacketFlavorEnum::Plaintext => true,
+            PacketFlavorEnum::Ciphertext => true,
+        },
     }
 }
 
@@ -55,7 +63,7 @@ mod coverage_gaming {
 
     #[test]
     fn unencrypted_encoder() {
-        let _ = format!("{:?}", UnencryptedEncoder);
+        let _ = format!("{UnencryptedEncoder:?}");
     }
 
     #[test]
@@ -72,7 +80,7 @@ mod coverage_gaming {
         let ldt_encoder = LdtEncoder::<CryptoProviderImpl>::new(salt, &broadcast_cred);
 
         // doesn't leak crypto material
-        assert_eq!("LdtEncoder { salt: V0Salt { bytes: [1, 2] } }", format!("{:?}", ldt_encoder));
+        assert_eq!("LdtEncoder { salt: V0Salt { bytes: [1, 2] } }", format!("{ldt_encoder:?}"));
     }
 
     #[test]

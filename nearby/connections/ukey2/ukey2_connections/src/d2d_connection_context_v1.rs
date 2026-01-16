@@ -303,9 +303,9 @@ where
     ///
     /// * `payload` - The payload that should be encrypted.
     /// * `associated_data` - Optional data that is not included in the payload but is included in
-    ///       the calculation of the signature for this message. Note that the *size* (length in
-    ///       bytes) of the associated data will be sent in the *UNENCRYPTED* header information,
-    ///       even if you are using encryption.
+    ///   the calculation of the signature for this message. Note that the *size* (length in bytes)
+    ///   of the associated data will be sent in the *UNENCRYPTED* header information, even if you
+    ///   are using encryption.
     pub fn encode_message_to_peer<C: CryptoProvider>(
         &mut self,
         payload: &[u8],
@@ -320,7 +320,7 @@ where
     ///
     /// * `message` - the message that should be encrypted.
     /// * `associated_data` - Optional associated data that must match what the sender provided. See
-    ///       the documentation on [`encode_message_to_peer`][Self::encode_message_to_peer].
+    ///   the documentation on [`encode_message_to_peer`][Self::encode_message_to_peer].
     pub fn decode_message_from_peer<C: CryptoProvider>(
         &mut self,
         message: &[u8],

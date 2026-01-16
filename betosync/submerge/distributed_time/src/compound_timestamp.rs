@@ -221,6 +221,7 @@ mod proto {
 
     #[cfg(test)]
     #[derive_fuzztest::proptest]
+    #[allow(clippy::unwrap_used)]
     fn compound_timestamp_round_trip(compound_timestamp: CompoundTimestamp<VectorClock<String>>) {
         let mut node_ids = NodeMapping::default();
         let (hlc_proto, vector_clock_proto) = compound_timestamp.to_proto(&mut node_ids);

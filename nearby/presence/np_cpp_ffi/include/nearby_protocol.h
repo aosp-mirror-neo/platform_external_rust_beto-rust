@@ -61,7 +61,6 @@
 namespace nearby_protocol {
 
 // Re-exporting cbindgen generated types which are used in the public API
-using np_ffi::internal::ActionType;
 using np_ffi::internal::AddV0CredentialToSlabResult;
 using np_ffi::internal::AddV0DEResult;
 using np_ffi::internal::AddV1CredentialToSlabResult;
@@ -579,6 +578,71 @@ class TxPower {
   np_ffi::internal::TxPower tx_power_;
 };
 
+// A Psm for L2CAP.
+class Psm {
+  public:
+    Psm() = delete;
+
+  // Gets the value of this PSM as a unsigned int of two bytes.
+  [[nodiscard]] uint16_t GetAsU16() const;
+
+  // Attempts to construct a tx power with the given value contained
+  // in a signed byte. If the number is not within the representable
+  // range, this method will return an invalid argument error.
+  [[nodiscard]] static absl::StatusOr<Psm> TryBuildFromU16(uint16_t value);
+
+ private:
+  friend class V0DataElement;
+  explicit Psm(np_ffi::internal::Psm psm) : psm_(psm) {}
+  np_ffi::internal::Psm psm_;
+};
+
+// A DeviceInfo
+class DeviceInfo {
+ public:
+  DeviceInfo() = delete;
+
+  // Gets the device type.
+  [[nodiscard]] uint8_t GetDeviceType() const;
+
+  // Gets whether the name is truncated.
+  [[nodiscard]] bool IsNameTruncated() const;
+
+  // Gets the device name.
+  [[nodiscard]] np_ffi::internal::OptionalByteBuffer<9> GetDeviceName() const;
+
+  // Attempts to construct a device info.
+  [[nodiscard]] static DeviceInfo Build(
+      uint8_t device_type, bool is_name_truncated,
+      np_ffi::internal::OptionalByteBuffer<9> device_name);
+
+ private:
+  friend class V0DataElement;
+  explicit DeviceInfo(np_ffi::internal::DeviceInfo device_info)
+      : device_info_(device_info) {}
+  np_ffi::internal::DeviceInfo device_info_;
+};
+
+// An ActionType
+class ActionType {
+ public:
+  ActionType() = delete;
+
+  // Gets the value of this ActionType as a unsigned int 1 byte.
+  [[nodiscard]] uint8_t GetAsU8() const;
+
+  // Attempts to construct a action type with the given value contained
+  // in a unsigned byte. If the number is not within the representable
+  // range, this method will return an invalid argument error.
+  [[nodiscard]] static absl::StatusOr<ActionType> TryBuildFromU8(uint8_t value);
+
+ private:
+  friend class V0Actions;
+  explicit ActionType(np_ffi::internal::ActionType action_type)
+      : action_type_(action_type) {}
+  np_ffi::internal::ActionType action_type_;
+};
+
 // A single V0 data element
 class V0DataElement {
  public:
@@ -587,12 +651,23 @@ class V0DataElement {
   // Casts the V0DataElement into the TxPower variant, panicking in the case
   // where the data element is of a different enum variant
   [[nodiscard]] TxPower AsTxPower() const;
+  // Casts the V0DataElement into the Psm variant, panicking in the case
+  // where the data element is of a different enum variant
+  [[nodiscard]] Psm AsPsm() const;
+  // Casts the V0DataElement into the DeviceInfo variant, panicking in the case
+  // where the data element is of a different enum variant
+  [[nodiscard]] DeviceInfo AsDeviceInfo() const;
+
   // Casts the V0DataElement into the Actions variant, panicking in the case
   // where the data element is of a different enum variant
   [[nodiscard]] V0Actions AsActions() const;
 
   // Constructs a Tx Power V0 data element
   explicit V0DataElement(TxPower tx_power);
+  // Constructs a Tx Power V0 data element
+  explicit V0DataElement(Psm psm);
+  // Constructs a Device Info V0 data element
+  explicit V0DataElement(DeviceInfo device_info);
   // Constructs an Actions V0 data element
   explicit V0DataElement(V0Actions actions);
 

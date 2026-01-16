@@ -480,6 +480,16 @@ TxPower V0DataElement::AsTxPower() const {
       np_ffi::internal::np_ffi_V0DataElement_into_TX_POWER(v0_data_element_));
 }
 
+Psm V0DataElement::AsPsm() const {
+  return Psm(
+      np_ffi::internal::np_ffi_V0DataElement_into_PSM(v0_data_element_));
+}
+
+DeviceInfo V0DataElement::AsDeviceInfo() const {
+  return DeviceInfo(
+      np_ffi::internal::np_ffi_V0DataElement_into_DeviceInfo(v0_data_element_));
+}
+
 V0Actions V0DataElement::AsActions() const {
   auto internal =
       np_ffi::internal::np_ffi_V0DataElement_into_ACTIONS(v0_data_element_);
@@ -489,6 +499,15 @@ V0Actions V0DataElement::AsActions() const {
 V0DataElement::V0DataElement(TxPower tx_power) {
   v0_data_element_ =
       np_ffi::internal::np_ffi_TxPower_into_V0DataElement(tx_power.tx_power_);
+}
+
+V0DataElement::V0DataElement(Psm psm) {
+  v0_data_element_ = np_ffi::internal::np_ffi_Psm_into_V0DataElement(psm.psm_);
+}
+
+V0DataElement::V0DataElement(DeviceInfo device_info) {
+  v0_data_element_ = np_ffi::internal::np_ffi_DeviceInfo_into_V0DataElement(
+      device_info.device_info_);
 }
 
 V0DataElement::V0DataElement(V0Actions actions) {
@@ -501,12 +520,12 @@ uint32_t V0Actions::GetAsU32() const {
 }
 
 bool V0Actions::HasAction(ActionType action) const {
-  return np_ffi::internal::np_ffi_V0Actions_has_action(actions_, action);
+  return np_ffi::internal::np_ffi_V0Actions_has_action(actions_, action.action_type_);
 }
 
 absl::Status V0Actions::TrySetAction(ActionType action, bool value) {
   auto result =
-      np_ffi::internal::np_ffi_V0Actions_set_action(actions_, action, value);
+      np_ffi::internal::np_ffi_V0Actions_set_action(actions_, action.action_type_, value);
   auto kind = np_ffi::internal::np_ffi_SetV0ActionResult_kind(result);
   switch (kind) {
     case np_ffi::internal::SetV0ActionResultKind::Success: {
@@ -543,6 +562,62 @@ absl::StatusOr<TxPower> TxPower::TryBuildFromI8(int8_t value) {
     case np_ffi::internal::BuildTxPowerResultKind::OutOfRange: {
       return absl::InvalidArgumentError(
           "Could not build a tx power for the requested byte value.");
+    }
+  }
+}
+
+uint16_t Psm::GetAsU16() const {
+    return np_ffi::internal::np_ffi_Psm_as_unsigned_u16(psm_);
+}
+
+absl::StatusOr<Psm> Psm::TryBuildFromU16(uint16_t value) {
+  auto result =  np_ffi::internal::np_ffi_Psm_build_from_u16(value);
+  auto kind = np_ffi::internal::np_ffi_BuildPsmResult_kind(result);
+  switch (kind) {
+    case np_ffi::internal::BuildPsmResultKind::Success: {
+      return Psm(np_ffi::internal::np_ffi_BuildPsmResult_into_SUCCESS(result));
+    }
+    case np_ffi::internal::BuildPsmResultKind::OutOfRange: {
+      return absl::InvalidArgumentError(
+          "Could not build a PSM for the requested byte array.");
+    }
+  }
+}
+
+uint8_t DeviceInfo::GetDeviceType() const { return device_info_.device_type; }
+
+bool DeviceInfo::IsNameTruncated() const {
+  return device_info_.is_name_truncated;
+}
+
+np_ffi::internal::OptionalByteBuffer<9> DeviceInfo::GetDeviceName() const {
+  return device_info_.device_name;
+}
+
+DeviceInfo DeviceInfo::Build(
+    uint8_t device_type, bool is_name_truncated,
+    np_ffi::internal::OptionalByteBuffer<9> device_name) {
+  return DeviceInfo(np_ffi::internal::DeviceInfo{
+      .device_type = device_type,
+      .is_name_truncated = is_name_truncated,
+      .device_name = device_name,
+  });
+}
+
+uint8_t ActionType::GetAsU8() const {
+    return np_ffi::internal::np_ffi_ActionType_as_unsigned_byte(action_type_);
+}
+
+absl::StatusOr<ActionType> ActionType::TryBuildFromU8(uint8_t value) {
+  auto result =  np_ffi::internal::np_ffi_ActionType_build_from_unsigned_byte(value);
+  auto kind = np_ffi::internal::np_ffi_BuildActionTypeResult_kind(result);
+  switch (kind) {
+    case np_ffi::internal::BuildActionTypeResultKind::Success: {
+      return ActionType(np_ffi::internal::np_ffi_BuildActionTypeResult_into_SUCCESS(result));
+    }
+    case np_ffi::internal::BuildActionTypeResultKind::OutOfRange: {
+      return absl::InvalidArgumentError(
+          "Could not build an ActionType for the requested byte array.");
     }
   }
 }

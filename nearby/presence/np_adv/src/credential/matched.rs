@@ -136,6 +136,37 @@ impl<A: AsRef<[u8]> + Clone + Debug + PartialEq + Eq> MatchedCredential
     }
 }
 
+/// A simple implementation of [`MatchedCredential`] where all match-data
+/// is contained in the encrypted metadata byte-field.
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct MatchedCredentialWithId<A: AsRef<[u8]> + Clone + Debug + PartialEq + Eq> {
+    encrypted_metadata: A,
+    id: i64,
+}
+
+impl<A: AsRef<[u8]> + Clone + Debug + PartialEq + Eq> MatchedCredentialWithId<A> {
+    /// Builds a new [`MatchedCredentialWithId`] with the given
+    /// encrypted metadata.
+    pub fn new(encrypted_metadata: A, id: i64) -> Self {
+        Self { encrypted_metadata, id }
+    }
+
+    /// Returns the unique ID of the matched credential.
+    pub fn id(&self) -> i64 {
+        self.id
+    }
+}
+
+impl<A: AsRef<[u8]> + Clone + Debug + PartialEq + Eq> MatchedCredential
+    for MatchedCredentialWithId<A>
+{
+    type EncryptedMetadata = A;
+    type EncryptedMetadataFetchError = Infallible;
+    fn fetch_encrypted_metadata(&self) -> Result<Self::EncryptedMetadata, Infallible> {
+        Ok(self.encrypted_metadata.clone())
+    }
+}
+
 /// Trivial implementation of [`MatchedCredential`] which consists of no match-data.
 /// Suitable for usage scenarios where the decoded advertisement contents matter,
 /// but not necessarily which devices generated the contents.

@@ -462,6 +462,48 @@ SetV0ActionResult np_ffi_V0Actions_set_action(V0Actions actions,
 /// integer, where the bit-positions correspond to individual actions.
 uint32_t np_ffi_V0Actions_as_u32(V0Actions actions);
 
+/// Casts a `V0DataElement` to the `Psm` variant, panicking in the
+/// case where the passed value is of a different enum variant.
+Psm np_ffi_V0DataElement_into_PSM(V0DataElement de);
+
+/// Upcasts a Psm DE to a generic V0 data-element.
+V0DataElement np_ffi_Psm_into_V0DataElement(Psm psm);
+
+/// Casts a `V0DataElement` to the `DeviceInfo` variant, panicking in the
+/// case where the passed value is of a different enum variant.
+DeviceInfo np_ffi_V0DataElement_into_DeviceInfo(V0DataElement de);
+
+/// Upcasts a DeviceInfo DE to a generic V0 data-element.
+V0DataElement np_ffi_DeviceInfo_into_V0DataElement(DeviceInfo device_info);
+
+/// Gets the value of the given PSM as a unsigned u16.
+uint16_t np_ffi_Psm_as_unsigned_u16(Psm psm);
+
+/// Attempts to construct a new PSM from
+/// the given u16 value.
+BuildPsmResult np_ffi_Psm_build_from_u16(uint16_t psm);
+
+/// Gets the tag of a `BuildTxPowerResult` tagged-union.
+BuildPsmResultKind np_ffi_BuildPsmResult_kind(BuildPsmResult result);
+
+/// Casts a `BuildPsmResult` to the `Success` variant, panicking in the
+/// case where the passed value is of a different enum variant.
+Psm np_ffi_BuildPsmResult_into_SUCCESS(BuildPsmResult result);
+
+/// Gets the tag of a `BuildActionTypeResult` tagged-union.
+BuildActionTypeResultKind np_ffi_BuildActionTypeResult_kind(BuildActionTypeResult result);
+
+/// Casts a `BuildActionTypeResult` to the `Success` variant, panicking in the
+/// case where the passed value is of a different enum variant.
+ActionType np_ffi_BuildActionTypeResult_into_SUCCESS(BuildActionTypeResult result);
+
+/// Attempts to construct a new ActionType from
+/// the given signed-byte value.
+BuildActionTypeResult np_ffi_ActionType_build_from_unsigned_byte(uint8_t action_type);
+
+/// Gets the value of the given ActionType as an unsigned byte.
+uint8_t np_ffi_ActionType_as_unsigned_byte(ActionType action_type);
+
 /// Extracts the numerical value of the given V1 DE type code as
 /// an unsigned 32-bit integer.
 uint32_t np_ffi_V1DEType_to_uint32_t(V1DEType de_type);

@@ -7,3 +7,4 @@ presence/cmake-build-debug
 build/
 project.xcworkspace/
 xcuserdata/
+.gemini/

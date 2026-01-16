@@ -21,6 +21,8 @@ use crypto_provider::{CryptoProvider, CryptoRng};
 use handle_map::HandleNotPresentError;
 use lock_adapter::stdlib::{RwLock, RwLockWriteGuard};
 use lock_adapter::RwLock as _;
+use np_adv::legacy::data_elements::psm::PsmDataElement;
+use np_adv_dynamic::legacy::ToBoxedSerializeDataElement;
 
 const MAX_HANDLES: u32 = u32::MAX - 1;
 
@@ -185,8 +187,10 @@ impl RawAdvertisementPayload {
 // TODO: Once generic const exprs are stabilized,
 // we could instead make N into a compile-time u8.
 pub struct ByteBuffer<const N: usize> {
-    len: u8,
-    bytes: [u8; N],
+    /// The number of bytes in the buffer.
+    pub len: u8,
+    /// The bytes in the buffer.
+    pub bytes: [u8; N],
 }
 
 impl<const N: usize> Default for ByteBuffer<N> {
@@ -292,11 +296,12 @@ pub enum OptionalFixedSizeArrayKind {
 }
 
 /// A FFI safe wrapper of an optional fixed-size byte array.
-#[derive(Clone)]
+#[derive(Clone, Default)]
 #[cfg_attr(any(test, feature = "testing"), derive(Debug, PartialEq, Eq, arbitrary::Arbitrary))]
 #[repr(C)]
 pub enum OptionalFixedSizeArray<const N: usize> {
     /// The optional fixed-size array isn't specified.
+    #[default]
     NotSpecified,
     /// The optional fixed-size array is present.
     Present(FixedSizeArray<N>),
@@ -309,12 +314,6 @@ impl<const N: usize> FfiEnum for OptionalFixedSizeArray<N> {
             Self::NotSpecified => OptionalFixedSizeArrayKind::NotSpecified,
             Self::Present(_) => OptionalFixedSizeArrayKind::Present,
         }
-    }
-}
-
-impl<const N: usize> Default for OptionalFixedSizeArray<N> {
-    fn default() -> Self {
-        Self::NotSpecified
     }
 }
 
@@ -354,6 +353,56 @@ impl<const N: usize> From<OptionalFixedSizeArray<N>> for Option<[u8; N]> {
         match arr {
             OptionalFixedSizeArray::NotSpecified => None,
             OptionalFixedSizeArray::Present(x) => Some(x.into()),
+        }
+    }
+}
+
+/// Discriminant for [`OptionalByteBuffer`].
+#[derive(Copy, Clone)]
+#[repr(u8)]
+pub enum OptionalByteBufferKind {
+    /// The optional byte buffer isn't specified.
+    NotSpecified = 0,
+    /// The optional byte buffer is present.
+    Present = 1,
+}
+
+/// A FFI safe wrapper of an optional byte buffer.
+#[derive(Clone, Default)]
+#[cfg_attr(any(test, feature = "testing"), derive(Debug, PartialEq, Eq, arbitrary::Arbitrary))]
+#[repr(C)]
+pub enum OptionalByteBuffer<const N: usize> {
+    /// The optional byte buffer isn't specified.
+    #[default]
+    NotSpecified,
+    /// The optional byte buffer is present.
+    Present(ByteBuffer<N>),
+}
+
+impl<const N: usize> FfiEnum for OptionalByteBuffer<N> {
+    type Kind = OptionalByteBufferKind;
+    fn kind(&self) -> Self::Kind {
+        match self {
+            Self::NotSpecified => OptionalByteBufferKind::NotSpecified,
+            Self::Present(_) => OptionalByteBufferKind::Present,
+        }
+    }
+}
+
+impl<const N: usize> OptionalByteBuffer<N> {
+    /// Attempts to cast `self` to the `Present` variant,
+    /// returning `None` in the case where the passed value is of a different enum variant.
+    pub fn into_present(self) -> Option<ByteBuffer<N>> {
+        match self {
+            Self::NotSpecified => None,
+            Self::Present(x) => Some(x),
+        }
+    }
+    /// Returns true iff this `OptionalByteBuffer` has contents.
+    pub fn is_present(&self) -> bool {
+        match self {
+            Self::NotSpecified => false,
+            Self::Present(_) => true,
         }
     }
 }
@@ -469,5 +518,115 @@ impl TryFrom<TxPower> for np_adv::shared_data::TxPower {
     type Error = InvalidStackDataStructure;
     fn try_from(value: TxPower) -> Result<Self, InvalidStackDataStructure> {
         np_adv::shared_data::TxPower::try_from(value.as_i8()).map_err(|_| InvalidStackDataStructure)
+    }
+}
+
+/// Discriminant for `BuildPsmResult`.
+#[repr(u8)]
+#[derive(Clone, Copy)]
+pub enum BuildPsmResultKind {
+    /// The PSM should be within two bytes.
+    OutOfRange = 0,
+    /// The PSM was in range,
+    /// and so a `Psm` struct was constructed.
+    Success = 1,
+}
+
+/// Result type for attempting to construct a
+/// PSM from two bytes.
+#[repr(C)]
+#[allow(missing_docs)]
+pub enum BuildPsmResult {
+    OutOfRange,
+    Success(Psm),
+}
+
+impl FfiEnum for BuildPsmResult {
+    type Kind = BuildPsmResultKind;
+    fn kind(&self) -> Self::Kind {
+        match self {
+            Self::OutOfRange => BuildPsmResultKind::OutOfRange,
+            Self::Success(_) => BuildPsmResultKind::Success,
+        }
+    }
+}
+
+impl BuildPsmResult {
+    declare_enum_cast! {into_success, Success, Psm}
+}
+
+/// Representation of a PSM for L2CAP,
+#[derive(Clone, Copy)]
+#[cfg_attr(any(test, feature = "testing"), derive(Debug, PartialEq, Eq, arbitrary::Arbitrary))]
+#[repr(C)]
+pub struct Psm {
+    pub(crate) value: u16,
+}
+
+impl Psm {
+    /// Constructs a new PSM from the given unsigned two-byte value.
+    pub fn build_from_unsigned_bytes(psm: u16) -> BuildPsmResult {
+        BuildPsmResult::Success(Self { value: psm })
+    }
+
+    /// Returns the PSM value.
+    pub fn as_u16(&self) -> u16 {
+        self.value
+    }
+}
+
+impl TryFrom<Psm> for ToBoxedSerializeDataElement {
+    type Error = InvalidStackDataStructure;
+
+    fn try_from(psm: Psm) -> Result<Self, Self::Error> {
+        Ok(ToBoxedSerializeDataElement::Plaintext(Box::new(PsmDataElement { value: psm.value })))
+    }
+}
+
+/// Represents the contents of a Device Info DE containing the type and name of a device, as well as flag
+/// indicating whether the device name is truncated.
+///
+/// This representation is stable, and so you may directly
+/// reference this struct's fields if you wish.
+#[derive(Clone)]
+#[cfg_attr(any(test, feature = "testing"), derive(Debug, PartialEq, Eq, arbitrary::Arbitrary))]
+#[repr(C)]
+pub struct DeviceInfo {
+    /// The numerical value corresponding to a given
+    /// form factor, or "0" for the case where the
+    /// broadcasting device doesn't know what kind
+    /// of device type it is.
+    ///
+    /// Consult the Nearby spec for values
+    /// corresponding to particular form factors.
+    pub device_type: u8,
+    /// Boolean flag indicating whether the device name is truncated.
+    pub is_name_truncated: bool,
+    /// An optional byte array representing the name of the broadcasting
+    /// device. The maximum size of this device name array is 9 bytes.
+    pub device_name: OptionalByteBuffer<9>,
+}
+
+impl TryFrom<DeviceInfo> for ToBoxedSerializeDataElement {
+    type Error = InvalidStackDataStructure;
+
+    fn try_from(core_device_info: DeviceInfo) -> Result<Self, Self::Error> {
+        let device_type = np_adv::shared_data::DeviceType::from_repr(core_device_info.device_type)
+            .ok_or(InvalidStackDataStructure)?;
+
+        let name_slice = match core_device_info.device_name.into_present() {
+            Some(buffer) => buffer.as_slice()?.to_vec(),
+            None => Vec::new(),
+        };
+
+        let device_info = np_adv::shared_data::DeviceInfo::try_from((
+            device_type,
+            core_device_info.is_name_truncated,
+            name_slice.as_slice(),
+        ))
+        .map_err(|_| InvalidStackDataStructure)?;
+        Ok(ToBoxedSerializeDataElement::Plaintext(Box::new(
+            np_adv::legacy::data_elements::device_info::DeviceInfoDataElement { device_info },
+        )))
     }
 }

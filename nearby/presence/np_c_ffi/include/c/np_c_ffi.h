@@ -35,19 +35,6 @@
 #include <stdlib.h>
 
 /**
- * The possible boolean action types which can be present in an Actions data element
- */
-enum np_ffi_ActionType {
-  NP_FFI_ACTION_TYPE_CROSS_DEV_SDK = 1,
-  NP_FFI_ACTION_TYPE_CALL_TRANSFER = 4,
-  NP_FFI_ACTION_TYPE_ACTIVE_UNLOCK = 8,
-  NP_FFI_ACTION_TYPE_NEARBY_SHARE = 9,
-  NP_FFI_ACTION_TYPE_INSTANT_TETHERING = 10,
-  NP_FFI_ACTION_TYPE_PHONE_HUB = 11,
-};
-typedef uint8_t np_ffi_ActionType;
-
-/**
  * Result type for trying to add a V0 credential to a credential-slab.
  */
 enum np_ffi_AddV0CredentialToSlabResult {
@@ -176,6 +163,39 @@ enum np_ffi_AdvertisementBuilderKind {
   NP_FFI_ADVERTISEMENT_BUILDER_KIND_ENCRYPTED = 1,
 };
 typedef uint8_t np_ffi_AdvertisementBuilderKind;
+
+/**
+ * Discriminant for `BuildActionTypeResult`.
+ */
+enum np_ffi_BuildActionTypeResultKind {
+  /**
+   * The action type was outside the
+   * allowed 0 to 31 range.
+   */
+  NP_FFI_BUILD_ACTION_TYPE_RESULT_KIND_OUT_OF_RANGE = 0,
+  /**
+   * The transmission power was in range,
+   * and so a `TxPower` struct was constructed.
+   */
+  NP_FFI_BUILD_ACTION_TYPE_RESULT_KIND_SUCCESS = 1,
+};
+typedef uint8_t np_ffi_BuildActionTypeResultKind;
+
+/**
+ * Discriminant for `BuildPsmResult`.
+ */
+enum np_ffi_BuildPsmResultKind {
+  /**
+   * The PSM should be within two bytes.
+   */
+  NP_FFI_BUILD_PSM_RESULT_KIND_OUT_OF_RANGE = 0,
+  /**
+   * The PSM was in range,
+   * and so a `Psm` struct was constructed.
+   */
+  NP_FFI_BUILD_PSM_RESULT_KIND_SUCCESS = 1,
+};
+typedef uint8_t np_ffi_BuildPsmResultKind;
 
 /**
  * Discriminant for `BuildTxPowerResult`.
@@ -592,6 +612,18 @@ enum np_ffi_V0DataElementKind {
    * `V0DataElement#into_actions`.
    */
   NP_FFI_V0_DATA_ELEMENT_KIND_ACTIONS = 2,
+  /**
+   * The PSM data-element.
+   * The associated payload may be obtained via
+   * `V0DataElement#into_psm`.
+   */
+  NP_FFI_V0_DATA_ELEMENT_KIND_PSM = 3,
+  /**
+   * The DeviceInfo data-element.
+   * The associated payload may be obtained via
+   * 'V0DataElement#into_device_info`.
+   */
+  NP_FFI_V0_DATA_ELEMENT_KIND_DEVICE_INFO = 4,
 };
 typedef uint8_t np_ffi_V0DataElementKind;
 
@@ -879,7 +911,13 @@ typedef union {
  * permitted to be between 0 and 255.
  */
 typedef struct {
+  /**
+   * The number of bytes in the buffer.
+   */
   uint8_t len;
+  /**
+   * The bytes in the buffer.
+   */
   uint8_t bytes[255];
 } np_ffi_ByteBuffer_255;
 
@@ -933,11 +971,89 @@ typedef struct {
 } np_ffi_V0Actions;
 
 /**
+ * Representation of a PSM for L2CAP,
+ */
+typedef struct {
+  uint16_t value;
+} np_ffi_Psm;
+
+/**
+ * A byte-string with a maximum size of N,
+ * where only the first `len` bytes are considered
+ * to contain the actual payload. N is only
+ * permitted to be between 0 and 255.
+ */
+typedef struct {
+  /**
+   * The number of bytes in the buffer.
+   */
+  uint8_t len;
+  /**
+   * The bytes in the buffer.
+   */
+  uint8_t bytes[9];
+} np_ffi_ByteBuffer_9;
+
+/**
+ * A FFI safe wrapper of an optional byte buffer.
+ */
+typedef enum {
+  /**
+   * The optional byte buffer isn't specified.
+   */
+  NP_FFI_OPTIONAL_BYTE_BUFFER_9_NOT_SPECIFIED_9,
+  /**
+   * The optional byte buffer is present.
+   */
+  NP_FFI_OPTIONAL_BYTE_BUFFER_9_PRESENT_9,
+} np_ffi_OptionalByteBuffer_9_Tag;
+
+typedef struct {
+  np_ffi_OptionalByteBuffer_9_Tag tag;
+  union {
+    struct {
+      np_ffi_ByteBuffer_9 present;
+    };
+  };
+} np_ffi_OptionalByteBuffer_9;
+
+/**
+ * Represents the contents of a Device Info DE containing the type and name of a device, as well as flag
+ * indicating whether the device name is truncated.
+ *
+ * This representation is stable, and so you may directly
+ * reference this struct's fields if you wish.
+ */
+typedef struct {
+  /**
+   * The numerical value corresponding to a given
+   * form factor, or "0" for the case where the
+   * broadcasting device doesn't know what kind
+   * of device type it is.
+   *
+   * Consult the Nearby spec for values
+   * corresponding to particular form factors.
+   */
+  uint8_t device_type;
+  /**
+   * Boolean flag indicating whether the device name is truncated.
+   */
+  bool is_name_truncated;
+  /**
+   * An optional byte array representing the name of the broadcasting
+   * device. The maximum size of this device name array is 9 bytes.
+   */
+  np_ffi_OptionalByteBuffer_9 device_name;
+} np_ffi_DeviceInfo;
+
+/**
  * Representation of a V0 data element.
  */
 typedef enum {
   NP_FFI_V0_DATA_ELEMENT_TX_POWER,
   NP_FFI_V0_DATA_ELEMENT_ACTIONS,
+  NP_FFI_V0_DATA_ELEMENT_PSM,
+  NP_FFI_V0_DATA_ELEMENT_DEVICE_INFO,
 } np_ffi_V0DataElement_Tag;
 
 typedef struct {
@@ -948,6 +1064,12 @@ typedef struct {
     };
     struct {
       np_ffi_V0Actions actions;
+    };
+    struct {
+      np_ffi_Psm psm;
+    };
+    struct {
+      np_ffi_DeviceInfo device_info;
     };
   };
 } np_ffi_V0DataElement;
@@ -1060,7 +1182,13 @@ typedef struct {
  * permitted to be between 0 and 255.
  */
 typedef struct {
+  /**
+   * The number of bytes in the buffer.
+   */
   uint8_t len;
+  /**
+   * The bytes in the buffer.
+   */
   uint8_t bytes[127];
 } np_ffi_ByteBuffer_127;
 
@@ -1184,7 +1312,13 @@ typedef struct {
  * permitted to be between 0 and 255.
  */
 typedef struct {
+  /**
+   * The number of bytes in the buffer.
+   */
   uint8_t len;
+  /**
+   * The bytes in the buffer.
+   */
   uint8_t bytes[24];
 } np_ffi_ByteBuffer_24;
 
@@ -1285,7 +1419,13 @@ typedef struct {
  * permitted to be between 0 and 255.
  */
 typedef struct {
+  /**
+   * The number of bytes in the buffer.
+   */
   uint8_t len;
+  /**
+   * The bytes in the buffer.
+   */
   uint8_t bytes[250];
 } np_ffi_ByteBuffer_250;
 
@@ -1365,6 +1505,49 @@ typedef struct {
     };
   };
 } np_ffi_SetV0ActionResult;
+
+/**
+ * Action data element
+ */
+typedef struct {
+  uint8_t _0;
+} np_ffi_ActionType;
+
+/**
+ * Result type for attempting to construct a
+ * PSM from two bytes.
+ */
+typedef enum {
+  NP_FFI_BUILD_PSM_RESULT_OUT_OF_RANGE,
+  NP_FFI_BUILD_PSM_RESULT_SUCCESS,
+} np_ffi_BuildPsmResult_Tag;
+
+typedef struct {
+  np_ffi_BuildPsmResult_Tag tag;
+  union {
+    struct {
+      np_ffi_Psm success;
+    };
+  };
+} np_ffi_BuildPsmResult;
+
+/**
+ * Result type for attempting to construct a
+ * ActionType from an usigned byte.
+ */
+typedef enum {
+  NP_FFI_BUILD_ACTION_TYPE_RESULT_OUT_OF_RANGE,
+  NP_FFI_BUILD_ACTION_TYPE_RESULT_SUCCESS,
+} np_ffi_BuildActionTypeResult_Tag;
+
+typedef struct {
+  np_ffi_BuildActionTypeResult_Tag tag;
+  union {
+    struct {
+      np_ffi_ActionType success;
+    };
+  };
+} np_ffi_BuildActionTypeResult;
 
 /**
  * Overrides the global panic handler to be used when NP C FFI calls panic.
@@ -1969,6 +2152,72 @@ np_ffi_SetV0ActionResult np_ffi_V0Actions_set_action(np_ffi_V0Actions actions,
  * integer, where the bit-positions correspond to individual actions.
  */
 uint32_t np_ffi_V0Actions_as_u32(np_ffi_V0Actions actions);
+
+/**
+ * Casts a `V0DataElement` to the `Psm` variant, panicking in the
+ * case where the passed value is of a different enum variant.
+ */
+np_ffi_Psm np_ffi_V0DataElement_into_PSM(np_ffi_V0DataElement de);
+
+/**
+ * Upcasts a Psm DE to a generic V0 data-element.
+ */
+np_ffi_V0DataElement np_ffi_Psm_into_V0DataElement(np_ffi_Psm psm);
+
+/**
+ * Casts a `V0DataElement` to the `DeviceInfo` variant, panicking in the
+ * case where the passed value is of a different enum variant.
+ */
+np_ffi_DeviceInfo np_ffi_V0DataElement_into_DeviceInfo(np_ffi_V0DataElement de);
+
+/**
+ * Upcasts a DeviceInfo DE to a generic V0 data-element.
+ */
+np_ffi_V0DataElement np_ffi_DeviceInfo_into_V0DataElement(np_ffi_DeviceInfo device_info);
+
+/**
+ * Gets the value of the given PSM as a unsigned u16.
+ */
+uint16_t np_ffi_Psm_as_unsigned_u16(np_ffi_Psm psm);
+
+/**
+ * Attempts to construct a new PSM from
+ * the given u16 value.
+ */
+np_ffi_BuildPsmResult np_ffi_Psm_build_from_u16(uint16_t psm);
+
+/**
+ * Gets the tag of a `BuildTxPowerResult` tagged-union.
+ */
+np_ffi_BuildPsmResultKind np_ffi_BuildPsmResult_kind(np_ffi_BuildPsmResult result);
+
+/**
+ * Casts a `BuildPsmResult` to the `Success` variant, panicking in the
+ * case where the passed value is of a different enum variant.
+ */
+np_ffi_Psm np_ffi_BuildPsmResult_into_SUCCESS(np_ffi_BuildPsmResult result);
+
+/**
+ * Gets the tag of a `BuildActionTypeResult` tagged-union.
+ */
+np_ffi_BuildActionTypeResultKind np_ffi_BuildActionTypeResult_kind(np_ffi_BuildActionTypeResult result);
+
+/**
+ * Casts a `BuildActionTypeResult` to the `Success` variant, panicking in the
+ * case where the passed value is of a different enum variant.
+ */
+np_ffi_ActionType np_ffi_BuildActionTypeResult_into_SUCCESS(np_ffi_BuildActionTypeResult result);
+
+/**
+ * Attempts to construct a new ActionType from
+ * the given signed-byte value.
+ */
+np_ffi_BuildActionTypeResult np_ffi_ActionType_build_from_unsigned_byte(uint8_t action_type);
+
+/**
+ * Gets the value of the given ActionType as an unsigned byte.
+ */
+uint8_t np_ffi_ActionType_as_unsigned_byte(np_ffi_ActionType action_type);
 
 /**
  * Extracts the numerical value of the given V1 DE type code as

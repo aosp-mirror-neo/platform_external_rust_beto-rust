@@ -687,6 +687,7 @@ pub(crate) mod proto {
 
     #[cfg(test)]
     #[derive_fuzztest::proptest]
+    #[allow(clippy::unwrap_used)]
     fn typed_crdt_roundtrip(typed_crdt: TypedCrdt<Vec<u8>, String>) {
         let mut node_ids = NodeMapping::default();
         assert_eq!(

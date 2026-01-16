@@ -235,6 +235,31 @@ void HandleDataElement(nearby_protocol::V0DataElement de) {
                 << "\n";
       return;
     }
+    case nearby_protocol::V0DataElementKind::Psm: {
+      std::cout << "\t\t\tDE Type is Psm\n";
+      auto psm = de.AsPsm();
+      std::cout << "\t\t\tPSM: " << std::bitset<16>(psm.GetAsU16())
+                << "\n";
+      return;
+    }
+    case nearby_protocol::V0DataElementKind::DeviceInfo: {
+      std::cout << "\t\t\tDE Type is DeviceInfo\n";
+      auto device_info = de.AsDeviceInfo();
+      std::cout << "\t\t\tDeviceType: "
+                << static_cast<unsigned>(device_info.GetDeviceType()) << "\n";
+      std::cout << "\t\t\tIsNameTruncated: " << device_info.IsNameTruncated()
+                << "\n";
+      auto device_name = device_info.GetDeviceName();
+      if (device_name.tag ==
+          np_ffi::internal::OptionalByteBuffer<9>::Tag::Present) {
+        std::cout << "\t\t\tDeviceName: "
+                  << absl::BytesToHexString(nearby_protocol::ByteBuffer<9>(
+                                                device_name.present._0)
+                                                .ToString())
+                  << "\n";
+      }
+      return;
+    }
   }
 }
 

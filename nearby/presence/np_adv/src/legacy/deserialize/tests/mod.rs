@@ -180,7 +180,7 @@ mod coverage_gaming {
             [0; V0_SALT_LEN].into(),
             ArrayView::try_from_slice(&[]).unwrap(),
         );
-        let _ = format!("{:?}", dac);
+        let _ = format!("{dac:?}");
         assert_eq!(dac, dac)
     }
 

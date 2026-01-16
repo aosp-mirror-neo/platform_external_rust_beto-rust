@@ -193,6 +193,7 @@ mod proto {
 
     #[cfg(test)]
     #[derive_fuzztest::proptest]
+    #[allow(clippy::unwrap_used)]
     fn vector_clock_round_trip(vector_clock: VectorClock<String>) {
         let mut node_ids = NodeMapping::default();
         assert_eq!(

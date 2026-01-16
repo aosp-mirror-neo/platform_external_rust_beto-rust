@@ -15,7 +15,9 @@
 use crypto_provider::CryptoProvider;
 use np_adv::{
     legacy::{
-        data_elements::{actions::*, tx_power::TxPowerDataElement, *},
+        data_elements::{
+            actions::*, device_info::DeviceInfoDataElement, tx_power::TxPowerDataElement, *,
+        },
         serialize::*,
         *,
     },
@@ -128,7 +130,7 @@ impl Display for BoxedAddDataElementError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             BoxedAddDataElementError::UnderlyingError(u) => {
-                write!(f, "{0:?}", u)
+                write!(f, "{u:?}")
             }
             BoxedAddDataElementError::FlavorMismatchError => {
                 write!(f, "Expected packet flavoring for added DEs does not match the actual packet flavor of the DE")
@@ -232,6 +234,12 @@ impl From<TxPower> for ToBoxedSerializeDataElement {
     }
 }
 
+impl From<DeviceInfo> for ToBoxedSerializeDataElement {
+    fn from(data: DeviceInfo) -> Self {
+        ToBoxedSerializeDataElement::Both(Box::new(DeviceInfoDataElement::from(data)))
+    }
+}
+
 impl From<BoxedActionBits> for ToBoxedSerializeDataElement {
     fn from(action_bits: BoxedActionBits) -> Self {
         match action_bits {
@@ -247,19 +255,21 @@ impl From<BoxedActionBits> for ToBoxedSerializeDataElement {
 
 /// Boxed version of `ToActionElement` which allows abstracting over
 /// what packet flavors are supported by a given action.
-pub enum ToBoxedActionElement {
-    /// Action bit for cross device SDK.
-    CrossDevSdk(bool),
-    /// Action bit for call transfer.
-    CallTransfer(bool),
-    /// Action bit for active unlock.
-    ActiveUnlock(bool),
-    /// Action bit for nearby share.
-    NearbyShare(bool),
-    /// Action bit for instant tethering.
-    InstantTethering(bool),
-    /// Action bit for PhoneHub.
-    PhoneHub(bool),
+pub struct ToBoxedActionElement {
+    /// u8 representation of the action element
+    pub action: u8,
+    /// bool value of whether element is active
+    pub value: bool,
+}
+
+impl ActionElement for ToBoxedActionElement {
+    fn high_bit_index(&self) -> u32 {
+        self.action as u32
+    }
+
+    fn bits(&self) -> u8 {
+        self.value as u8
+    }
 }
 
 /// [`ActionBits`] with runtime-determined packet flavoring
@@ -308,7 +318,7 @@ impl BoxedActionBits {
         }
     }
 
-    fn set<F: PacketFlavor, E: ActionElementFlavor<F>>(
+    fn set<F: PacketFlavor, E: ActionElement>(
         action_bits: &mut ActionBits<F>,
         to_element: E,
     ) -> Result<(), BoxedSetActionFlavorError> {
@@ -324,36 +334,8 @@ impl BoxedActionBits {
         to_element: ToBoxedActionElement,
     ) -> Result<(), BoxedSetActionFlavorError> {
         match self {
-            BoxedActionBits::Plaintext(action_bits) => match to_element {
-                ToBoxedActionElement::CrossDevSdk(b) => {
-                    Self::set(action_bits, CrossDevSdk::from(b))
-                }
-                ToBoxedActionElement::NearbyShare(b) => {
-                    Self::set(action_bits, NearbyShare::from(b))
-                }
-                ToBoxedActionElement::CallTransfer(_)
-                | ToBoxedActionElement::ActiveUnlock(_)
-                | ToBoxedActionElement::InstantTethering(_)
-                | ToBoxedActionElement::PhoneHub(_) => Err(BoxedSetActionFlavorError),
-            },
-            BoxedActionBits::Ciphertext(action_bits) => match to_element {
-                ToBoxedActionElement::CrossDevSdk(b) => {
-                    Self::set(action_bits, CrossDevSdk::from(b))
-                }
-                ToBoxedActionElement::CallTransfer(b) => {
-                    Self::set(action_bits, CallTransfer::from(b))
-                }
-                ToBoxedActionElement::ActiveUnlock(b) => {
-                    Self::set(action_bits, ActiveUnlock::from(b))
-                }
-                ToBoxedActionElement::NearbyShare(b) => {
-                    Self::set(action_bits, NearbyShare::from(b))
-                }
-                ToBoxedActionElement::InstantTethering(b) => {
-                    Self::set(action_bits, InstantTethering::from(b))
-                }
-                ToBoxedActionElement::PhoneHub(b) => Self::set(action_bits, PhoneHub::from(b)),
-            },
+            BoxedActionBits::Plaintext(action_bits) => Self::set(action_bits, to_element),
+            BoxedActionBits::Ciphertext(action_bits) => Self::set(action_bits, to_element),
         }
     }
 }

@@ -14,74 +14,65 @@
  * limitations under the License.
  */
 
-import net.ltgt.gradle.errorprone.errorprone;
+import net.ltgt.gradle.errorprone.errorprone
 
 plugins {
-  `java-library`
-  // For static analysis
-  id("net.ltgt.errorprone") version "4.0.0"
+    `java-library`
+    // For static analysis
+    id("net.ltgt.errorprone") version "4.3.0"
 }
 
 java {
-  // Gradle JUnit test finder doesn't support Java 21 class files.
-  sourceCompatibility = JavaVersion.VERSION_1_9
-  targetCompatibility = JavaVersion.VERSION_1_9
+    // Gradle JUnit test finder doesn't support Java 21 class files.
+    sourceCompatibility = JavaVersion.VERSION_1_9
+    targetCompatibility = JavaVersion.VERSION_1_9
 }
 
 repositories {
-  mavenCentral()
-  google()
+    mavenCentral()
+    google()
 }
 
 dependencies {
-  // Static analysis annnotations
-  implementation("androidx.annotation:annotation:1.6.0")
-  implementation("com.google.errorprone:error_prone_core:2.28.0")
-  implementation("org.checkerframework:checker-qual:3.45.0")
+    // Static analysis annnotations
+    implementation("androidx.annotation:annotation:1.6.0")
+    implementation("com.google.errorprone:error_prone_annotations:2.41.0")
+    errorprone("com.google.errorprone:error_prone_core:2.41.0")
+    implementation("org.checkerframework:checker-qual:3.45.0")
+    implementation("com.google.guava:failureaccess:1.0.3")
 
-  // Local dependencies
-  implementation(project(":cooperative_cleaner"))
+    // Local dependencies
+    implementation(project(":cooperative_cleaner"))
 
-  // JUnit Test Support
-  testImplementation("junit:junit:4.13")
-  testImplementation("com.google.truth:truth:1.1.4")
-  testImplementation("com.google.code.gson:gson:2.10.1")
-  testImplementation("org.mockito:mockito-core:5.+")
+    // JUnit Test Support
+    testImplementation("junit:junit:4.13")
+    testImplementation("com.google.truth:truth:1.1.4")
+    testImplementation("com.google.code.gson:gson:2.10.1")
+    testImplementation("org.mockito:mockito-core:5.+")
 }
 
 // Flattened directory layout
 sourceSets {
-  main {
-    java {
-      setSrcDirs(listOf("java"))
-    }
-  }
-  test {
-    java {
-      setSrcDirs(listOf("test"))
-    }
-  }
+    main { java { setSrcDirs(listOf("java")) } }
+    test { java { setSrcDirs(listOf("test")) } }
 }
 
 tasks.test {
-  useJUnit()
-  jvmArgs = mutableListOf(
-      // libnp_java_ffi.so
-      // This is the Cargo workspace's build output directory
-      "-Djava.library.path=$projectDir/../../target/debug",
-      // ByteBuddy agent for mocks
-      "-XX:+EnableDynamicAgentLoading"
-  )
+    useJUnit()
+    jvmArgs =
+            mutableListOf(
+                    // libnp_java_ffi.so
+                    // This is the Cargo workspace's build output directory
+                    "-Djava.library.path=$projectDir/../../target/debug",
+                    // ByteBuddy agent for mocks
+                    "-XX:+EnableDynamicAgentLoading"
+            )
 }
 
 buildscript {
-    repositories {
-        mavenCentral()
-    }
+    repositories { mavenCentral() }
     dependencies {
-        classpath("com.guardsquare:proguard-gradle:7.7.0") {
-            exclude("com.android.tools.build")
-        }
+        classpath("com.guardsquare:proguard-gradle:7.7.0") { exclude("com.android.tools.build") }
     }
 }
 
@@ -112,38 +103,39 @@ tasks.register<Copy>("unzipProguardedTestsJar") {
 }
 
 tasks.register<Test>("proguardedTest") {
-  useJUnit()
-  jvmArgs = mutableListOf(
-      // libnp_java_ffi.so
-      // This is the Cargo workspace's build output directory
-      "-Djava.library.path=$projectDir/../../target/debug",
-      // ByteBuddy agent for mocks
-      "-XX:+EnableDynamicAgentLoading"
-  )
-  // Ignore the usual built classes
-  classpath -= files("build/classes/java/main")
-  classpath -= files("build/classes/java/test")
-  // Use the proguarded classes instead
-  classpath += files("build/libs/unzippedproguardedtests")
-  dependsOn("unzipProguardedTestsJar")
-  // Exclude test-vector checks, since that
-  // uses reflection, which won't play nice with proguard.
-  exclude("**/*TestVectors*")
+    useJUnit()
+    jvmArgs =
+            mutableListOf(
+                    // libnp_java_ffi.so
+                    // This is the Cargo workspace's build output directory
+                    "-Djava.library.path=$projectDir/../../target/debug",
+                    // ByteBuddy agent for mocks
+                    "-XX:+EnableDynamicAgentLoading"
+            )
+    // Ignore the usual built classes
+    classpath -= files("build/classes/java/main")
+    classpath -= files("build/classes/java/test")
+    // Use the proguarded classes instead
+    classpath += files("build/libs/unzippedproguardedtests")
+    dependsOn("unzipProguardedTestsJar")
+    // Exclude test-vector checks, since that
+    // uses reflection, which won't play nice with proguard.
+    exclude("**/*TestVectors*")
 }
 
 tasks.withType<JavaCompile>().configureEach {
-  // Configure static analysis passes to match g3 if possible
-  options.errorprone {
-    error("CheckReturnValue")
-    error("UnnecessaryStaticImport")
-    error("WildcardImport")
-    error("RemoveUnusedImports")
-    error("ReturnMissingNullable")
-    error("FieldMissingNullable")
-    error("AnnotationPosition")
-    error("CheckedExceptionNotThrown")
-    error("NonFinalStaticField")
-    error("InvalidLink")
-    error("ThrowsUncheckedException")
-  }
+    // Configure static analysis passes to match g3 if possible
+    options.errorprone {
+        error("CheckReturnValue")
+        error("UnnecessaryStaticImport")
+        error("WildcardImport")
+        error("RemoveUnusedImports")
+        error("ReturnMissingNullable")
+        error("FieldMissingNullable")
+        error("AnnotationPosition")
+        error("CheckedExceptionNotThrown")
+        error("NonFinalStaticField")
+        error("InvalidLink")
+        error("ThrowsUncheckedException")
+    }
 }

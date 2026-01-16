@@ -124,4 +124,6 @@ impl DeEncodedLength {
 pub(in crate::legacy) enum DataElementType {
     TxPower,
     Actions,
+    Psm,
+    DeviceInfo,
 }

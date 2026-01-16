@@ -16,7 +16,8 @@ mod unencrypted_encoder {
     use alloc::vec;
 
     use crate::header::VERSION_HEADER_V0_UNENCRYPTED;
-    use crate::legacy::data_elements::actions::{ActionBits, ActionsDataElement, NearbyShare};
+    use crate::legacy::data_elements::actions::tests::NEARBY_SHARE;
+    use crate::legacy::data_elements::actions::{ActionBits, ActionsDataElement};
     use crate::legacy::data_elements::tx_power::TxPowerDataElement;
     use crate::legacy::serialize::tests::helpers::{LongDataElement, ShortDataElement};
     use crate::legacy::serialize::{AdvBuilder, UnencryptedEncoder};
@@ -80,7 +81,7 @@ mod unencrypted_encoder {
         builder.add_data_element(TxPowerDataElement::from(TxPower::try_from(3).unwrap())).unwrap();
 
         let mut action = ActionBits::default();
-        action.set_action(NearbyShare::from(true));
+        action.set_action(NEARBY_SHARE);
         builder.add_data_element(ActionsDataElement::from(action)).unwrap();
 
         let packet = builder.into_advertisement().unwrap();
@@ -106,8 +107,8 @@ mod ldt_encoder {
 
     use crate::credential::v0::V0BroadcastCredential;
     use crate::header::VERSION_HEADER_V0_LDT;
-    use crate::legacy::data_elements::actions::tests::LastBit;
-    use crate::legacy::data_elements::actions::{ActionBits, ActionsDataElement, PhoneHub};
+    use crate::legacy::data_elements::actions::tests::{LastBit, PHONE_HUB};
+    use crate::legacy::data_elements::actions::{ActionBits, ActionsDataElement};
     use crate::legacy::data_elements::tx_power::TxPowerDataElement;
     use crate::legacy::serialize::tests::helpers::ShortDataElement;
     use crate::legacy::serialize::{AdvBuilder, LdtEncoder, SerializedAdv};
@@ -162,7 +163,7 @@ mod ldt_encoder {
                 .add_data_element(TxPowerDataElement::from(TxPower::try_from(3).unwrap()))
                 .unwrap();
             let mut action = ActionBits::default();
-            action.set_action(PhoneHub::from(true));
+            action.set_action(PHONE_HUB);
             builder.add_data_element(ActionsDataElement::from(action)).unwrap();
         });
     }

@@ -12,12 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::class::{
+    v0_data_element::{Psm, TxPower, V0Actions},
+    InsufficientSpaceException, InvalidDataElementException, InvalidHandleException,
+    LdtEncryptionException, NoSpaceLeftException, UnencryptedSizeException, V0BroadcastCredential,
+};
 use handle_map::{Handle, HandleLike};
 use jni::{
     objects::{JByteArray, JClass, JObject},
     sys::jlong,
     JNIEnv,
 };
+use np_ffi_core::common::BuildPsmResult;
 use np_ffi_core::{
     common::BuildTxPowerResult,
     serialize::v0::{
@@ -28,12 +34,6 @@ use np_ffi_core::{
     v0::V0DataElement,
 };
 use pourover::{desc::ClassDesc, jni_method};
-
-use crate::class::{
-    v0_data_element::{TxPower, V0Actions},
-    InsufficientSpaceException, InvalidDataElementException, InvalidHandleException,
-    LdtEncryptionException, NoSpaceLeftException, UnencryptedSizeException, V0BroadcastCredential,
-};
 
 static V0_BUILDER_HANDLE_CLASS: ClassDesc = ClassDesc::new(
     "com/google/android/nearby/presence/rust/V0AdvertisementBuilder$V0BuilderHandle",
@@ -172,6 +172,36 @@ extern "system" fn add_tx_power_de<'local>(
         }
     };
     let Ok(()) = this.add_de(&mut env, V0DataElement::TxPower(tx_power)) else {
+        // `crate jni` should have already thrown
+        return;
+    };
+}
+
+#[jni_method(
+    package = "com.google.android.nearby.presence.rust",
+    class = "V0AdvertisementBuilder.V0BuilderHandle",
+    method_name = "nativeAddPsmDataElement"
+)]
+extern "system" fn add_psm_de<'local>(
+    mut env: JNIEnv<'local>,
+    this: V0BuilderHandle<JObject<'local>>,
+    psm: Psm<JObject<'local>>,
+) {
+    let psm = match psm.get_as_core(&mut env) {
+        Ok(BuildPsmResult::Success(psm)) => psm,
+        Ok(BuildPsmResult::OutOfRange) => {
+            let _ = env
+                .new_string("PSM value out of range")
+                .map(|string| env.auto_local(string))
+                .and_then(|string| InvalidDataElementException::throw_new(&mut env, &string));
+            return;
+        }
+        Err(_jni_err) => {
+            // `crate jni` should have already thrown
+            return;
+        }
+    };
+    let Ok(()) = this.add_de(&mut env, V0DataElement::Psm(psm)) else {
         // `crate jni` should have already thrown
         return;
     };

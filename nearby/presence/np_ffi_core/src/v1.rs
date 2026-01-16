@@ -16,7 +16,8 @@
 //! serialization+deserialization flows.
 
 use crate::common::{
-    ByteBuffer, FixedSizeArray, InvalidStackDataStructure, OptionalFixedSizeArray, TxPower,
+    ByteBuffer, DeviceInfo, FixedSizeArray, InvalidStackDataStructure, OptionalFixedSizeArray,
+    TxPower,
 };
 use crate::utils::FfiEnum;
 
@@ -129,6 +130,8 @@ pub enum V1DataElementKind {
     Capabilities = 9,
     /// A Requirements DE.
     Requirements = 10,
+    /// A Device Info DE.
+    DeviceInfo = 11,
 }
 
 /// A V1 data element, which may be a "generic" data element
@@ -149,6 +152,7 @@ pub enum V1DataElement {
     MediaDeduplicationId(MediaDeduplicationId),
     Capabilities(Capabilities),
     Requirements(Requirements),
+    DeviceInfo(DeviceInfo),
 }
 
 impl FfiEnum for V1DataElement {
@@ -166,6 +170,7 @@ impl FfiEnum for V1DataElement {
             Self::MediaDeduplicationId(_) => V1DataElementKind::MediaDeduplicationId,
             Self::Capabilities(_) => V1DataElementKind::Capabilities,
             Self::Requirements(_) => V1DataElementKind::Requirements,
+            Self::DeviceInfo(_) => V1DataElementKind::DeviceInfo,
         }
     }
 }
@@ -182,6 +187,7 @@ impl V1DataElement {
     declare_enum_cast! {into_media_deduplication_id, MediaDeduplicationId, MediaDeduplicationId}
     declare_enum_cast! {into_capabilities, Capabilities, Capabilities}
     declare_enum_cast! {into_requirements, Requirements, Requirements}
+    declare_enum_cast! {into_device_info, DeviceInfo, DeviceInfo}
 }
 
 /// Represents the contents of a V1 Actions DE as a bitmap
@@ -420,22 +426,17 @@ pub enum OptionalIpAddressKind {
 }
 
 /// An optional IPv4 or IPv6 address, represented by big-endian bytes.
+#[derive(Clone, Default)]
 #[repr(C)]
 #[cfg_attr(any(test, feature = "testing"), derive(Debug, PartialEq, Eq, arbitrary::Arbitrary))]
-#[derive(Clone)]
 pub enum OptionalIpAddress {
     /// No IP address specified.
+    #[default]
     NotPresent,
     /// An IPv4 address (4 bytes).
     IPv4(FixedSizeArray<4>),
     /// An IPv6 address (16 bytes).
     IPv6(FixedSizeArray<16>),
-}
-
-impl Default for OptionalIpAddress {
-    fn default() -> Self {
-        Self::NotPresent
-    }
 }
 
 impl FfiEnum for OptionalIpAddress {

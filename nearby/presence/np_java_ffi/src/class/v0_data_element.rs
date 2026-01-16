@@ -69,6 +69,41 @@ impl<'local, Obj: AsRef<JObject<'local>>> TxPower<Obj> {
     }
 }
 
+static PSM_CLASS: ClassDesc =
+    ClassDesc::new("com/google/android/nearby/presence/rust/V0DataElement$Psm");
+
+/// Rust representation of `class V0DataElement.Psm`.
+#[repr(transparent)]
+pub struct Psm<Obj>(pub Obj);
+
+impl<'local> Psm<JObject<'local>> {
+    /// Create a new PSM date element with the given `psm`.
+    pub fn construct(env: &mut JNIEnv<'local>, psm: jint) -> jni::errors::Result<Self> {
+        pourover::call_constructor!(env, &PSM_CLASS, "(I)V", psm).map(Self)
+    }
+}
+
+impl<'local, Obj: AsRef<JObject<'local>>> Psm<Obj> {
+    /// Gets the value of the `int txPower` field.
+    pub fn get_psm<'env_local>(&self, env: &mut JNIEnv<'env_local>) -> jni::errors::Result<jint> {
+        static PSM_FIELD: FieldDesc = PSM_CLASS.field("psm", "I");
+        env.get_field_unchecked(self.0.as_ref(), &PSM_FIELD, ReturnType::Primitive(Primitive::Int))
+            .and_then(|ret| ret.i())
+    }
+
+    /// Get the `np_ffi_core` representation of this data element.
+    pub fn get_as_core<'env>(
+        &self,
+        env: &mut JNIEnv<'env>,
+    ) -> jni::errors::Result<common::BuildPsmResult> {
+        let psm = self.get_psm(env)?;
+        let Ok(value) = u16::try_from(psm) else {
+            return Ok(common::BuildPsmResult::OutOfRange);
+        };
+        Ok(common::Psm::build_from_unsigned_bytes(value))
+    }
+}
+
 static V0_ACTIONS_CLASS: ClassDesc =
     ClassDesc::new("com/google/android/nearby/presence/rust/V0DataElement$V0Actions");
 

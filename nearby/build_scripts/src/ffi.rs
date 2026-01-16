@@ -25,6 +25,8 @@ pub(crate) fn check_all_ffi(
     check_np_ffi_cmake(root, cargo_options, boringssl_enabled)?;
     check_ldt_cmake(root, cargo_options, boringssl_enabled)?;
     check_ukey2_cmake(root, cargo_options, boringssl_enabled)?;
+    #[cfg(not(target_os = "linux"))]
+    check_quick_share_ffi(root, cargo_options)?;
     Ok(())
 }
 
@@ -117,6 +119,32 @@ pub(crate) fn check_ukey2_cmake(
         "cmake --build . --target ukey2_ffi_test",
     )?;
     run_cmd_shell_with_color::<YellowStderr>(&test_dir, "ctest")?;
+    Ok(())
+}
+
+pub(crate) fn check_quick_share_ffi(
+    root: &path::Path,
+    cargo_options: &CargoOptions,
+) -> anyhow::Result<()> {
+    log::info!("Checking that the Quick Share FFI crate builds for various platforms");
+
+    run_cmd_shell(root, "cargo build -p quick_share_ffi --quiet")?;
+
+    for platform in &cargo_options.platforms {
+        let features = if platform.contains("ios") {
+            vec!["--features quick_share_service/short_fast_init"]
+        } else {
+            vec![]
+        };
+        run_cmd_shell(
+            root,
+            format!(
+                "cargo build -p quick_share_ffi --target {platform} --quiet {}",
+                &features.join(" ")
+            ),
+        )?;
+    }
+
     Ok(())
 }
 

@@ -1,0 +1,20 @@
+[package]
+name = "generate_token"
+description = "Binary to generate a serialized token CBOR file."
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+clap.workspace = true
+coset.workspace = true
+crypto_provider = { workspace = true, features = ["raw_private_key_permit"] }
+crypto_provider_default = { workspace = true, features = ["rustcrypto"] }
+ed25519-dalek.workspace = true
+hex.workspace = true
+trust_token = { workspace = true, features = ["create"] }
+
+[[bin]]
+name = "generate_token"
