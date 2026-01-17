@@ -14,6 +14,7 @@ rust_library_rlib {
     name: "libcrypto_provider",
     crate_name: "crypto_provider",
     defaults: ["beto_rust_defaults"],
+    visibility: ["//external/rust/beto-rust:__subpackages__"],
     srcs: ["crypto/crypto_provider/src/lib.rs"],
     features: [
         "std",
@@ -44,6 +45,7 @@ rust_library_rlib {
     defaults: ["beto_rust_defaults"],
     srcs: ["crypto/crypto_provider_default/src/lib.rs"],
     features: ["boringssl"],
+    visibility: ["//external/rust/beto-rust:__subpackages__"],
     rustlibs: [
         "libcfg_if",
         "libcrypto_provider",
