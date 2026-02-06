@@ -62,3 +62,19 @@ java_library_static {
         "checker-qual",
     ],
 }
+
+rust_library_rlib {
+    name: "libstorage_beto",
+    crate_name: "storage",
+    defaults: ["beto_rust_defaults"],
+    host_supported: false,
+    srcs: ["storage/src/lib.rs"],
+    rustlibs: [
+        "liblog_rust",
+        "librusqlite",
+        "libserde",
+        "libserde_json",
+        "libthiserror",
+    ],
+    proc_macros: ["libserde_derive"],
+}
