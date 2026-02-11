@@ -1,4 +1,4 @@
-// Copyright (C) 2023 The Android Open Source Project
+// Copyright 2023 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -28,8 +28,13 @@ impl PreferenceKeyValueStorage for UserDefaultStorage {
     // SAFETY: Only using generated functions on NSUserDefaults,and `Retained` is ref-counted,
     // so it gets dropped at the end of this function.
     fn set<K: Key>(&self, value: K::Value) -> Result<(), StorageError> {
+        #[cfg(not(feature = "blaze"))]
         let storage = NSUserDefaults::standardUserDefaults();
+        #[cfg(feature = "blaze")]
+        // SAFETY: NSUserDefaults is a singleton, and the standardUserDefaults is thread-safe.
+        let storage = unsafe { NSUserDefaults::standardUserDefaults() };
         let key = NSString::from_str(K::KEY);
+        // SAFETY: ValueType::to_nsobject is a generated function, and is safe to call.
         unsafe { storage.setObject_forKey(Some(&value.to_nsobject(Token)), &key) };
         Ok(())
     }
@@ -37,9 +42,17 @@ impl PreferenceKeyValueStorage for UserDefaultStorage {
     // SAFETY: Only using generated functions on NSUserDefaults,and `Retained` is ref-counted,
     // so it gets dropped at the end of this function.
     fn get<K: Key>(&self) -> Option<K::Value> {
+        #[cfg(not(feature = "blaze"))]
         let storage = NSUserDefaults::standardUserDefaults();
+        #[cfg(feature = "blaze")]
+        // SAFETY: NSUserDefaults is a singleton, and the standardUserDefaults is thread-safe.
+        let storage = unsafe { NSUserDefaults::standardUserDefaults() };
         let key = NSString::from_str(K::KEY);
+        #[cfg(not(feature = "blaze"))]
         let object = storage.objectForKey(&key)?;
+        #[cfg(feature = "blaze")]
+        // SAFETY: ValueType::try_from_nsobject is a generated function, and is safe to call.
+        let object = unsafe { storage.objectForKey(&key)? };
         let nsobject = object.downcast_ref::<NSObject>()?;
 
         K::Value::try_from_nsobject(nsobject, Token).ok()

@@ -1,0 +1,45 @@
+// Copyright 2025 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+//
+// you may not use this file except in compliance with the License.
+//
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+//
+// distributed under the License is distributed on an "AS IS" BASIS,
+//
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//
+// See the License for the specific language governing permissions and
+//
+// limitations under the License.
+//
+//
+
+//! This crate is responsible for interacting with the native platform to retrieve specific information about the local machine state.
+
+use api::DeviceType;
+
+use crate::api::{DeviceState, SettingsError};
+/// API for the device information we're specifically interested in.
+pub mod api;
+mod platform;
+
+/// Gets a handle to a [api::DeviceState] instance.
+pub fn get() -> Result<Box<dyn DeviceState>, SettingsError> {
+    platform::get()
+}
+
+/// Returns the current device name.
+pub fn device_name() -> String {
+    platform::device_name()
+}
+
+/// Returns the current device type.
+pub fn device_type() -> DeviceType {
+    platform::device_type()
+}
