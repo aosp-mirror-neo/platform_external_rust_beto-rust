@@ -8,8 +8,8 @@ package {
     //   SPDX-license-identifier-Unlicense
     default_visibility: [
         ":__subpackages__",
-        "//frameworks/base/services/core/java/com/android/server/security/talisman:__subpackages__",
-        "//frameworks/base/services/tests/security/talisman:__subpackages__",
+        "//frameworks/base/services/core/java/com/android/server/security/trusttoken:__subpackages__",
+        "//frameworks/base/services/tests/security/trusttoken:__subpackages__",
         "//frameworks/base/services/core:__pkg__",
         "//frameworks/base/services:__pkg__",
     ],
