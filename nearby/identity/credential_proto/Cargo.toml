@@ -1,0 +1,22 @@
+[package]
+name = "credential_proto"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[dependencies]
+protobuf = "3.7.2"
+identity_common.workspace = true
+
+[build-dependencies]
+protobuf-codegen = "3.7.2"
+
+[dev-dependencies]
+diff = "0.1.13"
+
+[features]
+default = ["cargo"]
+cargo = []
+blaze = []
+soong = []

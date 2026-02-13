@@ -39,3 +39,4 @@ workspace = true
 
 [features]
 test-fake = []
+blaze = []
