@@ -54,4 +54,12 @@ rust_defaults {
         "//apex_available:platform",
         "//apex_available:anyapex",
     ],
+    flags: [
+        "-C",
+        "opt-level=z",
+        "-C",
+        "lto=true",
+        "-C",
+        "panic=abort",
+    ],
 }

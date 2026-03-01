@@ -50,6 +50,7 @@ rust_library_rlib {
 rust_protobuf {
     name: "libsubmerge_internal_proto_proto",
     crate_name: "submerge_internal_proto_proto",
+    defaults: ["beto_rust_defaults"],
     protos: ["submerge/submerge_internal_proto/proto/submerge.proto"],
     source_stem: "submerge_internal_proto_proto",
     host_supported: true,
@@ -124,9 +125,12 @@ rust_ffi_shared {
         "libparking_lot",
         "libanyhow",
     ],
-    prefer_rlib: true,
+    prefer_rlib: false,
     compile_multilib: "first",
     visibility: ["//visibility:public"],
+    strip: {
+        all: true,
+    },
 }
 
 java_library_static {
@@ -145,4 +149,36 @@ java_library_static {
     required: [
         "submerge_java_shared",
     ],
+}
+
+// Static variant of submerge lib which statically links all its dependencies for testing usage.
+rust_ffi_shared {
+    name: "submerge_java_static_jni",
+    stem: "libsubmerge_java",
+    crate_name: "submerge_java",
+    srcs: ["submerge/submerge_java/src/lib.rs"],
+    features: [
+        "default",
+    ],
+    rlibs: [
+        "libsubmerge",
+        "libsubmerge_internal_proto",
+        "libcrdt",
+        "libdistributed_time",
+        "libarbitrary",
+        "libthiserror",
+        "liblog_rust",
+        "libjni",
+        "libprotobuf",
+        "libpourover",
+        "libhandle_map",
+        "libparking_lot",
+        "libanyhow",
+    ],
+    prefer_rlib: true,
+    installable: false,
+    lto: {
+        thin: false,
+    },
+    visibility: ["//visibility:public"],
 }
