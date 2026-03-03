@@ -10,10 +10,27 @@ package {
     default_applicable_licenses: ["external_rust_beto-rust_license"],
 }
 
+rust_defaults {
+    name: "submerge_rust_defaults",
+    defaults: ["beto_rust_defaults"],
+    flags: [
+        "-C",
+        "opt-level=z",
+        "-C",
+        "lto=true",
+        "-C",
+        "panic=abort",
+        "-C",
+        "codegen-units=1",
+        "-Z",
+        "location-detail=none",
+    ],
+}
+
 rust_library_rlib {
     name: "libcrdt",
     crate_name: "crdt",
-    defaults: ["beto_rust_defaults"],
+    defaults: ["submerge_rust_defaults"],
     srcs: ["submerge/crdt/src/lib.rs"],
     features: [
         "default",
@@ -35,7 +52,7 @@ rust_library_rlib {
 rust_library_rlib {
     name: "libsubmerge_internal_proto",
     crate_name: "submerge_internal_proto",
-    defaults: ["beto_rust_defaults"],
+    defaults: ["submerge_rust_defaults"],
     srcs: ["submerge/submerge_internal_proto/src/lib.rs"],
     features: [
         "default",
@@ -50,7 +67,7 @@ rust_library_rlib {
 rust_protobuf {
     name: "libsubmerge_internal_proto_proto",
     crate_name: "submerge_internal_proto_proto",
-    defaults: ["beto_rust_defaults"],
+    defaults: ["submerge_rust_defaults"],
     protos: ["submerge/submerge_internal_proto/proto/submerge.proto"],
     source_stem: "submerge_internal_proto_proto",
     host_supported: true,
@@ -59,7 +76,7 @@ rust_protobuf {
 rust_library_rlib {
     name: "libdistributed_time",
     crate_name: "distributed_time",
-    defaults: ["beto_rust_defaults"],
+    defaults: ["submerge_rust_defaults"],
     srcs: ["submerge/distributed_time/src/lib.rs"],
     features: [
         "default",
@@ -80,7 +97,7 @@ rust_library_rlib {
 rust_library_rlib {
     name: "libsubmerge",
     crate_name: "submerge",
-    defaults: ["beto_rust_defaults"],
+    defaults: ["submerge_rust_defaults"],
     srcs: ["submerge/submerge/src/lib.rs"],
     features: [
         "default",
@@ -105,7 +122,7 @@ rust_ffi_shared {
     name: "submerge_java_shared",
     stem: "libsubmerge_java",
     crate_name: "submerge_java",
-    defaults: ["beto_rust_defaults"],
+    defaults: ["submerge_rust_defaults"],
     srcs: ["submerge/submerge_java/src/lib.rs"],
     features: [
         "default",
