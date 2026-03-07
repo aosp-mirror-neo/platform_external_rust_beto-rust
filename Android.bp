@@ -61,5 +61,7 @@ rust_defaults {
         "lto=true",
         "-C",
         "panic=abort",
+        "-C",
+        "codegen-units=1",
     ],
 }
