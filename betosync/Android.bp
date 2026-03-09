@@ -198,4 +198,5 @@ rust_ffi_shared {
         thin: false,
     },
     visibility: ["//visibility:public"],
+    compile_multilib: "both",
 }
