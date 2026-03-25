@@ -58,8 +58,10 @@ java_library_static {
     ],
     host_supported: true,
     static_libs: [
-        "androidx.annotation_annotation",
         "checker-qual",
+    ],
+    libs: [
+        "androidx.annotation_annotation",
     ],
 }
 
