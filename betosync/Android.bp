@@ -156,8 +156,10 @@ java_library_static {
         "submerge/submerge_java/lib/src/main/java/**/*.java",
     ],
     host_supported: true,
-    static_libs: [
+    libs: [
         "androidx.annotation_annotation",
+    ],
+    static_libs: [
         "coorporative_cleaner",
         "error_prone_annotations",
         "jsr305",
